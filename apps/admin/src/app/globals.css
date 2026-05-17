@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --radius: 0.5rem;
+  --background: #070b14;
+  --foreground: #e5e7eb;
+  --card: rgba(15, 25, 45, 0.65);
+  --border: rgba(255, 255, 255, 0.06);
+  --primary: #3b82f6;
+  --muted-foreground: #9ca3af;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --destructive: #f87171;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+.panel {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.glass-nav {
+  background: rgba(7, 11, 20, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+.data-row-hover:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.shell-bg {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.08), transparent),
+    var(--background);
+}

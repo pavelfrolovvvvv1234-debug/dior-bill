@@ -1,0 +1,155 @@
+{
+  "nav": {
+    "overview": "Обзор",
+    "selectPlan": "Выбор тарифа",
+    "myServices": "Мои услуги",
+    "billing": "Биллинг",
+    "affiliate": "Партнёрка",
+    "support": "Поддержка",
+    "settings": "Настройки",
+    "promoCodes": "Промокоды"
+  },
+  "controlNav": {
+    "dashboard": "Дашборд",
+    "users": "Пользователи",
+    "services": "Услуги",
+    "payments": "Платежи",
+    "billing": "Биллинг",
+    "support": "Тикеты",
+    "infrastructure": "Инфраструктура",
+    "promo": "Промокоды",
+    "referrals": "Рефералы",
+    "security": "Безопасность",
+    "audit": "Аудит",
+    "analytics": "Аналитика",
+    "notifications": "Рассылки",
+    "statistics": "Статистика",
+    "openPanel": "Открыть DIOR CONTROL →"
+  },
+  "promo": {
+    "title": "Промокод",
+    "description": "Введите код — бонус зачислится на баланс.",
+    "codeLabel": "Код",
+    "apply": "Применить",
+    "checking": "Проверка…",
+    "enterCode": "Введите промокод",
+    "errorDefault": "Не удалось применить промокод",
+    "close": "Закрыть",
+    "successTitle": "Промокод активирован",
+    "successMessage": "Промокод успешно применён. Сумма зачислена на баланс.",
+    "done": "Готово"
+  },
+  "purchase": {
+    "successTitle": "Поздравляем с покупкой!",
+    "successMessage": "Заказ оформлен. Перейдите в «Мои услуги», чтобы получить информацию о вашей услуге.",
+    "goToServices": "Мои услуги",
+    "close": "Закрыть"
+  },
+  "toast": {
+    "close": "Закрыть",
+    "insufficientBalance": {
+      "title": "Недостаточно средств на балансе",
+      "description": "Пополните кошелёк, чтобы оформить услугу.",
+      "action": "Пополнить баланс"
+    }
+  },
+  "settings": {
+    "title": "Настройки",
+    "subtitle": "Безопасность, интеграции и API",
+    "nav": {
+      "account": "Аккаунт",
+      "accountDesc": "Профиль, email, пароль",
+      "security": "Безопасность",
+      "securityDesc": "Пароль и 2FA",
+      "integrations": "Интеграции",
+      "integrationsDesc": "Telegram и уведомления",
+      "localization": "Локализация",
+      "localizationDesc": "Язык интерфейса",
+      "api": "API доступ",
+      "apiDesc": "Ключи реселлера"
+    },
+    "account": {
+      "profile": "Профиль",
+      "displayName": "Имя",
+      "email": "Email",
+      "save": "Сохранить",
+      "password": "Смена пароля",
+      "currentPassword": "Текущий пароль",
+      "newPassword": "Новый пароль",
+      "confirmPassword": "Подтвердите пароль",
+      "updatePassword": "Обновить пароль",
+      "sessions": "Активные сессии",
+      "revoke": "Завершить",
+      "loginHistory": "История входов"
+    },
+    "security": {
+      "passwordTitle": "Пароль",
+      "twoFactorTitle": "Двухфакторная аутентификация",
+      "twoFactorOn": "Включена",
+      "twoFactorOff": "Выключена",
+      "enable2fa": "Включить 2FA",
+      "disable2fa": "Отключить 2FA",
+      "step1": "Сканируйте QR-код",
+      "step2": "Введите код из приложения",
+      "recoveryCodes": "Коды восстановления",
+      "regenerateCodes": "Новые коды",
+      "confirmReauth": "Подтвердите текущим паролем"
+    },
+    "integrations": {
+      "telegram": "Telegram",
+      "connected": "Привязан",
+      "notConnected": "Не привязан",
+      "connect": "Привязать Telegram",
+      "unlink": "Отвязать",
+      "billingAlerts": "Биллинг",
+      "abuseAlerts": "Abuse",
+      "statusAlerts": "Статус серверов"
+    },
+    "localization": {
+      "language": "Язык интерфейса",
+      "languageHint": "Применяется без перезагрузки"
+    },
+    "api": {
+      "keys": "API ключи",
+      "createKey": "Создать API ключ",
+      "label": "Название",
+      "labelPlaceholder": "например, billing-bot",
+      "permissions": "Права",
+      "revoke": "Отозвать",
+      "rotate": "Ротация",
+      "copyOnce": "Скопируйте сейчас — показывается один раз",
+      "rateLimit": "Лимиты запросов",
+      "requestsToday": "Запросов сегодня",
+      "auditLog": "Журнал API",
+      "soonBadge": "Скоро",
+      "soonLead": "Reseller API и автопровижнинг — в ближайшем релизе.",
+      "soonKeysDesc": "Превью панели управления. Ключи пока не выдаются.",
+      "soonKeyHint": "Секрет показывается один раз после создания",
+      "soonToastTitle": "API доступ — скоро",
+      "soonToastDesc": "Ключи реселлера, webhooks и audit log появятся в следующем обновлении.",
+      "soonFeatureKeys": "Ключи с правами",
+      "soonFeatureKeysDesc": "Права на VPS, биллинг, CDN и домены.",
+      "soonFeatureHooks": "Webhooks",
+      "soonFeatureHooksDesc": "События: создание, suspend, оплата инвойса.",
+      "soonFeatureReseller": "Для реселлеров",
+      "soonFeatureResellerDesc": "Мульти-тенант и суб-аккаунты.",
+      "soonRoadmapTitle": "В разработке",
+      "soonRoadmap1": "Создание, ротация и отзыв с подтверждением пароля",
+      "soonRoadmap2": "Лимиты и статистика по ключам",
+      "soonRoadmap3": "Полный audit log с IP и временем",
+      "soonRoadmap4": "Автопровижнинг через REST API",
+      "soonNotify": "Понятно"
+    },
+    "logout": {
+      "title": "Выход",
+      "hint": "Завершить сессию на этом устройстве",
+      "button": "Выйти"
+    },
+    "common": {
+      "cancel": "Отмена",
+      "confirm": "Подтвердить",
+      "saved": "Сохранено",
+      "error": "Ошибка"
+    }
+  }
+}

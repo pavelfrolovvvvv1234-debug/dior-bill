@@ -1,0 +1,155 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "selectPlan": "Select Plan",
+    "myServices": "My Services",
+    "billing": "Billing",
+    "affiliate": "Affiliate",
+    "support": "Support",
+    "settings": "Settings",
+    "promoCodes": "Promo codes"
+  },
+  "controlNav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "services": "Services",
+    "payments": "Payments",
+    "billing": "Billing",
+    "support": "Tickets",
+    "infrastructure": "Infrastructure",
+    "promo": "Promo codes",
+    "referrals": "Referrals",
+    "security": "Security",
+    "audit": "Audit log",
+    "analytics": "Analytics",
+    "notifications": "Notifications",
+    "statistics": "Statistics",
+    "openPanel": "Open DIOR CONTROL →"
+  },
+  "promo": {
+    "title": "Promo code",
+    "description": "Enter a code — the bonus will be credited to your balance.",
+    "codeLabel": "Code",
+    "apply": "Apply",
+    "checking": "Checking…",
+    "enterCode": "Enter a promo code",
+    "errorDefault": "Could not apply promo code",
+    "close": "Close",
+    "successTitle": "Promo activated",
+    "successMessage": "The promo code was applied successfully. The amount has been credited to your balance.",
+    "done": "Done"
+  },
+  "purchase": {
+    "successTitle": "Congratulations on your purchase!",
+    "successMessage": "Your order has been placed. Go to My Services to view details about your service.",
+    "goToServices": "My Services",
+    "close": "Close"
+  },
+  "toast": {
+    "close": "Close",
+    "insufficientBalance": {
+      "title": "Insufficient balance",
+      "description": "Top up your wallet to order this service.",
+      "action": "Top up balance"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Account security, integrations, and API access",
+    "nav": {
+      "account": "Account",
+      "accountDesc": "Profile, email, password",
+      "security": "Security",
+      "securityDesc": "Password & 2FA",
+      "integrations": "Integrations",
+      "integrationsDesc": "Telegram & alerts",
+      "localization": "Localization",
+      "localizationDesc": "Language & region",
+      "api": "API Access",
+      "apiDesc": "Reseller keys & audit"
+    },
+    "account": {
+      "profile": "Profile",
+      "displayName": "Display name",
+      "email": "Email address",
+      "save": "Save changes",
+      "password": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "updatePassword": "Update password",
+      "sessions": "Active sessions",
+      "revoke": "Revoke",
+      "loginHistory": "Login history"
+    },
+    "security": {
+      "passwordTitle": "Password",
+      "twoFactorTitle": "Two-factor authentication",
+      "twoFactorOn": "Enabled",
+      "twoFactorOff": "Not enabled",
+      "enable2fa": "Enable 2FA",
+      "disable2fa": "Disable 2FA",
+      "step1": "Scan QR code",
+      "step2": "Enter verification code",
+      "recoveryCodes": "Recovery codes",
+      "regenerateCodes": "Regenerate codes",
+      "confirmReauth": "Confirm with current password"
+    },
+    "integrations": {
+      "telegram": "Telegram",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "connect": "Connect Telegram",
+      "unlink": "Unlink account",
+      "billingAlerts": "Billing alerts",
+      "abuseAlerts": "Abuse alerts",
+      "statusAlerts": "Server status alerts"
+    },
+    "localization": {
+      "language": "Interface language",
+      "languageHint": "Applies instantly across the console"
+    },
+    "api": {
+      "keys": "API keys",
+      "createKey": "Create API key",
+      "label": "Label",
+      "labelPlaceholder": "e.g. billing-bot",
+      "permissions": "Permissions",
+      "revoke": "Revoke",
+      "rotate": "Rotate",
+      "copyOnce": "Copy now — shown once",
+      "rateLimit": "Rate limits",
+      "requestsToday": "Requests today",
+      "auditLog": "Audit log",
+      "soonBadge": "Coming soon",
+      "soonLead": "Reseller API & provisioning — launching shortly.",
+      "soonKeysDesc": "Preview of the control plane. Keys are not issued yet.",
+      "soonKeyHint": "Secret shown once after creation",
+      "soonToastTitle": "API access — coming soon",
+      "soonToastDesc": "Reseller keys, webhooks, and audit logs will be available in the next release.",
+      "soonFeatureKeys": "Scoped API keys",
+      "soonFeatureKeysDesc": "Per-key permissions for VPS, billing, CDN, and domains.",
+      "soonFeatureHooks": "Webhooks",
+      "soonFeatureHooksDesc": "Events for provision, suspend, and invoice paid.",
+      "soonFeatureReseller": "Reseller-ready",
+      "soonFeatureResellerDesc": "Multi-tenant usage and sub-accounts.",
+      "soonRoadmapTitle": "On the roadmap",
+      "soonRoadmap1": "Create, rotate, and revoke keys with re-auth",
+      "soonRoadmap2": "Per-key rate limits and usage charts",
+      "soonRoadmap3": "Full audit log with IP and timestamps",
+      "soonRoadmap4": "Automated provisioning via REST API",
+      "soonNotify": "Got it"
+    },
+    "logout": {
+      "title": "Sign out",
+      "hint": "End your session on this device",
+      "button": "Log out"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "saved": "Saved",
+      "error": "Something went wrong"
+    }
+  }
+}

@@ -1,0 +1,289 @@
+/**
+ * Proxmox VE API client
+ * @see https://pve.proxmox.com/pve-docs/api-viewer/
+ */
+import https from "node:https";
+import { URL } from "node:url";
+import type { ProxmoxRuntimeConfig } from "./config";
+import { getProxmoxConfig } from "./config";
+
+export interface VmSpec {
+  vmid: number;
+  node: string;
+  hostname: string;
+  cores: number;
+  memoryMb: number;
+  diskGb: number;
+  templateVmid: number;
+  primaryIp?: string;
+  gateway?: string;
+  storage: string;
+  bridge: string;
+}
+
+export class ProxmoxApiError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ProxmoxApiError";
+  }
+}
+
+type ProxmoxEnvelope<T> = { data: T };
+
+export class ProxmoxClient {
+  private readonly agent: https.Agent;
+
+  constructor(private readonly config: ProxmoxRuntimeConfig) {
+    this.agent = new https.Agent({ rejectUnauthorized: config.verifyTls });
+  }
+
+  private request<T>(
+    method: string,
+    path: string,
+    body?: Record<string, unknown> | URLSearchParams,
+  ): Promise<T> {
+    const url = new URL(`${this.config.apiUrl}${path.startsWith("/") ? path : `/${path}`}`);
+    const headers: Record<string, string> = {
+      Authorization: `PVEAPIToken=${this.config.tokenId}=${this.config.tokenSecret}`,
+    };
+
+    let requestBody: string | undefined;
+    if (body instanceof URLSearchParams) {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      requestBody = body.toString();
+    } else if (body) {
+      headers["Content-Type"] = "application/json";
+      requestBody = JSON.stringify(body);
+    }
+    if (requestBody) {
+      headers["Content-Length"] = String(Buffer.byteLength(requestBody));
+    }
+
+    return new Promise((resolve, reject) => {
+      const req = https.request(
+        {
+          protocol: url.protocol,
+          hostname: url.hostname,
+          port: url.port || 443,
+          path: `${url.pathname}${url.search}`,
+          method,
+          headers,
+          agent: this.agent,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk) => chunks.push(chunk as Buffer));
+          res.on("end", () => {
+            const text = Buffer.concat(chunks).toString("utf8");
+            const status = res.statusCode ?? 500;
+            if (status < 200 || status >= 300) {
+              reject(new ProxmoxApiError(status, text || res.statusMessage || "Request failed"));
+              return;
+            }
+            if (!text) {
+              resolve(undefined as T);
+              return;
+            }
+            try {
+              const json = JSON.parse(text) as ProxmoxEnvelope<T> | T;
+              if (json && typeof json === "object" && "data" in json) {
+                resolve((json as ProxmoxEnvelope<T>).data);
+              } else {
+                resolve(json as T);
+              }
+            } catch (e) {
+              reject(e);
+            }
+          });
+        },
+      );
+      req.on("error", reject);
+      if (requestBody) req.write(requestBody);
+      req.end();
+    });
+  }
+
+  private async requestForm<T>(
+    method: string,
+    path: string,
+    fields: Record<string, string | number | undefined>,
+  ): Promise<T> {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(fields)) {
+      if (v !== undefined && v !== null) params.set(k, String(v));
+    }
+    return this.request<T>(method, path, params);
+  }
+
+  async waitForTask(node: string, upid: string, timeoutMs = 120_000): Promise<void> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const status = await this.request<{
+        status: string;
+        exitstatus?: string;
+      }>("GET", `/api2/json/nodes/${node}/tasks/${encodeURIComponent(upid)}/status`);
+
+      if (status.status === "stopped") {
+        if (status.exitstatus && status.exitstatus !== "OK") {
+          throw new ProxmoxApiError(500, `Proxmox task failed: ${status.exitstatus}`);
+        }
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    throw new ProxmoxApiError(504, `Proxmox task timed out: ${upid}`);
+  }
+
+  async getNextVmid(): Promise<number> {
+    const data = await this.request<string | number>("GET", "/api2/json/cluster/nextid");
+    return typeof data === "number" ? data : Number(data);
+  }
+
+  async listNodes(): Promise<Array<{ node: string; status: string }>> {
+    return this.request("GET", "/api2/json/nodes");
+  }
+
+  async cloneFromTemplate(spec: VmSpec): Promise<void> {
+    const upid = await this.requestForm<string>(
+      "POST",
+      `/api2/json/nodes/${spec.node}/qemu/${spec.templateVmid}/clone`,
+      {
+        newid: spec.vmid,
+        name: spec.hostname.replace(/[^a-zA-Z0-9.-]/g, "-").slice(0, 63),
+        full: 1,
+        storage: spec.storage,
+      },
+    );
+    if (typeof upid === "string" && upid.startsWith("UPID:")) {
+      await this.waitForTask(spec.node, upid);
+    }
+  }
+
+  async resizeDisk(node: string, vmid: number, sizeGb: number, storage: string): Promise<void> {
+    const upid = await this.requestForm<string>(
+      "PUT",
+      `/api2/json/nodes/${node}/qemu/${vmid}/resize`,
+      {
+        disk: "scsi0",
+        size: `${sizeGb}G`,
+      },
+    );
+    if (typeof upid === "string" && upid.startsWith("UPID:")) {
+      await this.waitForTask(node, upid);
+    }
+  }
+
+  async configureVm(spec: VmSpec): Promise<void> {
+    const ipconfig0 = spec.primaryIp
+      ? `ip=${spec.primaryIp}/24,gw=${spec.gateway ?? guessGateway(spec.primaryIp)}`
+      : undefined;
+
+    await this.requestForm(
+      "PUT",
+      `/api2/json/nodes/${spec.node}/qemu/${spec.vmid}/config`,
+      {
+        cores: spec.cores,
+        memory: spec.memoryMb,
+        net0: `virtio,bridge=${spec.bridge}`,
+        boot: "order=scsi0",
+        agent: 1,
+        ciuser: "root",
+        nameserver: "1.1.1.1",
+        searchdomain: "local",
+        ...(ipconfig0 ? { ipconfig0 } : {}),
+      },
+    );
+
+    try {
+      await this.resizeDisk(spec.node, spec.vmid, spec.diskGb, spec.storage);
+    } catch {
+      /* template disk may already match plan size */
+    }
+  }
+
+  async startVm(node: string, vmid: number): Promise<void> {
+    const upid = await this.requestForm<string>(
+      "POST",
+      `/api2/json/nodes/${node}/qemu/${vmid}/status/start`,
+      {},
+    );
+    if (typeof upid === "string" && upid.startsWith("UPID:")) {
+      await this.waitForTask(node, upid, 60_000);
+    }
+  }
+
+  async stopVm(node: string, vmid: number): Promise<void> {
+    const upid = await this.requestForm<string>(
+      "POST",
+      `/api2/json/nodes/${node}/qemu/${vmid}/status/stop`,
+      {},
+    );
+    if (typeof upid === "string" && upid.startsWith("UPID:")) {
+      await this.waitForTask(node, upid, 60_000);
+    }
+  }
+
+  async rebootVm(node: string, vmid: number): Promise<void> {
+    const upid = await this.requestForm<string>(
+      "POST",
+      `/api2/json/nodes/${node}/qemu/${vmid}/status/reboot`,
+      {},
+    );
+    if (typeof upid === "string" && upid.startsWith("UPID:")) {
+      await this.waitForTask(node, upid, 60_000);
+    }
+  }
+
+  async shutdownVm(node: string, vmid: number): Promise<void> {
+    const upid = await this.requestForm<string>(
+      "POST",
+      `/api2/json/nodes/${node}/qemu/${vmid}/status/shutdown`,
+      {},
+    );
+    if (typeof upid === "string" && upid.startsWith("UPID:")) {
+      await this.waitForTask(node, upid, 90_000);
+    }
+  }
+
+  async deleteVm(node: string, vmid: number): Promise<void> {
+    const upid = await this.requestForm<string>(
+      "DELETE",
+      `/api2/json/nodes/${node}/qemu/${vmid}`,
+      {},
+    );
+    if (typeof upid === "string" && upid.startsWith("UPID:")) {
+      await this.waitForTask(node, upid, 120_000);
+    }
+  }
+
+  async getVmStatus(
+    node: string,
+    vmid: number,
+  ): Promise<{ status: string; cpu?: number; mem?: number; maxmem?: number }> {
+    return this.request("GET", `/api2/json/nodes/${node}/qemu/${vmid}/status/current`);
+  }
+}
+
+function guessGateway(ip: string): string {
+  const parts = ip.split(".");
+  if (parts.length === 4) {
+    parts[3] = "1";
+    return parts.join(".");
+  }
+  return "10.0.0.1";
+}
+
+export function getProxmoxClient(): ProxmoxClient | null {
+  const config = getProxmoxConfig();
+  if (!config) return null;
+  return new ProxmoxClient(config);
+}
+
+export function getProxmoxNodeName(dbNode?: string | null): string {
+  const config = getProxmoxConfig();
+  if (config?.node) return config.node;
+  return dbNode ?? "pve01";
+}

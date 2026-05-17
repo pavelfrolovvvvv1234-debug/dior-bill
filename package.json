@@ -1,0 +1,25 @@
+{
+  "name": "dior-billing",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "pnpm --filter @dior/database generate",
+    "db:push": "pnpm --filter @dior/database push",
+    "db:migrate": "pnpm --filter @dior/database migrate",
+    "db:seed": "pnpm --filter @dior/database seed",
+    "worker": "pnpm --filter @dior/api worker",
+    "brand:assets": "node scripts/generate-brand-assets.mjs"
+  },
+  "devDependencies": {
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.34.2",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

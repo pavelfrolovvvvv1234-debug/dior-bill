@@ -1,0 +1,155 @@
+{
+  "nav": {
+    "overview": "Resumen",
+    "selectPlan": "Elegir plan",
+    "myServices": "Mis servicios",
+    "billing": "Facturación",
+    "affiliate": "Afiliados",
+    "support": "Soporte",
+    "settings": "Ajustes",
+    "promoCodes": "Códigos promo"
+  },
+  "controlNav": {
+    "dashboard": "Panel",
+    "users": "Usuarios",
+    "services": "Servicios",
+    "payments": "Pagos",
+    "billing": "Facturación",
+    "support": "Tickets",
+    "infrastructure": "Infraestructura",
+    "promo": "Códigos promo",
+    "referrals": "Referidos",
+    "security": "Seguridad",
+    "audit": "Auditoría",
+    "analytics": "Analítica",
+    "notifications": "Notificaciones",
+    "statistics": "Estadísticas",
+    "openPanel": "Abrir DIOR CONTROL →"
+  },
+  "promo": {
+    "title": "Código promocional",
+    "description": "Introduce el código — el bono se acreditará en tu saldo.",
+    "codeLabel": "Código",
+    "apply": "Aplicar",
+    "checking": "Comprobando…",
+    "enterCode": "Introduce un código promocional",
+    "errorDefault": "No se pudo aplicar el código",
+    "close": "Cerrar",
+    "successTitle": "Código activado",
+    "successMessage": "El código se aplicó correctamente. El importe se acreditó en tu saldo.",
+    "done": "Listo"
+  },
+  "purchase": {
+    "successTitle": "¡Felicitaciones por su compra!",
+    "successMessage": "Su pedido se ha realizado. Vaya a Mis servicios para ver la información de su servicio.",
+    "goToServices": "Mis servicios",
+    "close": "Cerrar"
+  },
+  "toast": {
+    "close": "Cerrar",
+    "insufficientBalance": {
+      "title": "Saldo insuficiente",
+      "description": "Recarga tu monedero para contratar el servicio.",
+      "action": "Recargar saldo"
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "subtitle": "Seguridad, integraciones y API",
+    "nav": {
+      "account": "Cuenta",
+      "accountDesc": "Perfil, email, contraseña",
+      "security": "Seguridad",
+      "securityDesc": "Contraseña y 2FA",
+      "integrations": "Integraciones",
+      "integrationsDesc": "Telegram y alertas",
+      "localization": "Idioma",
+      "localizationDesc": "Región e idioma",
+      "api": "Acceso API",
+      "apiDesc": "Claves de revendedor"
+    },
+    "account": {
+      "profile": "Perfil",
+      "displayName": "Nombre",
+      "email": "Correo",
+      "save": "Guardar",
+      "password": "Cambiar contraseña",
+      "currentPassword": "Contraseña actual",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar",
+      "updatePassword": "Actualizar",
+      "sessions": "Sesiones activas",
+      "revoke": "Revocar",
+      "loginHistory": "Historial de acceso"
+    },
+    "security": {
+      "passwordTitle": "Contraseña",
+      "twoFactorTitle": "Autenticación en dos pasos",
+      "twoFactorOn": "Activada",
+      "twoFactorOff": "Desactivada",
+      "enable2fa": "Activar 2FA",
+      "disable2fa": "Desactivar 2FA",
+      "step1": "Escanee el código QR",
+      "step2": "Ingrese el código",
+      "recoveryCodes": "Códigos de recuperación",
+      "regenerateCodes": "Regenerar códigos",
+      "confirmReauth": "Confirme con su contraseña"
+    },
+    "integrations": {
+      "telegram": "Telegram",
+      "connected": "Conectado",
+      "notConnected": "No conectado",
+      "connect": "Conectar Telegram",
+      "unlink": "Desvincular",
+      "billingAlerts": "Alertas de facturación",
+      "abuseAlerts": "Alertas de abuso",
+      "statusAlerts": "Estado del servidor"
+    },
+    "localization": {
+      "language": "Idioma de la interfaz",
+      "languageHint": "Se aplica al instante"
+    },
+    "api": {
+      "keys": "Claves API",
+      "createKey": "Crear clave API",
+      "label": "Etiqueta",
+      "labelPlaceholder": "ej. billing-bot",
+      "permissions": "Permisos",
+      "revoke": "Revocar",
+      "rotate": "Rotar",
+      "copyOnce": "Copie ahora — solo se muestra una vez",
+      "rateLimit": "Límites de solicitudes",
+      "requestsToday": "Solicitudes hoy",
+      "auditLog": "Registro de auditoría",
+      "soonBadge": "Próximamente",
+      "soonLead": "API para revendedores y aprovisionamiento — muy pronto.",
+      "soonKeysDesc": "Vista previa del panel. Las claves aún no se emiten.",
+      "soonKeyHint": "El secreto se muestra una sola vez",
+      "soonToastTitle": "Acceso API — próximamente",
+      "soonToastDesc": "Claves, webhooks y auditoría en la próxima versión.",
+      "soonFeatureKeys": "Claves con alcance",
+      "soonFeatureKeysDesc": "Permisos para VPS, facturación, CDN y dominios.",
+      "soonFeatureHooks": "Webhooks",
+      "soonFeatureHooksDesc": "Eventos de aprovisionamiento, suspensión y pago.",
+      "soonFeatureReseller": "Listo para revendedores",
+      "soonFeatureResellerDesc": "Multi-tenant y subcuentas.",
+      "soonRoadmapTitle": "En el roadmap",
+      "soonRoadmap1": "Crear, rotar y revocar con reautenticación",
+      "soonRoadmap2": "Límites y estadísticas por clave",
+      "soonRoadmap3": "Auditoría completa con IP y hora",
+      "soonRoadmap4": "Aprovisionamiento automático vía REST",
+      "soonNotify": "Entendido"
+    },
+    "logout": {
+      "title": "Cerrar sesión",
+      "hint": "Finalizar la sesión en este dispositivo",
+      "button": "Salir"
+    },
+    "common": {
+      "cancel": "Cancelar",
+      "confirm": "Confirmar",
+      "saved": "Guardado",
+      "error": "Error"
+    }
+  }
+}
