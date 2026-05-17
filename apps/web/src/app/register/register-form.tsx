@@ -10,9 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { APP_NAME } from "@dior/shared";
 import { Logo } from "@/components/brand/logo";
 import { useAuthStore } from "@/stores/auth-store";
-import { AuthDivider } from "@/components/auth/auth-divider";
-import { TelegramLoginButton } from "@/components/auth/telegram-login-button";
-
 export function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -48,7 +45,7 @@ export function RegisterForm() {
         <Card className="auth-card shadow-none">
           <CardHeader>
             <CardTitle>Register</CardTitle>
-            <CardDescription>Email or Telegram</CardDescription>
+            <CardDescription>Create an account with your email</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,9 +68,6 @@ export function RegisterForm() {
                 {loading ? "Creating…" : "Create account"}
               </Button>
             </form>
-
-            <AuthDivider />
-            <TelegramLoginButton referralCode={params.get("ref") ?? undefined} onError={setError} />
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Already have an account?{" "}

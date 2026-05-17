@@ -11,9 +11,6 @@ import { APP_NAME } from "@dior/shared";
 import { Logo } from "@/components/brand/logo";
 import { useAuthStore } from "@/stores/auth-store";
 import { isStaffRole } from "@/lib/staff";
-import { AuthDivider } from "@/components/auth/auth-divider";
-import { TelegramLoginButton } from "@/components/auth/telegram-login-button";
-
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
@@ -49,7 +46,7 @@ export default function LoginPage() {
         <Card className="auth-card shadow-none">
           <CardHeader>
             <CardTitle>Sign in</CardTitle>
-            <CardDescription>Email or Telegram</CardDescription>
+            <CardDescription>Sign in with your email and password</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,9 +67,6 @@ export default function LoginPage() {
                 {loading ? "Signing in…" : "Continue"}
               </Button>
             </form>
-
-            <AuthDivider />
-            <TelegramLoginButton onError={setError} />
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               No account?{" "}
