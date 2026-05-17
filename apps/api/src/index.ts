@@ -61,6 +61,12 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+function routeParam(value: string | string[] | undefined): string {
+  const v = Array.isArray(value) ? value[0] : value;
+  if (!v) throw new Error("Missing route parameter");
+  return v;
+}
+
 function apiSuccess<T>(res: express.Response, data: T, status = 200) {
   res.status(status).json({ success: true, data });
 }
@@ -258,7 +264,7 @@ app.post("/api/topup", authMiddleware, async (req, res) => {
 
 app.get("/api/topup/:id", authMiddleware, async (req, res) => {
   try {
-    const topUp = await getTopUpById(req.params.id, req.userId!);
+    const topUp = await getTopUpById(routeParam(req.params.id), req.userId!);
     apiSuccess(res, topUp);
   } catch (e) {
     apiError(res, e);
@@ -267,7 +273,7 @@ app.get("/api/topup/:id", authMiddleware, async (req, res) => {
 
 app.post("/api/topup/:id/sync", authMiddleware, async (req, res) => {
   try {
-    const topUp = await syncTopUpStatus(req.params.id);
+    const topUp = await syncTopUpStatus(routeParam(req.params.id));
     apiSuccess(res, topUp);
   } catch (e) {
     apiError(res, e);
@@ -304,7 +310,7 @@ app.post("/api/admin/topups/:id/approve", authMiddleware, async (req, res) => {
     const { partialAmount, notes } = req.body;
     const result = await adminApproveTopUp(
       req.userId!,
-      req.params.id,
+      routeParam(req.params.id),
       partialAmount ? Number(partialAmount) : undefined,
       notes,
     );
@@ -316,7 +322,11 @@ app.post("/api/admin/topups/:id/approve", authMiddleware, async (req, res) => {
 
 app.post("/api/admin/topups/:id/reject", authMiddleware, async (req, res) => {
   try {
-    const result = await adminRejectTopUp(req.userId!, req.params.id, req.body.reason ?? "Rejected");
+    const result = await adminRejectTopUp(
+      req.userId!,
+      routeParam(req.params.id),
+      req.body.reason ?? "Rejected",
+    );
     apiSuccess(res, result);
   } catch (e) {
     apiError(res, e);
@@ -379,7 +389,7 @@ app.get("/api/activity", authMiddleware, async (req, res) => {
 app.get("/api/services/:serviceId/timeline", authMiddleware, async (req, res) => {
   try {
     const service = await prisma.service.findFirst({
-      where: { id: req.params.serviceId, userId: req.userId! },
+      where: { id: routeParam(req.params.serviceId), userId: req.userId! },
     });
     if (!service) {
       res.status(404).json({ error: "Not found" });
@@ -535,7 +545,7 @@ app.get("/api/dedicated", authMiddleware, async (req, res) => {
 
 app.post("/api/webhooks/:method", async (req, res) => {
   try {
-    const method = req.params.method.toUpperCase() as "CRYPTO" | "TELEGRAM" | "MANUAL";
+    const method = routeParam(req.params.method).toUpperCase() as "CRYPTO" | "TELEGRAM" | "MANUAL";
     const result = await handleWebhook(method, req.body.externalId ?? req.body.id, req.body);
     apiSuccess(res, result);
   } catch (e) {
