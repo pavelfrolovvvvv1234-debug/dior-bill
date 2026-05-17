@@ -71,7 +71,7 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
         idempotencyKey,
       });
 
-      if (result.paymentUrl && provider !== "MANUAL_TRANSFER") {
+      if (result.paymentUrl) {
         window.open(result.paymentUrl, "_blank", "noopener,noreferrer");
       }
       router.push(`/billing/topup/${result.id}`);
