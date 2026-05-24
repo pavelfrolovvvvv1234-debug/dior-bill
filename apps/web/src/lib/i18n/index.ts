@@ -24,8 +24,21 @@ function getNested(obj: Record<string, unknown>, path: string): string | undefin
   return typeof cur === "string" ? cur : undefined;
 }
 
-export function translate(locale: LocaleId, key: string): string {
-  return getNested(maps[locale] as Record<string, unknown>, key) ?? getNested(en, key) ?? key;
+export function translate(
+  locale: LocaleId,
+  key: string,
+  vars?: Record<string, string | number>,
+): string {
+  let text =
+    getNested(maps[locale] as Record<string, unknown>, key) ??
+    getNested(en as Record<string, unknown>, key) ??
+    key;
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      text = text.replaceAll(`{${name}}`, String(value));
+    }
+  }
+  return text;
 }
 
 export function isLocaleId(value: string): value is LocaleId {

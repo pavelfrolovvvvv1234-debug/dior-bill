@@ -1,11 +1,9 @@
 import { Suspense } from "react";
-import { FastLink } from "@/components/ui/fast-link";
-import { PageHeader } from "@/components/ui/enterprise/page-header";
+import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { TransactionsSection } from "@/components/billing/transactions-section";
 import { TransactionsTableSkeleton } from "@/components/billing/billing-skeletons";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { AddFundsHeaderAction } from "@/components/billing/add-funds-header-action";
 
 export default async function TransactionsPage({
   searchParams,
@@ -18,21 +16,14 @@ export default async function TransactionsPage({
 
   return (
     <>
-      <PageHeader
-        title="Transactions"
-        description="Payment center and ledger history"
+      <I18nPageHeader
+        titleKey="pages.transactions.title"
+        descriptionKey="pages.transactions.description"
         breadcrumbs={[
-          { label: "Billing", href: "/billing" },
-          { label: "Transactions" },
+          { labelKey: "breadcrumbs.billing", href: "/billing" },
+          { labelKey: "breadcrumbs.transactions" },
         ]}
-        actions={
-          <Button size="sm" className="h-8 gap-1.5" asChild>
-            <FastLink href="/billing/topup">
-              <Plus className="h-3.5 w-3.5" />
-              Add funds
-            </FastLink>
-          </Button>
-        }
+        actions={<AddFundsHeaderAction />}
       />
       <PageContainer>
         <Suspense key={`${page}-${search ?? ""}`} fallback={<TransactionsTableSkeleton />}>

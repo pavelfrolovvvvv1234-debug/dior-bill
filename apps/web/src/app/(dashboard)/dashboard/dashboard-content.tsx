@@ -28,6 +28,7 @@ import type { DashboardStats } from "@dior/shared";
 import { ActivityCenter, type ActivityItem } from "@/components/activity-center";
 import type { InfraStatusPage } from "@dior/backend";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n/store";
 
 interface ServiceItem {
   id: string;
@@ -76,6 +77,7 @@ export function DashboardContent({
   activity,
   infraStatus,
 }: Props) {
+  const { t } = useI18n();
   const trafficData = [
     { label: "Mon", value: 42 },
     { label: "Tue", value: 58 },
@@ -112,8 +114,8 @@ export function DashboardContent({
 
       <div className="grid gap-6 lg:grid-cols-12">
         <Panel
-          title="System health"
-          description="Platform-wide status"
+          title={t("dashboard.systemHealth")}
+          description={t("dashboard.systemHealthDesc")}
           className="lg:col-span-4"
         >
           <div className="space-y-4">
@@ -121,8 +123,8 @@ export function DashboardContent({
               status={infraStatus.overall === "operational" ? "operational" : "degraded"}
               label={
                 infraStatus.overall === "operational"
-                  ? "All systems operational"
-                  : `Status: ${infraStatus.overall}`
+                  ? t("sidebar.allSystemsOperational")
+                  : `${t("common.status")}: ${infraStatus.overall}`
               }
             />
             <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -153,8 +155,8 @@ export function DashboardContent({
         </Panel>
 
         <Panel
-          title="Traffic overview"
-          description="Egress (7d) — aggregate"
+          title={t("dashboard.traffic")}
+          description={t("dashboard.trafficDesc")}
           className="lg:col-span-8"
           action={
             <Button variant="ghost" size="sm" className="h-8" asChild>
@@ -168,13 +170,13 @@ export function DashboardContent({
 
       <div className="grid gap-6 lg:grid-cols-12">
         <Panel
-          title="Active services"
-          description="Your running infrastructure"
+          title={t("dashboard.activeServices")}
+          description={t("dashboard.activeServicesDesc")}
           className="lg:col-span-8"
           action={
             <Button variant="outline" size="sm" className="h-8 gap-1" asChild>
               <FastLink href="/services">
-                View all
+                {t("common.viewAll")}
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </FastLink>
             </Button>
@@ -226,7 +228,7 @@ export function DashboardContent({
           </DataTable>
         </Panel>
 
-        <Panel title="Infrastructure feed" className="lg:col-span-4">
+        <Panel title={t("dashboard.infraFeed")} className="lg:col-span-4">
           <div className="space-y-4">
             {feed.slice(0, 5).map((item) => (
               <article key={item.id} className="border-l-2 border-primary/40 pl-3">
@@ -250,21 +252,21 @@ export function DashboardContent({
       <div className="grid gap-6 lg:grid-cols-2">
         <ActivityCenter items={activity} />
 
-        <Panel title="Quick actions" description="Common operations">
+        <Panel title={t("dashboard.quickActions")} description={t("dashboard.quickActionsDesc")}>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "Select plan", href: "/plans", icon: Server },
-              { label: "Top up balance", href: "/billing/topup", icon: Wallet },
-              { label: "Support", href: "/support", icon: LifeBuoy },
-              { label: "Affiliate", href: "/referrals", icon: Users },
-              { label: "Activity log", href: "/infrastructure", icon: Activity },
+              { labelKey: "nav.selectPlan", href: "/plans", icon: Server },
+              { labelKey: "dashboard.topUpBalance", href: "/billing/topup", icon: Wallet },
+              { labelKey: "nav.support", href: "/support", icon: LifeBuoy },
+              { labelKey: "dashboard.referrals", href: "/referrals", icon: Users },
+              { labelKey: "dashboard.infraFeed", href: "/infrastructure", icon: Activity },
             ].map((a) => {
               const Icon = a.icon;
               return (
                 <Button key={a.href} variant="outline" className="h-auto justify-start gap-2 py-3" asChild>
                   <FastLink href={a.href}>
                     <Icon className="h-4 w-4 text-primary" strokeWidth={1.75} />
-                    {a.label}
+                    {t(a.labelKey)}
                   </FastLink>
                 </Button>
               );

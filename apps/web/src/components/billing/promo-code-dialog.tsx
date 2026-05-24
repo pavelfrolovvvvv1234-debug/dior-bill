@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, TicketPercent, X } from "lucide-react";
+import { Loader2, TicketPercent, X } from "lucide-react";
 import {
   Dialog,
   DialogBody,
@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { redeemPromoCodeAction } from "@/app/actions/promo";
 import { useI18n } from "@/lib/i18n/store";
-import { cn } from "@/lib/utils";
 
 interface PromoCodeDialogProps {
   open: boolean;
@@ -62,16 +61,16 @@ export function PromoCodeDialog({ open, onOpenChange, onSuccess }: PromoCodeDial
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby="promo-dialog-desc">
-        <DialogHeader className="relative pr-10">
-          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
-            <TicketPercent className="h-5 w-5 text-primary" strokeWidth={1.5} />
+        <DialogHeader className="relative pr-12 sm:pr-10">
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-md border border-border bg-muted">
+            <TicketPercent className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
           </div>
           <DialogTitle>{t("promo.title")}</DialogTitle>
           <DialogDescription id="promo-dialog-desc">{t("promo.description")}</DialogDescription>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground transition-premium hover:bg-white/5 hover:text-foreground"
+            className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground transition-premium hover:bg-accent hover:text-foreground"
             aria-label={t("promo.close")}
           >
             <X className="h-4 w-4" />
@@ -80,28 +79,19 @@ export function PromoCodeDialog({ open, onOpenChange, onSuccess }: PromoCodeDial
 
         <form onSubmit={handleSubmit}>
           <DialogBody className="space-y-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="promo-code"
-                className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
-              >
+            <div className="space-y-1.5">
+              <label htmlFor="promo-code" className="text-sm font-medium">
                 {t("promo.codeLabel")}
               </label>
-              <div className="relative">
-                <Sparkles className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/70" />
-                <Input
-                  id="promo-code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder="DIOR2026"
-                  autoComplete="off"
-                  autoFocus
-                  className={cn(
-                    "h-12 border-white/10 bg-white/[0.04] pl-10 font-mono text-base uppercase tracking-[0.2em]",
-                    "focus-glow placeholder:tracking-normal placeholder:font-sans placeholder:normal-case",
-                  )}
-                />
-              </div>
+              <Input
+                id="promo-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="DIOR2026"
+                autoComplete="off"
+                autoFocus
+                className="font-mono uppercase tracking-[0.12em] placeholder:font-sans placeholder:normal-case placeholder:tracking-normal"
+              />
             </div>
 
             {error && (
@@ -111,7 +101,7 @@ export function PromoCodeDialog({ open, onOpenChange, onSuccess }: PromoCodeDial
             )}
           </DialogBody>
 
-          <DialogFooter className="border-t border-white/6 bg-white/[0.02]">
+          <DialogFooter className="border-t border-border">
             <Button type="submit" className="w-full" disabled={loading || !code.trim()}>
               {loading ? (
                 <>

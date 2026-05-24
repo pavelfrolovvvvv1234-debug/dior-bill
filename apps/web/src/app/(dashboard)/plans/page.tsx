@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { requireSession } from "@/lib/auth";
 import { getDedicatedInventory, getLocations } from "@dior/backend";
-import { PageHeader } from "@/components/ui/enterprise/page-header";
+import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlansHub } from "@/components/plans/plans-hub";
 import { parsePlanTab } from "@/lib/plan-catalog";
@@ -20,10 +20,13 @@ export default async function SelectPlanPage({
 
   return (
     <>
-      <PageHeader
-        title="Select Plan"
-        description="Bulletproof & standard infrastructure — domains, VPS, dedicated, and Turbovds"
-        breadcrumbs={[{ label: "Overview", href: "/dashboard" }, { label: "Select Plan" }]}
+      <I18nPageHeader
+        titleKey="pages.plans.title"
+        descriptionKey="pages.plans.description"
+        breadcrumbs={[
+          { labelKey: "breadcrumbs.overview", href: "/dashboard" },
+          { labelKey: "nav.selectPlan" },
+        ]}
       />
       <PageContainer>
         <Suspense fallback={<p className="text-sm text-muted-foreground">Loading plans…</p>}>

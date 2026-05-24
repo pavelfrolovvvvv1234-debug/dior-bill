@@ -1,5 +1,7 @@
 export const APP_NAME = "Dior Cloud";
 export const APP_TAGLINE = "Abuse-resistant infrastructure";
+/** Favicon served from the main marketing site */
+export const BRAND_FAVICON_URL = "https://dior.host/favicon.ico";
 
 export const ROLES = {
   USER: "USER",

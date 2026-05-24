@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { APP_NAME } from "@dior/shared";
+import { APP_NAME, BRAND_FAVICON_URL } from "@dior/shared";
 
 export const metadata: Metadata = {
   title: `${APP_NAME} Admin`,
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon-32.png", type: "image/png", sizes: "32x32" },
-    ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: BRAND_FAVICON_URL, sizes: "any" }],
+    apple: [{ url: BRAND_FAVICON_URL, sizes: "180x180" }],
+    shortcut: [{ url: BRAND_FAVICON_URL }],
   },
 };
 

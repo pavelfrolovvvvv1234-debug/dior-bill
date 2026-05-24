@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2, Wallet } from "lucide-react";
 import {
-  TOPUP_PROVIDER_META,
   TOPUP_MIN_AMOUNT,
   TOPUP_MAX_AMOUNT,
   MANUAL_SUPPORT_TELEGRAM,
   type TopUpProviderId,
 } from "@dior/shared";
+import { useI18n } from "@/lib/i18n/store";
+import { useTopUpProviders } from "@/lib/i18n/use-topup-providers";
 
 const TELEGRAM_SUPPORT_URL = `https://t.me/${MANUAL_SUPPORT_TELEGRAM.replace("@", "")}`;
 import { PaymentMethodCard } from "./payment-method-card";
@@ -29,6 +30,8 @@ interface TopUpFlowProps {
 
 export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
   const router = useRouter();
+  const { t } = useI18n();
+  const providers = useTopUpProviders();
   const [provider, setProvider] = useState<TopUpProviderId>("HELEKET");
   const [amount, setAmount] = useState("100");
   const [loading, setLoading] = useState(false);
@@ -40,17 +43,10 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
     isManual ||
     (numAmount >= TOPUP_MIN_AMOUNT &&
       numAmount <= TOPUP_MAX_AMOUNT &&
-      TOPUP_PROVIDER_META.find((p) => p.id === provider)?.available);
+      providers.find((p) => p.id === provider)?.available);
 
   function openTelegramSupport() {
     window.open(TELEGRAM_SUPPORT_URL, "_blank", "noopener,noreferrer");
-  }
-
-  function handleProviderSelect(id: TopUpProviderId) {
-    setProvider(id);
-    if (id === "MANUAL_TRANSFER") {
-      openTelegramSupport();
-    }
   }
 
   async function handleSubmit() {
@@ -77,7 +73,7 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
       router.push(`/billing/topup/${result.id}`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create payment");
+      setError(e instanceof Error ? e.message : t("billing.topup.createFailed"));
     } finally {
       setLoading(false);
     }
@@ -87,48 +83,50 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2">
         <KpiCard
-          label="Available balance"
+          label={t("billing.availableBalance")}
           value={formatMoney(availableBalance)}
           hint={lockedBalance > 0 ? `${formatMoney(lockedBalance)} locked` : undefined}
           icon={Wallet}
         />
-        <Panel title="Payment policy" description="DIOR.host billing">
+        <Panel title={t("billing.topup.paymentPolicy")} description={t("billing.topup.paymentPolicyDesc")}>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Add funds via crypto gateways or verified manual transfer. Each payment receives an
-            idempotency key and full audit trail in your ledger.
+            {t("billing.topup.paymentPolicyBody")}
           </p>
         </Panel>
       </div>
 
       <section>
-        <h2 className="text-sm font-semibold tracking-tight">Payment method</h2>
-        <p className="mt-1 mb-4 text-xs text-muted-foreground">Select how you want to fund your wallet</p>
+        <h2 className="text-sm font-semibold tracking-tight">{t("billing.topup.paymentMethod")}</h2>
+        <p className="mt-1 mb-4 text-xs text-muted-foreground">{t("billing.topup.paymentMethodHint")}</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {TOPUP_PROVIDER_META.filter((p) => p.available).map((p) => (
+          {providers.filter((p) => p.available).map((p) => (
             <PaymentMethodCard
               key={p.id}
               provider={p}
               selected={provider === p.id}
-              onSelect={() => handleProviderSelect(p.id)}
+              onSelect={() => setProvider(p.id)}
             />
           ))}
         </div>
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold tracking-tight">Amount</h2>
+        <h2 className="text-sm font-semibold tracking-tight">{t("billing.topup.amount")}</h2>
         <p className="mt-1 mb-4 text-xs text-muted-foreground">
-          ${TOPUP_MIN_AMOUNT} – ${TOPUP_MAX_AMOUNT.toLocaleString()} USD
+          {t("billing.topup.amountRange", {
+            min: TOPUP_MIN_AMOUNT,
+            max: TOPUP_MAX_AMOUNT.toLocaleString(),
+          })}
         </p>
         <Panel>
           <div className="max-w-xl space-y-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
               {presets.map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setAmount(String(p))}
-                  className={`rounded-md border px-3 py-1.5 text-sm font-medium tabular-nums transition-enterprise ${
+                  className={`rounded-md border px-2 py-1.5 text-sm font-medium tabular-nums transition-enterprise sm:px-3 ${
                     Number(amount) === p
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border hover:bg-muted/60"
@@ -153,9 +151,7 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
             </div>
             {isManual && (
               <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">
-                Direct transfers are processed in Telegram. Write to{" "}
-                <span className="font-medium text-foreground">{MANUAL_SUPPORT_TELEGRAM}</span> with
-                the amount and payment method — support will credit your balance after verification.
+                {t("billing.topup.manualHint", { telegram: MANUAL_SUPPORT_TELEGRAM })}
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -163,13 +159,13 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating invoice…
+                  {t("billing.topup.creatingInvoice")}
                 </>
               ) : isManual ? (
-                <>Open {MANUAL_SUPPORT_TELEGRAM} in Telegram</>
+                <>{t("billing.topup.openTelegram", { telegram: MANUAL_SUPPORT_TELEGRAM })}</>
               ) : (
                 <>
-                  Continue to payment
+                  {t("billing.topup.continuePayment")}
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}

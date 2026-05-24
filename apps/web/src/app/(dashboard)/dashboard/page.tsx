@@ -8,7 +8,7 @@ import {
   getInfrastructureStatus,
 } from "@dior/backend";
 import { DashboardContent } from "./dashboard-content";
-import { PageHeader } from "@/components/ui/enterprise/page-header";
+import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 
 export default async function DashboardPage() {
@@ -28,9 +28,9 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title="Overview"
-        description="Infrastructure, billing, and platform health at a glance"
+      <I18nPageHeader
+        titleKey="pages.dashboard.title"
+        descriptionKey="pages.dashboard.description"
       />
       <PageContainer>
         <DashboardContent

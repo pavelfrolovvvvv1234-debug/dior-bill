@@ -1,9 +1,22 @@
 import { cn } from "@/lib/utils";
 
-export function DataTable({ className, children }: { className?: string; children: React.ReactNode }) {
+export function DataTable({
+  className,
+  children,
+  minWidth = 640,
+}: {
+  className?: string;
+  children: React.ReactNode;
+  minWidth?: number;
+}) {
   return (
     <div className={cn("overflow-x-auto", className)}>
-      <table className="w-full min-w-[640px] border-collapse text-sm">{children}</table>
+      <table
+        className="w-full border-collapse text-sm"
+        style={{ minWidth: `${minWidth}px` }}
+      >
+        {children}
+      </table>
     </div>
   );
 }
@@ -30,7 +43,7 @@ export function DataTableTh({
   return (
     <th
       className={cn(
-        "px-4 py-3 font-medium",
+        "px-3 py-2.5 font-medium sm:px-4 sm:py-3",
         align === "right" && "text-right",
         align === "center" && "text-center",
         className,
@@ -71,7 +84,7 @@ export function DataTableTd({
   return (
     <td
       className={cn(
-        "px-4 py-3 text-foreground",
+        "px-3 py-2.5 text-foreground sm:px-4 sm:py-3",
         align === "right" && "text-right",
         align === "center" && "text-center",
         mono && "font-mono text-xs tabular-nums",

@@ -26,6 +26,311 @@
     "statistics": "Статистика",
     "openPanel": "Открыть DIOR CONTROL →"
   },
+  "common": {
+    "cancel": "Отмена",
+    "confirm": "Подтвердить",
+    "save": "Сохранить",
+    "view": "Открыть",
+    "viewAll": "Смотреть все",
+    "back": "Назад",
+    "close": "Закрыть",
+    "continue": "Продолжить",
+    "loading": "Загрузка…",
+    "error": "Что-то пошло не так",
+    "noData": "Пока нет данных",
+    "addFunds": "Пополнить",
+    "topUp": "Пополнить",
+    "account": "Аккаунт",
+    "fee": "Комиссия",
+    "amount": "Сумма",
+    "status": "Статус",
+    "date": "Дата",
+    "description": "Описание",
+    "reference": "Референс",
+    "invoice": "Счёт",
+    "verified": "Проверено",
+    "noFee": "Без комиссии",
+    "feePercent": "Комиссия {percent}%",
+    "pageOf": "Страница {page} из {total}",
+    "previous": "Назад",
+    "next": "Далее",
+    "export": "Экспорт",
+    "bulletproof": "Bulletproof",
+    "copy": "Копировать",
+    "copied": "Скопировано",
+    "show": "Показать",
+    "hide": "Скрыть"
+  },
+  "topbar": {
+    "searchPlaceholder": "Поиск услуг, IP, счетов…",
+    "topUp": "Пополнить"
+  },
+  "sidebar": {
+    "openMenu": "Открыть меню",
+    "expand": "Развернуть панель",
+    "collapse": "Свернуть панель",
+    "status": "Статус",
+    "controlPlane": "Control plane",
+    "allSystemsOperational": "Все системы работают"
+  },
+  "breadcrumbs": {
+    "overview": "Обзор",
+    "billing": "Биллинг",
+    "transactions": "Транзакции",
+    "addFunds": "Пополнение",
+    "paymentStatus": "Статус"
+  },
+  "pages": {
+    "dashboard": {
+      "title": "Обзор",
+      "description": "Инфраструктура, биллинг и состояние платформы"
+    },
+    "plans": {
+      "title": "Выбор тарифа",
+      "description": "Bulletproof и стандартная инфраструктура — домены, VPS, dedicated и Turbovds"
+    },
+    "services": {
+      "title": "Мои услуги",
+      "description": "Активная и архивная инфраструктура — управление, продление и апгрейд"
+    },
+    "billing": {
+      "title": "Биллинг",
+      "description": "Кошелёк, счета, подписки и аудит платежей"
+    },
+    "topup": {
+      "title": "Пополнение",
+      "description": "Безопасное пополнение баланса — платёжный центр"
+    },
+    "transactions": {
+      "title": "Транзакции",
+      "description": "Платёжный центр и история операций"
+    },
+    "paymentStatus": {
+      "title": "Статус платежа",
+      "description": "Отслеживание пополнения и подтверждения оплаты",
+      "backToTopup": "Пополнение"
+    },
+    "support": {
+      "title": "Поддержка",
+      "description": "Технические тикеты — создание, отслеживание и ответы"
+    },
+    "supportNew": {
+      "title": "Новый тикет",
+      "description": "Связаться с поддержкой инфраструктуры"
+    },
+    "referrals": {
+      "title": "Партнёрка",
+      "description": "Реферальная программа и доход"
+    },
+    "notifications": {
+      "title": "Уведомления",
+      "description": "Оповещения и обновления"
+    },
+    "infrastructure": {
+      "title": "Инфраструктура",
+      "description": "Сеть и ёмкость в реальном времени"
+    },
+    "abuse": {
+      "title": "Мониторинг abuse",
+      "description": "Инциденты, флаги ресурсов и аудит аккаунта"
+    },
+    "domain": {
+      "description": "Регистрация домена и DNS nameservers"
+    },
+    "vps": {
+      "provisioning": "Провижининг — IP появится после готовности"
+    }
+  },
+  "billing": {
+    "availableBalance": "Доступный баланс",
+    "lockedFunds": "Заблокировано",
+    "lockedHint": "Ожидает провижининг или споры",
+    "accountCredits": "Кредиты",
+    "openInvoices": "Открытые счета",
+    "totalCount": "всего {count}",
+    "wallet": {
+      "title": "Кошелёк",
+      "description": "Основной биллинг-аккаунт",
+      "body": "Пополнение через Heleket, CryptoBot, CrystalPay или проверенный ручной перевод. Все платежи с idempotency key и полным аудитом.",
+      "transactions": "Транзакции",
+      "paymentCenter": "Платёжный центр"
+    },
+    "ledger": {
+      "title": "Последние операции",
+      "description": "Последние 8 записей",
+      "empty": "Транзакций пока нет"
+    },
+    "invoices": {
+      "title": "Счета",
+      "description": "Документы биллинга",
+      "empty": "Счетов пока нет"
+    },
+    "transactions": {
+      "title": "Вся активность",
+      "empty": "Транзакций пока нет"
+    },
+    "topup": {
+      "paymentPolicy": "Политика оплаты",
+      "paymentPolicyDesc": "DIOR.host billing",
+      "paymentPolicyBody": "Пополнение через крипто-шлюзы или проверенный ручной перевод. Каждый платёж с idempotency key и аудитом в ledger.",
+      "paymentMethod": "Способ оплаты",
+      "paymentMethodHint": "Выберите, как пополнить кошелёк",
+      "amount": "Сумма",
+      "amountRange": "${min} – ${max} USD",
+      "manualHint": "Прямые переводы обрабатываются в Telegram. Напишите {telegram} с суммой и способом оплаты — баланс зачислит поддержка после проверки.",
+      "openTelegram": "Открыть {telegram} в Telegram",
+      "continuePayment": "Перейти к оплате",
+      "creatingInvoice": "Создание инвойса…",
+      "createFailed": "Не удалось создать платёж"
+    },
+    "detail": {
+      "paymentConfirmed": "Платёж подтверждён",
+      "credited": "На кошелёк зачислено {amount}",
+      "viewBilling": "Биллинг",
+      "dashboard": "Дашборд",
+      "youReceive": "Вы получите",
+      "created": "Создан",
+      "expires": "Истекает",
+      "openInvoice": "Открыть инвойс",
+      "refreshStatus": "Обновить статус",
+      "newTopup": "Новое пополнение",
+      "activity": "Активность",
+      "manualTitle": "Ожидает ручной проверки",
+      "manualBody": "Свяжитесь с поддержкой с payment reference. Средства зачисляются после подтверждения оператором — обычно в течение нескольких часов.",
+      "paymentId": "ID платежа",
+      "support": "Поддержка",
+      "openSupport": "Открыть {telegram}"
+    },
+    "providers": {
+      "HELEKET": {
+        "name": "Heleket",
+        "description": "Крипто-оплата несколькими активами с быстрым зачислением",
+        "speed": "~5 мин"
+      },
+      "CRYPTOBOT": {
+        "name": "CryptoBot",
+        "description": "Telegram Crypto Pay — быстрые инвойсы в приложении",
+        "speed": "Мгновенно"
+      },
+      "CRYSTALPAY": {
+        "name": "CrystalPay",
+        "description": "Крипто и фиат для глобальных пополнений",
+        "speed": "~10 мин"
+      },
+      "MANUAL_TRANSFER": {
+        "name": "Прямой перевод",
+        "description": "Банк/крипто через Telegram-поддержку с ручным подтверждением",
+        "speed": "1–24 ч"
+      }
+    },
+    "methods": {
+      "BTC": "BTC",
+      "ETH": "ETH",
+      "USDT": "USDT",
+      "LTC": "LTC",
+      "TON": "TON",
+      "TRX": "TRX",
+      "Bank": "Банк",
+      "Crypto": "Крипто",
+      "Other": "Другое"
+    },
+    "status": {
+      "PENDING": "Ожидание",
+      "PROCESSING": "Обработка",
+      "PAID": "Оплачен",
+      "FAILED": "Ошибка",
+      "EXPIRED": "Истёк",
+      "REFUNDED": "Возврат",
+      "MANUAL_REVIEW": "Ручная проверка"
+    }
+  },
+  "dashboard": {
+    "systemHealth": "Состояние системы",
+    "systemHealthDesc": "Статус платформы",
+    "traffic": "Трафик",
+    "trafficDesc": "Исходящий (7 дн.) — суммарно",
+    "activeServices": "Активные услуги",
+    "activeServicesDesc": "Ваша инфраструктура",
+    "infraFeed": "Лента инфраструктуры",
+    "quickActions": "Быстрые действия",
+    "quickActionsDesc": "Частые операции",
+    "topUpBalance": "Пополнить баланс",
+    "openTicket": "Создать тикет",
+    "viewServices": "Мои услуги",
+    "referrals": "Партнёрка",
+    "noServices": "Нет активных услуг",
+    "orderPlan": "Заказать тариф",
+    "manage": "Управление",
+    "renewal": "Продление {date}",
+    "servicesCount": "Услуг: {count}"
+  },
+  "plans": {
+    "productNav": "Линейки продуктов",
+    "bpDomainsTitle": "Bulletproof домены и офшорная регистрация",
+    "bpDomainsDesc": "Регистрация с DMCA-ignored и ручным abuse review, офшор DNS.",
+    "bpVpsTitle": "Bulletproof VPS/VDS",
+    "bpVpsDesc": "Офшор VPS/VDS с DMCA-ignored и мгновенной выдачей",
+    "bpVpsDeploy": "Развернуть VPS",
+    "bpVpsPanel": "Мгновенная выдача",
+    "bpDedicatedTitle": "Bulletproof dedicated",
+    "bpDedicatedDesc": "Bare-metal под bulletproof — высоконагруженные и DMCA-ignored задачи.",
+    "stdVpsTitle": "VPS/VDS хостинг",
+    "stdVpsDesc": "Стандартные VPS в РФ, Беларуси и Абхазии. Заказы выполняются вручную через поддержку после оплаты.",
+    "stdVpsDeploy": "Заказ через поддержку",
+    "stdVpsPanel": "Конфигурация заказа",
+    "stdDedicatedTitle": "Dedicated серверы",
+    "stdDedicatedDesc": "Стандартный bare-metal с фикс. конфигами, SLA и DDoS-ready uplinks.",
+    "deployConfig": "Конфигурация развёртывания",
+    "deployConfigDesc": "Офшор VPS с ручным abuse review. Выберите тариф, регион и разверните.",
+    "selectLocation": "Выберите локацию",
+    "creatingOrder": "Создание заказа…",
+    "deployFailed": "Ошибка развёртывания",
+    "lines": {
+      "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "Офшорный DMCA-ignored хостинг" },
+      "bulletproof-dedicated": { "label": "Bulletproof dedicated", "short": "BP Dedicated", "desc": "Bare metal с bulletproof политикой" },
+      "bulletproof-domains": { "label": "Bulletproof домены", "short": "BP Domains", "desc": "Регистрация и DNS с устойчивостью к abuse" },
+      "vps": { "label": "VPS/VDS", "short": "VPS", "desc": "Стандартные VPS с быстрым провижинингом" },
+      "dedicated": { "label": "Dedicated", "short": "Dedicated", "desc": "Стандартная bare-metal инфраструктура" },
+      "turbovds": { "label": "Turbovds", "short": "Turbovds", "desc": "Высокочастотные вычисления для чувствительных к задержке задач" }
+    }
+  },
+  "services": {
+    "title": "Мои услуги",
+    "empty": "Услуг пока нет",
+    "manage": "Управление",
+    "endpoint": "Endpoint",
+    "region": "Регион",
+    "plan": "Тариф",
+    "renews": "Продление",
+    "actions": "Действия"
+  },
+  "support": {
+    "yourTickets": "Ваши тикеты",
+    "ticketsTotal": "всего {count}",
+    "newTicket": "Новый тикет",
+    "describeIssue": "Опишите проблему",
+    "conversation": "Переписка",
+    "reply": "Ответить",
+    "ticketPrefix": "Тикет #{id}"
+  },
+  "auth": {
+    "signInSubtitle": "Вход в аккаунт",
+    "signIn": "Вход",
+    "signInDesc": "Войдите по email и паролю",
+    "email": "Email",
+    "password": "Пароль",
+    "signingIn": "Вход…",
+    "loginFailed": "Ошибка входа",
+    "noAccount": "Нет аккаунта?",
+    "register": "Регистрация",
+    "createAccount": "Создать аккаунт",
+    "registerDesc": "Регистрация по email и паролю",
+    "confirmPassword": "Подтвердите пароль",
+    "creating": "Создание…",
+    "registerFailed": "Ошибка регистрации",
+    "hasAccount": "Уже есть аккаунт?",
+    "signInLink": "Войти"
+  },
   "promo": {
     "title": "Промокод",
     "description": "Введите код — бонус зачислится на баланс.",
@@ -48,8 +353,8 @@
   "toast": {
     "close": "Закрыть",
     "insufficientBalance": {
-      "title": "Недостаточно средств на балансе",
-      "description": "Пополните кошелёк, чтобы оформить услугу.",
+      "title": "Недостаточно средств",
+      "description": "Пополните кошелёк, чтобы заказать услугу.",
       "action": "Пополнить баланс"
     }
   },
@@ -62,44 +367,44 @@
       "security": "Безопасность",
       "securityDesc": "Пароль и 2FA",
       "integrations": "Интеграции",
-      "integrationsDesc": "Telegram и уведомления",
+      "integrationsDesc": "Telegram и оповещения",
       "localization": "Локализация",
-      "localizationDesc": "Язык интерфейса",
-      "api": "API доступ",
-      "apiDesc": "Ключи реселлера"
+      "localizationDesc": "Язык и регион",
+      "api": "API",
+      "apiDesc": "Ключи реселлера и аудит"
     },
     "account": {
       "profile": "Профиль",
-      "displayName": "Имя",
+      "displayName": "Отображаемое имя",
       "email": "Email",
       "save": "Сохранить",
-      "password": "Смена пароля",
+      "password": "Сменить пароль",
       "currentPassword": "Текущий пароль",
       "newPassword": "Новый пароль",
       "confirmPassword": "Подтвердите пароль",
       "updatePassword": "Обновить пароль",
       "sessions": "Активные сессии",
-      "revoke": "Завершить",
+      "revoke": "Отозвать",
       "loginHistory": "История входов"
     },
     "security": {
       "passwordTitle": "Пароль",
       "twoFactorTitle": "Двухфакторная аутентификация",
       "twoFactorOn": "Включена",
-      "twoFactorOff": "Выключена",
+      "twoFactorOff": "Не включена",
       "enable2fa": "Включить 2FA",
       "disable2fa": "Отключить 2FA",
       "step1": "Сканируйте QR-код",
-      "step2": "Введите код из приложения",
+      "step2": "Введите код подтверждения",
       "recoveryCodes": "Коды восстановления",
-      "regenerateCodes": "Новые коды",
+      "regenerateCodes": "Перегенерировать коды",
       "confirmReauth": "Подтвердите текущим паролем"
     },
     "integrations": {
       "telegram": "Telegram",
-      "connected": "Привязан",
-      "notConnected": "Не привязан",
-      "connect": "Привязать Telegram",
+      "connected": "Подключён",
+      "notConnected": "Не подключён",
+      "connect": "Подключить Telegram",
       "unlink": "Отвязать",
       "billingAlerts": "Биллинг",
       "abuseAlerts": "Abuse",
@@ -107,37 +412,37 @@
     },
     "localization": {
       "language": "Язык интерфейса",
-      "languageHint": "Применяется без перезагрузки"
+      "languageHint": "Применяется сразу во всей консоли"
     },
     "api": {
-      "keys": "API ключи",
-      "createKey": "Создать API ключ",
-      "label": "Название",
-      "labelPlaceholder": "например, billing-bot",
+      "keys": "API-ключи",
+      "createKey": "Создать ключ",
+      "label": "Метка",
+      "labelPlaceholder": "например billing-bot",
       "permissions": "Права",
       "revoke": "Отозвать",
       "rotate": "Ротация",
       "copyOnce": "Скопируйте сейчас — показывается один раз",
-      "rateLimit": "Лимиты запросов",
+      "rateLimit": "Лимиты",
       "requestsToday": "Запросов сегодня",
-      "auditLog": "Журнал API",
+      "auditLog": "Аудит",
       "soonBadge": "Скоро",
-      "soonLead": "Reseller API и автопровижнинг — в ближайшем релизе.",
-      "soonKeysDesc": "Превью панели управления. Ключи пока не выдаются.",
+      "soonLead": "Reseller API и провижининг — скоро.",
+      "soonKeysDesc": "Превью control plane. Ключи пока не выдаются.",
       "soonKeyHint": "Секрет показывается один раз после создания",
-      "soonToastTitle": "API доступ — скоро",
-      "soonToastDesc": "Ключи реселлера, webhooks и audit log появятся в следующем обновлении.",
-      "soonFeatureKeys": "Ключи с правами",
+      "soonToastTitle": "API — скоро",
+      "soonToastDesc": "Ключи, webhooks и аудит в следующем релизе.",
+      "soonFeatureKeys": "Scoped API keys",
       "soonFeatureKeysDesc": "Права на VPS, биллинг, CDN и домены.",
       "soonFeatureHooks": "Webhooks",
-      "soonFeatureHooksDesc": "События: создание, suspend, оплата инвойса.",
-      "soonFeatureReseller": "Для реселлеров",
+      "soonFeatureHooksDesc": "События provision, suspend, invoice paid.",
+      "soonFeatureReseller": "Reseller-ready",
       "soonFeatureResellerDesc": "Мульти-тенант и суб-аккаунты.",
-      "soonRoadmapTitle": "В разработке",
-      "soonRoadmap1": "Создание, ротация и отзыв с подтверждением пароля",
-      "soonRoadmap2": "Лимиты и статистика по ключам",
-      "soonRoadmap3": "Полный audit log с IP и временем",
-      "soonRoadmap4": "Автопровижнинг через REST API",
+      "soonRoadmapTitle": "В планах",
+      "soonRoadmap1": "Создание, ротация и отзыв с re-auth",
+      "soonRoadmap2": "Лимиты и графики использования",
+      "soonRoadmap3": "Полный аудит с IP и временем",
+      "soonRoadmap4": "Автопровижининг через REST API",
       "soonNotify": "Понятно"
     },
     "logout": {
@@ -149,7 +454,12 @@
       "cancel": "Отмена",
       "confirm": "Подтвердить",
       "saved": "Сохранено",
-      "error": "Ошибка"
+      "error": "Что-то пошло не так"
     }
+  },
+  "error": {
+    "title": "Что-то пошло не так",
+    "description": "Страницу не удалось загрузить",
+    "retry": "Повторить"
   }
 }

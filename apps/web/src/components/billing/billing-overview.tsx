@@ -1,4 +1,7 @@
+"use client";
+
 import { FastLink } from "@/components/ui/fast-link";
+import { useI18n } from "@/lib/i18n/store";
 import { Plus, ArrowRight, History, FileText, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/enterprise/panel";
@@ -13,6 +16,7 @@ import {
   DataTableTh,
 } from "@/components/ui/enterprise/data-table";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
+import { RecentLedgerCard, InvoiceCard } from "./billing-mobile-cards";
 import { formatMoney, formatDate } from "@/lib/utils";
 
 interface Wallet {
@@ -44,52 +48,56 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ wallet, invoices, transactions }: BillingOverviewProps) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Available balance" value={formatMoney(wallet.available)} icon={Wallet} href="/billing/topup" />
         <KpiCard
-          label="Locked funds"
-          value={formatMoney(wallet.locked)}
-          hint={wallet.locked > 0 ? "Pending provisioning or disputes" : undefined}
+          label={t("billing.availableBalance")}
+          value={formatMoney(wallet.available)}
+          icon={Wallet}
+          href="/billing/topup"
         />
-        <KpiCard label="Account credits" value={formatMoney(wallet.credits)} />
         <KpiCard
-          label="Open invoices"
+          label={t("billing.lockedFunds")}
+          value={formatMoney(wallet.locked)}
+          hint={wallet.locked > 0 ? t("billing.lockedHint") : undefined}
+        />
+        <KpiCard label={t("billing.accountCredits")} value={formatMoney(wallet.credits)} />
+        <KpiCard
+          label={t("billing.openInvoices")}
           value={String(invoices.filter((i) => i.status === "PENDING" || i.status === "OVERDUE").length)}
-          hint={`${invoices.length} total`}
+          hint={t("billing.totalCount", { count: invoices.length })}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel
-          title="Wallet"
-          description="Primary billing account"
+          title={t("billing.wallet.title")}
+          description={t("billing.wallet.description")}
           className="lg:col-span-1"
           action={
             <Button size="sm" className="h-8" asChild>
               <FastLink href="/billing/topup">
                 <Plus className="h-3.5 w-3.5" />
-                Add funds
+                {t("common.addFunds")}
               </FastLink>
             </Button>
           }
         >
           <p className="text-3xl font-semibold tabular-nums tracking-tight">{formatMoney(wallet.available)}</p>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Top up via Heleket, CryptoBot, CrystalPay, or verified manual transfer. All payments are
-            logged with full audit trail and idempotency keys.
-          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t("billing.wallet.body")}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="h-8" asChild>
               <FastLink href="/billing/transactions">
                 <History className="mr-1.5 h-3.5 w-3.5" />
-                Transactions
+                {t("billing.wallet.transactions")}
               </FastLink>
             </Button>
             <Button variant="ghost" size="sm" className="h-8 gap-1" asChild>
               <FastLink href="/billing/topup">
-                Payment center
+                {t("billing.wallet.paymentCenter")}
                 <ArrowRight className="h-3.5 w-3.5" />
               </FastLink>
             </Button>
@@ -97,82 +105,116 @@ export function BillingOverview({ wallet, invoices, transactions }: BillingOverv
         </Panel>
 
         <Panel
-          title="Recent ledger"
-          description="Last 8 entries"
+          title={t("billing.ledger.title")}
+          description={t("billing.ledger.description")}
           className="lg:col-span-2"
           action={
             <Button variant="ghost" size="sm" className="h-8" asChild>
-              <FastLink href="/billing/transactions">View all</FastLink>
+              <FastLink href="/billing/transactions">{t("common.viewAll")}</FastLink>
             </Button>
           }
           noPadding
         >
+          <div className="space-y-3 p-4 md:hidden">
+            {transactions.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">{t("billing.ledger.empty")}</p>
+            ) : (
+              transactions.slice(0, 8).map((tx) => (
+                <RecentLedgerCard
+                  key={tx.id}
+                  description={tx.description}
+                  createdAt={tx.createdAt}
+                  type={tx.type}
+                  amount={Number(tx.amount)}
+                />
+              ))
+            )}
+          </div>
+          <div className="hidden md:block">
+            <DataTable minWidth={320}>
+              <DataTableHead>
+                <DataTableTh>{t("common.description")}</DataTableTh>
+                <DataTableTh align="right">{t("common.amount")}</DataTableTh>
+              </DataTableHead>
+              <DataTableBody>
+                {transactions.length === 0 ? (
+                  <DataTableEmpty message={t("billing.ledger.empty")} colSpan={2} />
+                ) : (
+                  transactions.slice(0, 8).map((tx) => (
+                    <DataTableRow key={tx.id}>
+                      <DataTableTd>
+                        <p className="font-medium">{tx.description}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</p>
+                      </DataTableTd>
+                      <DataTableTd align="right" mono>
+                        <span className={tx.type === "CREDIT" ? "text-success" : ""}>
+                          {tx.type === "CREDIT" ? "+" : "−"}
+                          {formatMoney(Number(tx.amount))}
+                        </span>
+                      </DataTableTd>
+                    </DataTableRow>
+                  ))
+                )}
+              </DataTableBody>
+            </DataTable>
+          </div>
+        </Panel>
+      </div>
+
+      <Panel
+        title={t("billing.invoices.title")}
+        description={t("billing.invoices.description")}
+        action={
+          <Button variant="outline" size="sm" className="h-8 gap-1.5" disabled>
+            <FileText className="h-3.5 w-3.5" />
+            {t("common.export")}
+          </Button>
+        }
+        noPadding
+      >
+        <div className="space-y-3 p-4 md:hidden">
+          {invoices.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("billing.invoices.empty")}</p>
+          ) : (
+            invoices.map((inv) => (
+              <InvoiceCard
+                key={inv.id}
+                number={inv.number}
+                createdAt={inv.createdAt}
+                status={inv.status}
+                total={Number(inv.total)}
+              />
+            ))
+          )}
+        </div>
+        <div className="hidden md:block">
           <DataTable>
             <DataTableHead>
-              <DataTableTh>Description</DataTableTh>
-              <DataTableTh align="right">Amount</DataTableTh>
+              <DataTableTh>{t("common.invoice")}</DataTableTh>
+              <DataTableTh>{t("common.date")}</DataTableTh>
+              <DataTableTh>{t("common.status")}</DataTableTh>
+              <DataTableTh align="right">{t("common.amount")}</DataTableTh>
             </DataTableHead>
             <DataTableBody>
-              {transactions.length === 0 ? (
-                <DataTableEmpty message="No transactions yet" colSpan={2} />
+              {invoices.length === 0 ? (
+                <DataTableEmpty message={t("billing.invoices.empty")} colSpan={4} />
               ) : (
-                transactions.slice(0, 8).map((tx) => (
-                  <DataTableRow key={tx.id}>
+                invoices.map((inv) => (
+                  <DataTableRow key={inv.id}>
+                    <DataTableTd mono>{inv.number}</DataTableTd>
+                    <DataTableTd className="text-muted-foreground">{formatDate(inv.createdAt)}</DataTableTd>
                     <DataTableTd>
-                      <p className="font-medium">{tx.description}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</p>
+                      <InvoiceStatusBadge status={inv.status} />
                     </DataTableTd>
                     <DataTableTd align="right" mono>
-                      <span className={tx.type === "CREDIT" ? "text-success" : ""}>
-                        {tx.type === "CREDIT" ? "+" : "−"}
-                        {formatMoney(Number(tx.amount))}
-                      </span>
+                      {formatMoney(Number(inv.total))}
                     </DataTableTd>
                   </DataTableRow>
                 ))
               )}
             </DataTableBody>
           </DataTable>
-        </Panel>
-      </div>
-
-      <Panel
-        title="Invoices"
-        description="Sortable billing documents"
-        action={
-          <Button variant="outline" size="sm" className="h-8 gap-1.5" disabled>
-            <FileText className="h-3.5 w-3.5" />
-            Export
-          </Button>
-        }
-        noPadding
-      >
-        <DataTable>
-          <DataTableHead>
-            <DataTableTh>Invoice</DataTableTh>
-            <DataTableTh>Date</DataTableTh>
-            <DataTableTh>Status</DataTableTh>
-            <DataTableTh align="right">Amount</DataTableTh>
-          </DataTableHead>
-          <DataTableBody>
-            {invoices.length === 0 ? (
-              <DataTableEmpty message="No invoices yet" colSpan={4} />
-            ) : (
-              invoices.map((inv) => (
-                <DataTableRow key={inv.id}>
-                  <DataTableTd mono>{inv.number}</DataTableTd>
-                  <DataTableTd className="text-muted-foreground">{formatDate(inv.createdAt)}</DataTableTd>
-                  <DataTableTd>
-                    <InvoiceStatusBadge status={inv.status} />
-                  </DataTableTd>
-                  <DataTableTd align="right" mono>
-                    {formatMoney(Number(inv.total))}
-                  </DataTableTd>
-                </DataTableRow>
-              ))
-            )}
-          </DataTableBody>
-        </DataTable>
+        </div>
       </Panel>
     </div>
   );

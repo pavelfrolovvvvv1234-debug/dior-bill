@@ -4,6 +4,7 @@ import { Check, Zap, Clock, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TopUpProviderMeta } from "@dior/shared";
 import { PaymentProviderIcon } from "./payment-provider-icons";
+import { useI18n } from "@/lib/i18n/store";
 
 interface PaymentMethodCardProps {
   provider: TopUpProviderMeta;
@@ -12,6 +13,8 @@ interface PaymentMethodCardProps {
 }
 
 export function PaymentMethodCard({ provider, selected, onSelect }: PaymentMethodCardProps) {
+  const { t } = useI18n();
+
   return (
     <button
       type="button"
@@ -49,19 +52,21 @@ export function PaymentMethodCard({ provider, selected, onSelect }: PaymentMetho
         ))}
       </div>
 
-      <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 text-[11px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border pt-3 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <Zap className="h-3 w-3" />
           {provider.speed}
         </span>
         <span className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          {provider.feePercent === 0 ? "No fee" : `${provider.feePercent}% fee`}
+          {provider.feePercent === 0
+            ? t("common.noFee")
+            : t("common.feePercent", { percent: provider.feePercent })}
         </span>
         {provider.id === "MANUAL_TRANSFER" && (
           <span className="flex items-center gap-1">
             <Shield className="h-3 w-3" />
-            Verified
+            {t("common.verified")}
           </span>
         )}
       </div>

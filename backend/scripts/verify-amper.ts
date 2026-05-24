@@ -1,6 +1,6 @@
 /**
  * Verify Amper API connectivity: account, prices, search.
- * Usage: AMPER_API_TOKEN=sk_live_... npx tsx scripts/verify-amper.ts
+ * Usage: AMPER_API_TOKEN=your-token npx tsx backend/scripts/verify-amper.ts
  */
 import { verifyAmperIntegration, getAmperApiBaseUrl } from "../src/amper";
 

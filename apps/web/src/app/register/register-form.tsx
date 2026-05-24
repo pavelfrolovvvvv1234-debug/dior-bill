@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_NAME } from "@dior/shared";
-import { Logo } from "@/components/brand/logo";
 import { useAuthStore } from "@/stores/auth-store";
+import { useI18n } from "@/lib/i18n/store";
+
 export function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useI18n();
   const setUser = useAuthStore((s) => s.setUser);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@ export function RegisterForm() {
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(err instanceof Error ? err.message : t("auth.registerFailed"));
     } finally {
       setLoading(false);
     }
@@ -38,22 +40,21 @@ export function RegisterForm() {
     <div className="auth-page flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-[400px]">
         <div className="mb-8">
-          <Logo variant="mark" size={40} className="mb-5" priority />
           <h1 className="text-xl font-semibold">{APP_NAME}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Create an account</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("auth.createAccount")}</p>
         </div>
         <Card className="auth-card shadow-none">
           <CardHeader>
-            <CardTitle>Register</CardTitle>
-            <CardDescription>Create an account with your email</CardDescription>
+            <CardTitle>{t("auth.register")}</CardTitle>
+            <CardDescription>{t("auth.registerDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input name="email" type="email" placeholder="Email" autoComplete="email" required />
+              <Input name="email" type="email" placeholder={t("auth.email")} autoComplete="email" required />
               <Input
                 name="password"
                 type="password"
-                placeholder="Password (min. 8 characters)"
+                placeholder={t("auth.password")}
                 autoComplete="new-password"
                 required
                 minLength={8}
@@ -65,14 +66,14 @@ export function RegisterForm() {
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating…" : "Create account"}
+                {loading ? t("auth.creating") : t("auth.createAccount")}
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              {t("auth.hasAccount")}{" "}
               <Link href="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
-                Sign in
+                {t("auth.signInLink")}
               </Link>
             </p>
           </CardContent>

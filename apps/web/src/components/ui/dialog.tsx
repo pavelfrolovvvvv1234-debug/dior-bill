@@ -30,8 +30,8 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2",
-        "rounded-xl border border-white/8 bg-[#0a0f18] p-0 shadow-float outline-none",
+        "fixed left-1/2 top-1/2 z-50 max-h-[min(90dvh,720px)] w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto",
+        "rounded-lg border border-border bg-card p-0 shadow-none outline-none",
         className,
       )}
       {...props}
@@ -43,11 +43,11 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-1 border-b border-white/6 px-6 py-5", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-1 border-b border-border px-4 py-4 sm:px-6 sm:py-5", className)} {...props} />;
 }
 
 function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-2 px-6 py-4", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-2 px-4 py-4 sm:px-6", className)} {...props} />;
 }
 
 function DialogTitle({
@@ -75,7 +75,7 @@ function DialogDescription({
 }
 
 function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-6 py-5", className)} {...props} />;
+  return <div className={cn("px-4 py-4 sm:px-6 sm:py-5", className)} {...props} />;
 }
 
 export {

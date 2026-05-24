@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { PlanProductLine, PlanTab } from "@/lib/plan-catalog";
 import { Shield } from "lucide-react";
+import { useI18n } from "@/lib/i18n/store";
 
 interface PlanProductNavProps {
   lines: PlanProductLine[];
@@ -15,11 +16,13 @@ const TAB_BUTTON_CLASS =
   "flex h-[5.75rem] w-full flex-col rounded-lg border px-4 py-3 text-left transition-colors duration-150";
 
 export function PlanProductNav({ lines, value, onChange }: PlanProductNavProps) {
+  const { t } = useI18n();
+
   return (
     <div
       className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
       role="tablist"
-      aria-label="Product lines"
+      aria-label={t("plans.productNav")}
     >
       {lines.map((line) => {
         const active = line.id === value;

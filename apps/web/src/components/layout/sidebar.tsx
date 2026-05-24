@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { StatusIndicator } from "@/components/ui/enterprise/status-indicator";
 import { FastLink } from "@/components/ui/fast-link";
-import { Logo, LogoWordmark } from "@/components/brand/logo";
+import { APP_NAME } from "@dior/shared";
 import { BILLING_PREFETCH_PATHS, MAIN_NAV, NAV_PREFETCH_PATHS, isNavItemActive } from "@/lib/navigation";
 import { controlNavHref, getControlNavForRole } from "@/lib/control-navigation";
 import { isStaffRole } from "@/lib/staff";
@@ -45,7 +45,7 @@ export function Sidebar({ userRole = "USER" }: SidebarProps) {
         type="button"
         className="fixed left-4 top-3.5 z-50 rounded-md border border-border bg-card p-2 lg:hidden"
         onClick={() => setMobileOpen(true)}
-        aria-label="Open menu"
+        aria-label={t("sidebar.openMenu")}
       >
         <Menu className="h-4 w-4" strokeWidth={1.5} />
       </button>
@@ -67,20 +67,20 @@ export function Sidebar({ userRole = "USER" }: SidebarProps) {
         )}
       >
         <div className="flex h-14 items-center justify-between border-b border-border px-3">
-          {!collapsed ? (
-            <a href={homeHref} className="flex items-center px-1 transition-premium">
-              <LogoWordmark />
-            </a>
-          ) : (
-            <a href={homeHref} className="mx-auto flex h-8 w-8 items-center justify-center">
-              <Logo variant="icon" size={32} />
-            </a>
-          )}
+          <a
+            href={homeHref}
+            className={cn(
+              "truncate font-semibold tracking-tight text-foreground transition-premium hover:text-foreground/90",
+              collapsed ? "mx-auto text-xs" : "px-1 text-sm",
+            )}
+          >
+            {collapsed ? "DC" : APP_NAME}
+          </a>
           <button
             type="button"
             className="hidden rounded-md p-1.5 text-muted-foreground transition-premium hover:bg-white/5 hover:text-foreground lg:flex"
             onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
           >
             <ChevronLeft
               className={cn("h-4 w-4 transition-transform duration-150", collapsed && "rotate-180")}
@@ -149,7 +149,7 @@ export function Sidebar({ userRole = "USER" }: SidebarProps) {
         <div className="border-t border-border p-3">
           {!collapsed && (
             <p className="px-1 text-xs text-muted-foreground">
-              {staff ? "Control plane" : "Status"}
+              {staff ? t("sidebar.controlPlane") : t("sidebar.status")}
             </p>
           )}
           <div className={cn("mt-2", collapsed && "flex justify-center")}>
@@ -164,7 +164,7 @@ export function Sidebar({ userRole = "USER" }: SidebarProps) {
             ) : (
               <StatusIndicator
                 status="operational"
-                label="All systems operational"
+                label={t("sidebar.allSystemsOperational")}
                 showLabel={!collapsed}
               />
             )}

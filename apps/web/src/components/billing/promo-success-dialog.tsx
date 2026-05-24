@@ -30,13 +30,13 @@ export function PromoSuccessDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby="promo-success-desc">
-        <DialogHeader className="relative pr-10">
+        <DialogHeader className="relative pr-12 sm:pr-10">
           <DialogTitle>{t("promo.successTitle")}</DialogTitle>
           <DialogDescription id="promo-success-desc">{t("promo.successMessage")}</DialogDescription>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground transition-premium hover:bg-white/5 hover:text-foreground"
+            className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground transition-premium hover:bg-accent hover:text-foreground"
             aria-label={t("promo.close")}
           >
             <X className="h-4 w-4" />
@@ -44,14 +44,14 @@ export function PromoSuccessDialog({
         </DialogHeader>
 
         <DialogBody className="space-y-4 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
-            <Check className="h-7 w-7 text-primary" strokeWidth={2.5} />
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted">
+            <Check className="h-6 w-6 text-success" strokeWidth={2} />
           </div>
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{code}</p>
-          <p className="text-2xl font-semibold tabular-nums text-primary">+{formatMoney(credit)}</p>
+          <p className="text-2xl font-semibold tabular-nums text-foreground">+{formatMoney(credit)}</p>
         </DialogBody>
 
-        <DialogFooter className="border-t border-white/6 bg-white/[0.02]">
+        <DialogFooter className="border-t border-border">
           <Button type="button" className="w-full" onClick={() => onOpenChange(false)}>
             {t("promo.done")}
           </Button>

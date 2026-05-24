@@ -26,6 +26,311 @@
     "statistics": "Statistics",
     "openPanel": "Open DIOR CONTROL →"
   },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "view": "View",
+    "viewAll": "View all",
+    "back": "Back",
+    "close": "Close",
+    "continue": "Continue",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "noData": "No data yet",
+    "addFunds": "Add funds",
+    "topUp": "Top up",
+    "account": "Account",
+    "fee": "Fee",
+    "amount": "Amount",
+    "status": "Status",
+    "date": "Date",
+    "description": "Description",
+    "reference": "Reference",
+    "invoice": "Invoice",
+    "verified": "Verified",
+    "noFee": "No fee",
+    "feePercent": "{percent}% fee",
+    "pageOf": "Page {page} of {total}",
+    "previous": "Previous",
+    "next": "Next",
+    "export": "Export",
+    "bulletproof": "Bulletproof",
+    "copy": "Copy",
+    "copied": "Copied",
+    "show": "Show",
+    "hide": "Hide"
+  },
+  "topbar": {
+    "searchPlaceholder": "Search services, IPs, invoices…",
+    "topUp": "Top up"
+  },
+  "sidebar": {
+    "openMenu": "Open menu",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "status": "Status",
+    "controlPlane": "Control plane",
+    "allSystemsOperational": "All systems operational"
+  },
+  "breadcrumbs": {
+    "overview": "Overview",
+    "billing": "Billing",
+    "transactions": "Transactions",
+    "addFunds": "Add funds",
+    "paymentStatus": "Status"
+  },
+  "pages": {
+    "dashboard": {
+      "title": "Overview",
+      "description": "Infrastructure, billing, and platform health at a glance"
+    },
+    "plans": {
+      "title": "Select Plan",
+      "description": "Bulletproof & standard infrastructure — domains, VPS, dedicated, and Turbovds"
+    },
+    "services": {
+      "title": "My Services",
+      "description": "Active and historical infrastructure — manage, renew, and upgrade"
+    },
+    "billing": {
+      "title": "Billing",
+      "description": "Wallet, invoices, subscriptions, and payment audit trail"
+    },
+    "topup": {
+      "title": "Add funds",
+      "description": "Secure balance top-up — enterprise payment center"
+    },
+    "transactions": {
+      "title": "Transactions",
+      "description": "Payment center and ledger history"
+    },
+    "paymentStatus": {
+      "title": "Payment status",
+      "description": "Track your top-up and payment confirmation",
+      "backToTopup": "Top-up"
+    },
+    "support": {
+      "title": "Support",
+      "description": "Technical tickets — create, track, and reply"
+    },
+    "supportNew": {
+      "title": "New ticket",
+      "description": "Contact infrastructure support"
+    },
+    "referrals": {
+      "title": "Affiliate",
+      "description": "Referral program & earnings"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Alerts & updates"
+    },
+    "infrastructure": {
+      "title": "Infrastructure",
+      "description": "Live network & capacity updates"
+    },
+    "abuse": {
+      "title": "Abuse Monitor",
+      "description": "Incident feed, flagged resources, and account audit timeline"
+    },
+    "domain": {
+      "description": "Domain registration & DNS nameservers"
+    },
+    "vps": {
+      "provisioning": "Provisioning — IP will appear when ready"
+    }
+  },
+  "billing": {
+    "availableBalance": "Available balance",
+    "lockedFunds": "Locked funds",
+    "lockedHint": "Pending provisioning or disputes",
+    "accountCredits": "Account credits",
+    "openInvoices": "Open invoices",
+    "totalCount": "{count} total",
+    "wallet": {
+      "title": "Wallet",
+      "description": "Primary billing account",
+      "body": "Top up via Heleket, CryptoBot, CrystalPay, or verified manual transfer. All payments are logged with full audit trail and idempotency keys.",
+      "transactions": "Transactions",
+      "paymentCenter": "Payment center"
+    },
+    "ledger": {
+      "title": "Recent ledger",
+      "description": "Last 8 entries",
+      "empty": "No transactions yet"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "description": "Sortable billing documents",
+      "empty": "No invoices yet"
+    },
+    "transactions": {
+      "title": "All activity",
+      "empty": "No transactions yet"
+    },
+    "topup": {
+      "paymentPolicy": "Payment policy",
+      "paymentPolicyDesc": "DIOR.host billing",
+      "paymentPolicyBody": "Add funds via crypto gateways or verified manual transfer. Each payment receives an idempotency key and full audit trail in your ledger.",
+      "paymentMethod": "Payment method",
+      "paymentMethodHint": "Select how you want to fund your wallet",
+      "amount": "Amount",
+      "amountRange": "${min} – ${max} USD",
+      "manualHint": "Direct transfers are processed in Telegram. Write to {telegram} with the amount and payment method — support will credit your balance after verification.",
+      "openTelegram": "Open {telegram} in Telegram",
+      "continuePayment": "Continue to payment",
+      "creatingInvoice": "Creating invoice…",
+      "createFailed": "Failed to create payment"
+    },
+    "detail": {
+      "paymentConfirmed": "Payment confirmed",
+      "credited": "{amount} has been credited to your wallet",
+      "viewBilling": "View billing",
+      "dashboard": "Dashboard",
+      "youReceive": "You receive",
+      "created": "Created",
+      "expires": "Expires",
+      "openInvoice": "Open payment invoice",
+      "refreshStatus": "Refresh status",
+      "newTopup": "New top-up",
+      "activity": "Activity",
+      "manualTitle": "Awaiting manual verification",
+      "manualBody": "Contact support with your payment reference. Funds are credited after operator confirmation — typically within a few hours.",
+      "paymentId": "Payment ID",
+      "support": "Support",
+      "openSupport": "Open {telegram}"
+    },
+    "providers": {
+      "HELEKET": {
+        "name": "Heleket",
+        "description": "Multi-asset crypto checkout with instant settlement",
+        "speed": "~5 min"
+      },
+      "CRYPTOBOT": {
+        "name": "CryptoBot",
+        "description": "Native Telegram Crypto Pay — fast in-app invoices",
+        "speed": "Instant"
+      },
+      "CRYSTALPAY": {
+        "name": "CrystalPay",
+        "description": "Flexible crypto & fiat rails for global top-ups",
+        "speed": "~10 min"
+      },
+      "MANUAL_TRANSFER": {
+        "name": "Direct Transfer",
+        "description": "Wire/crypto via Telegram support with manual approval",
+        "speed": "1–24h"
+      }
+    },
+    "methods": {
+      "BTC": "BTC",
+      "ETH": "ETH",
+      "USDT": "USDT",
+      "LTC": "LTC",
+      "TON": "TON",
+      "TRX": "TRX",
+      "Bank": "Bank",
+      "Crypto": "Crypto",
+      "Other": "Other"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "PAID": "Paid",
+      "FAILED": "Failed",
+      "EXPIRED": "Expired",
+      "REFUNDED": "Refunded",
+      "MANUAL_REVIEW": "Manual review"
+    }
+  },
+  "dashboard": {
+    "systemHealth": "System health",
+    "systemHealthDesc": "Platform-wide status",
+    "traffic": "Traffic overview",
+    "trafficDesc": "Egress (7d) — aggregate",
+    "activeServices": "Active services",
+    "activeServicesDesc": "Your running infrastructure",
+    "infraFeed": "Infrastructure feed",
+    "quickActions": "Quick actions",
+    "quickActionsDesc": "Common operations",
+    "topUpBalance": "Top up balance",
+    "openTicket": "Open ticket",
+    "viewServices": "View services",
+    "referrals": "Referrals",
+    "noServices": "No active services",
+    "orderPlan": "Order a plan",
+    "manage": "Manage",
+    "renewal": "Renews {date}",
+    "servicesCount": "{count} services"
+  },
+  "plans": {
+    "productNav": "Product lines",
+    "bpDomainsTitle": "Bulletproof Domains & Offshore Registration",
+    "bpDomainsDesc": "DMCA-ignored registration with manual abuse review and offshore DNS.",
+    "bpVpsTitle": "Bulletproof VPS/VDS Hosting",
+    "bpVpsDesc": "Offshore VPS/VDS with DMCA-ignored policies and instant delivery",
+    "bpVpsDeploy": "Deploy VPS",
+    "bpVpsPanel": "Instant delivery",
+    "bpDedicatedTitle": "Bulletproof Dedicated Servers",
+    "bpDedicatedDesc": "Bare-metal servers under bulletproof policy — high-trust workloads and DMCA-ignored hosting.",
+    "stdVpsTitle": "VPS/VDS Hosting",
+    "stdVpsDesc": "Standard virtual servers in Russia, Belarus, and Abkhazia. Orders are fulfilled manually via support after payment.",
+    "stdVpsDeploy": "Order via support",
+    "stdVpsPanel": "Order configuration",
+    "stdDedicatedTitle": "Dedicated Servers",
+    "stdDedicatedDesc": "Standard bare-metal servers with fixed configs, SLA-backed performance, and DDoS-ready uplinks.",
+    "deployConfig": "Deploy configuration",
+    "deployConfigDesc": "Offshore VPS with manual abuse review. Select a plan, region, and deploy.",
+    "selectLocation": "Select location",
+    "creatingOrder": "Creating order…",
+    "deployFailed": "Deploy failed",
+    "lines": {
+      "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "DMCA-ignored offshore hosting" },
+      "bulletproof-dedicated": { "label": "Bulletproof dedicated servers", "short": "BP Dedicated", "desc": "Bare metal with bulletproof policy" },
+      "bulletproof-domains": { "label": "Bulletproof domains", "short": "BP Domains", "desc": "Abuse-resistant registration & DNS" },
+      "vps": { "label": "VPS/VDS", "short": "VPS", "desc": "Standard virtual servers with instant provisioning" },
+      "dedicated": { "label": "Dedicated servers", "short": "Dedicated", "desc": "Standard bare-metal infrastructure" },
+      "turbovds": { "label": "Turbovds", "short": "Turbovds", "desc": "High-frequency compute for latency-sensitive workloads" }
+    }
+  },
+  "services": {
+    "title": "My Services",
+    "empty": "No services yet",
+    "manage": "Manage",
+    "endpoint": "Endpoint",
+    "region": "Region",
+    "plan": "Plan",
+    "renews": "Renews",
+    "actions": "Actions"
+  },
+  "support": {
+    "yourTickets": "Your tickets",
+    "ticketsTotal": "{count} total",
+    "newTicket": "New ticket",
+    "describeIssue": "Describe your issue",
+    "conversation": "Conversation",
+    "reply": "Reply",
+    "ticketPrefix": "Ticket #{id}"
+  },
+  "auth": {
+    "signInSubtitle": "Sign in to your account",
+    "signIn": "Sign in",
+    "signInDesc": "Sign in with your email and password",
+    "email": "Email",
+    "password": "Password",
+    "signingIn": "Signing in…",
+    "loginFailed": "Login failed",
+    "noAccount": "No account?",
+    "register": "Register",
+    "createAccount": "Create account",
+    "registerDesc": "Register with email and password",
+    "confirmPassword": "Confirm password",
+    "creating": "Creating account…",
+    "registerFailed": "Registration failed",
+    "hasAccount": "Already have an account?",
+    "signInLink": "Sign in"
+  },
   "promo": {
     "title": "Promo code",
     "description": "Enter a code — the bonus will be credited to your balance.",
@@ -151,5 +456,10 @@
       "saved": "Saved",
       "error": "Something went wrong"
     }
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "The page could not be loaded",
+    "retry": "Try again"
   }
 }

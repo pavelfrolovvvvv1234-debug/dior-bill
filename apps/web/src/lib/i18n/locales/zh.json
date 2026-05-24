@@ -26,6 +26,335 @@
     "statistics": "统计",
     "openPanel": "打开 DIOR CONTROL →"
   },
+  "common": {
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "view": "查看",
+    "viewAll": "查看全部",
+    "back": "返回",
+    "close": "关闭",
+    "continue": "继续",
+    "loading": "加载中…",
+    "error": "出错了",
+    "noData": "暂无数据",
+    "addFunds": "充值",
+    "topUp": "充值",
+    "account": "账户",
+    "fee": "手续费",
+    "amount": "金额",
+    "status": "状态",
+    "date": "日期",
+    "description": "描述",
+    "reference": "参考号",
+    "invoice": "发票",
+    "verified": "已验证",
+    "noFee": "免手续费",
+    "feePercent": "手续费 {percent}%",
+    "pageOf": "第 {page} 页，共 {total} 页",
+    "previous": "上一页",
+    "next": "下一页",
+    "export": "导出",
+    "bulletproof": "Bulletproof",
+    "copy": "复制",
+    "copied": "已复制",
+    "show": "显示",
+    "hide": "隐藏"
+  },
+  "topbar": {
+    "searchPlaceholder": "搜索服务、IP、发票…",
+    "topUp": "充值"
+  },
+  "sidebar": {
+    "openMenu": "打开菜单",
+    "expand": "展开侧栏",
+    "collapse": "收起侧栏",
+    "status": "状态",
+    "controlPlane": "控制平面",
+    "allSystemsOperational": "所有系统正常"
+  },
+  "breadcrumbs": {
+    "overview": "概览",
+    "billing": "账单",
+    "transactions": "交易",
+    "addFunds": "充值",
+    "paymentStatus": "状态"
+  },
+  "pages": {
+    "dashboard": {
+      "title": "概览",
+      "description": "基础设施、账单与平台状态一览"
+    },
+    "plans": {
+      "title": "选择套餐",
+      "description": "Bulletproof 与标准基础设施 — 域名、VPS、独服与 Turbovds"
+    },
+    "services": {
+      "title": "我的服务",
+      "description": "运行中与历史基础设施 — 管理、续费与升级"
+    },
+    "billing": {
+      "title": "账单",
+      "description": "钱包、发票、订阅与支付审计"
+    },
+    "topup": {
+      "title": "充值",
+      "description": "安全充值 — 企业支付中心"
+    },
+    "transactions": {
+      "title": "交易",
+      "description": "支付中心与账本历史"
+    },
+    "paymentStatus": {
+      "title": "支付状态",
+      "description": "跟踪充值与支付确认",
+      "backToTopup": "充值"
+    },
+    "support": {
+      "title": "支持",
+      "description": "技术工单 — 创建、跟踪与回复"
+    },
+    "supportNew": {
+      "title": "新建工单",
+      "description": "联系基础设施支持"
+    },
+    "referrals": {
+      "title": "联盟",
+      "description": "推荐计划与收益"
+    },
+    "notifications": {
+      "title": "通知",
+      "description": "提醒与更新"
+    },
+    "infrastructure": {
+      "title": "基础设施",
+      "description": "网络与容量实时更新"
+    },
+    "abuse": {
+      "title": "滥用监控",
+      "description": "事件流、标记资源与账户审计时间线"
+    },
+    "domain": {
+      "description": "域名注册与 DNS nameservers"
+    },
+    "vps": {
+      "provisioning": "配置中 — IP 就绪后显示"
+    }
+  },
+  "billing": {
+    "availableBalance": "可用余额",
+    "lockedFunds": "锁定资金",
+    "lockedHint": "待开通或争议中",
+    "accountCredits": "账户积分",
+    "openInvoices": "未付发票",
+    "totalCount": "共 {count} 条",
+    "wallet": {
+      "title": "钱包",
+      "description": "主账单账户",
+      "body": "通过 Heleket、CryptoBot、CrystalPay 或人工审核转账充值。所有支付均有幂等键与完整审计。",
+      "transactions": "交易",
+      "paymentCenter": "支付中心"
+    },
+    "ledger": {
+      "title": "最近账本",
+      "description": "最近 8 条",
+      "empty": "暂无交易"
+    },
+    "invoices": {
+      "title": "发票",
+      "description": "可排序账单文档",
+      "empty": "暂无发票"
+    },
+    "transactions": {
+      "title": "全部活动",
+      "empty": "暂无交易"
+    },
+    "topup": {
+      "paymentPolicy": "支付政策",
+      "paymentPolicyDesc": "DIOR.host 账单",
+      "paymentPolicyBody": "通过加密货币网关或人工审核转账充值。每笔支付均有幂等键与账本审计。",
+      "paymentMethod": "支付方式",
+      "paymentMethodHint": "选择充值方式",
+      "amount": "金额",
+      "amountRange": "${min} – ${max} USD",
+      "manualHint": "直转通过 Telegram 处理。请联系 {telegram} 并提供金额与支付方式 — 验证后入账。",
+      "openTelegram": "在 Telegram 打开 {telegram}",
+      "continuePayment": "继续支付",
+      "creatingInvoice": "创建账单中…",
+      "createFailed": "创建支付失败"
+    },
+    "detail": {
+      "paymentConfirmed": "支付已确认",
+      "credited": "已入账 {amount}",
+      "viewBilling": "查看账单",
+      "dashboard": "仪表盘",
+      "youReceive": "实收",
+      "created": "创建时间",
+      "expires": "过期",
+      "openInvoice": "打开支付账单",
+      "refreshStatus": "刷新状态",
+      "newTopup": "新充值",
+      "activity": "活动",
+      "manualTitle": "等待人工审核",
+      "manualBody": "请联系支持并提供支付参考号。操作员确认后入账 — 通常数小时内。",
+      "paymentId": "支付 ID",
+      "support": "支持",
+      "openSupport": "打开 {telegram}"
+    },
+    "providers": {
+      "HELEKET": {
+        "name": "Heleket",
+        "description": "多币种加密货币结账，快速结算",
+        "speed": "约 5 分钟"
+      },
+      "CRYPTOBOT": {
+        "name": "CryptoBot",
+        "description": "Telegram Crypto Pay — 应用内快速账单",
+        "speed": "即时"
+      },
+      "CRYSTALPAY": {
+        "name": "CrystalPay",
+        "description": "灵活的加密货币与法币通道",
+        "speed": "约 10 分钟"
+      },
+      "MANUAL_TRANSFER": {
+        "name": "直转",
+        "description": "通过 Telegram 支持银行/加密货币人工审核",
+        "speed": "1–24 小时"
+      }
+    },
+    "methods": {
+      "BTC": "BTC",
+      "ETH": "ETH",
+      "USDT": "USDT",
+      "LTC": "LTC",
+      "TON": "TON",
+      "TRX": "TRX",
+      "Bank": "银行",
+      "Crypto": "加密货币",
+      "Other": "其他"
+    },
+    "status": {
+      "PENDING": "待处理",
+      "PROCESSING": "处理中",
+      "PAID": "已支付",
+      "FAILED": "失败",
+      "EXPIRED": "已过期",
+      "REFUNDED": "已退款",
+      "MANUAL_REVIEW": "人工审核"
+    }
+  },
+  "dashboard": {
+    "systemHealth": "系统健康",
+    "systemHealthDesc": "全平台状态",
+    "traffic": "流量概览",
+    "trafficDesc": "出站流量（7 天）— 汇总",
+    "activeServices": "活跃服务",
+    "activeServicesDesc": "您运行中的基础设施",
+    "infraFeed": "基础设施动态",
+    "quickActions": "快捷操作",
+    "quickActionsDesc": "常用操作",
+    "topUpBalance": "充值余额",
+    "openTicket": "创建工单",
+    "viewServices": "查看服务",
+    "referrals": "联盟",
+    "noServices": "暂无活跃服务",
+    "orderPlan": "订购套餐",
+    "manage": "管理",
+    "renewal": "续费 {date}",
+    "servicesCount": "{count} 个服务"
+  },
+  "plans": {
+    "productNav": "产品线",
+    "bpDomainsTitle": "Bulletproof 域名与离岸注册",
+    "bpDomainsDesc": "DMCA-ignored 注册，人工 abuse 审核与离岸 DNS。",
+    "bpVpsTitle": "Bulletproof VPS/VDS",
+    "bpVpsDesc": "离岸 VPS/VDS，DMCA-ignored 策略与即时交付",
+    "bpVpsDeploy": "部署 VPS",
+    "bpVpsPanel": "即时交付",
+    "bpDedicatedTitle": "Bulletproof 独服",
+    "bpDedicatedDesc": "Bulletproof 策略裸金属 — 高信任与 DMCA-ignored 托管。",
+    "stdVpsTitle": "VPS/VDS 托管",
+    "stdVpsDesc": "俄罗斯、白俄罗斯、阿布哈兹标准 VPS。付款后由支持人工开通。",
+    "stdVpsDeploy": "通过支持订购",
+    "stdVpsPanel": "订单配置",
+    "stdDedicatedTitle": "独服",
+    "stdDedicatedDesc": "固定配置裸金属，SLA 性能与 DDoS 上联。",
+    "deployConfig": "部署配置",
+    "deployConfigDesc": "离岸 VPS，人工 abuse 审核。选择套餐、区域并部署。",
+    "selectLocation": "选择位置",
+    "creatingOrder": "创建订单中…",
+    "deployFailed": "部署失败",
+    "lines": {
+      "bulletproof-vps": {
+        "label": "Bulletproof VPS/VDS",
+        "short": "BP VPS",
+        "desc": "离岸 DMCA-ignored 托管"
+      },
+      "bulletproof-dedicated": {
+        "label": "Bulletproof 独服",
+        "short": "BP Dedicated",
+        "desc": "Bulletproof 裸金属"
+      },
+      "bulletproof-domains": {
+        "label": "Bulletproof 域名",
+        "short": "BP Domains",
+        "desc": "抗滥用注册与 DNS"
+      },
+      "vps": {
+        "label": "VPS/VDS",
+        "short": "VPS",
+        "desc": "标准 VPS 快速开通"
+      },
+      "dedicated": {
+        "label": "独服",
+        "short": "Dedicated",
+        "desc": "标准裸金属基础设施"
+      },
+      "turbovds": {
+        "label": "Turbovds",
+        "short": "Turbovds",
+        "desc": "高主频低延迟计算"
+      }
+    }
+  },
+  "services": {
+    "title": "我的服务",
+    "empty": "暂无服务",
+    "manage": "管理",
+    "endpoint": "端点",
+    "region": "区域",
+    "plan": "套餐",
+    "renews": "续费",
+    "actions": "操作"
+  },
+  "support": {
+    "yourTickets": "您的工单",
+    "ticketsTotal": "共 {count} 条",
+    "newTicket": "新建工单",
+    "describeIssue": "描述问题",
+    "conversation": "对话",
+    "reply": "回复",
+    "ticketPrefix": "工单 #{id}"
+  },
+  "auth": {
+    "signInSubtitle": "登录您的账户",
+    "signIn": "登录",
+    "signInDesc": "使用邮箱和密码登录",
+    "email": "邮箱",
+    "password": "密码",
+    "signingIn": "登录中…",
+    "loginFailed": "登录失败",
+    "noAccount": "没有账户？",
+    "register": "注册",
+    "createAccount": "创建账户",
+    "registerDesc": "使用邮箱和密码注册",
+    "confirmPassword": "确认密码",
+    "creating": "创建账户中…",
+    "registerFailed": "注册失败",
+    "hasAccount": "已有账户？",
+    "signInLink": "登录"
+  },
   "promo": {
     "title": "优惠码",
     "description": "输入代码，奖金将计入余额。",
@@ -151,5 +480,10 @@
       "saved": "已保存",
       "error": "出错了"
     }
+  },
+  "error": {
+    "title": "出错了",
+    "description": "无法加载页面",
+    "retry": "重试"
   }
 }

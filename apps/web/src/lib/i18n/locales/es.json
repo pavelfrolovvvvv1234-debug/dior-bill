@@ -26,6 +26,335 @@
     "statistics": "Estadísticas",
     "openPanel": "Abrir DIOR CONTROL →"
   },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "view": "Ver",
+    "viewAll": "Ver todo",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "continue": "Continuar",
+    "loading": "Cargando…",
+    "error": "Algo salió mal",
+    "noData": "Sin datos aún",
+    "addFunds": "Añadir fondos",
+    "topUp": "Recargar",
+    "account": "Cuenta",
+    "fee": "Comisión",
+    "amount": "Importe",
+    "status": "Estado",
+    "date": "Fecha",
+    "description": "Descripción",
+    "reference": "Referencia",
+    "invoice": "Factura",
+    "verified": "Verificado",
+    "noFee": "Sin comisión",
+    "feePercent": "Comisión {percent}%",
+    "pageOf": "Página {page} de {total}",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "export": "Exportar",
+    "bulletproof": "Bulletproof",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "show": "Mostrar",
+    "hide": "Ocultar"
+  },
+  "topbar": {
+    "searchPlaceholder": "Buscar servicios, IP, facturas…",
+    "topUp": "Recargar"
+  },
+  "sidebar": {
+    "openMenu": "Abrir menú",
+    "expand": "Expandir barra",
+    "collapse": "Contraer barra",
+    "status": "Estado",
+    "controlPlane": "Panel de control",
+    "allSystemsOperational": "Todos los sistemas operativos"
+  },
+  "breadcrumbs": {
+    "overview": "Resumen",
+    "billing": "Facturación",
+    "transactions": "Transacciones",
+    "addFunds": "Añadir fondos",
+    "paymentStatus": "Estado"
+  },
+  "pages": {
+    "dashboard": {
+      "title": "Resumen",
+      "description": "Infraestructura, facturación y salud de la plataforma"
+    },
+    "plans": {
+      "title": "Elegir plan",
+      "description": "Infra bulletproof y estándar — dominios, VPS, dedicados y Turbovds"
+    },
+    "services": {
+      "title": "Mis servicios",
+      "description": "Infra activa e histórica — gestionar, renovar y mejorar"
+    },
+    "billing": {
+      "title": "Facturación",
+      "description": "Monedero, facturas, suscripciones y auditoría de pagos"
+    },
+    "topup": {
+      "title": "Añadir fondos",
+      "description": "Recarga segura — centro de pagos empresarial"
+    },
+    "transactions": {
+      "title": "Transacciones",
+      "description": "Centro de pagos e historial del libro mayor"
+    },
+    "paymentStatus": {
+      "title": "Estado del pago",
+      "description": "Seguimiento de la recarga y confirmación",
+      "backToTopup": "Recarga"
+    },
+    "support": {
+      "title": "Soporte",
+      "description": "Tickets técnicos — crear, seguir y responder"
+    },
+    "supportNew": {
+      "title": "Nuevo ticket",
+      "description": "Contactar soporte de infraestructura"
+    },
+    "referrals": {
+      "title": "Afiliados",
+      "description": "Programa de referidos y ganancias"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "description": "Alertas y actualizaciones"
+    },
+    "infrastructure": {
+      "title": "Infraestructura",
+      "description": "Red y capacidad en vivo"
+    },
+    "abuse": {
+      "title": "Monitor de abuso",
+      "description": "Incidentes, recursos marcados y auditoría de cuenta"
+    },
+    "domain": {
+      "description": "Registro de dominio y DNS nameservers"
+    },
+    "vps": {
+      "provisioning": "Aprovisionando — la IP aparecerá cuando esté lista"
+    }
+  },
+  "billing": {
+    "availableBalance": "Saldo disponible",
+    "lockedFunds": "Fondos bloqueados",
+    "lockedHint": "Aprovisionamiento pendiente o disputas",
+    "accountCredits": "Créditos de cuenta",
+    "openInvoices": "Facturas abiertas",
+    "totalCount": "{count} en total",
+    "wallet": {
+      "title": "Monedero",
+      "description": "Cuenta de facturación principal",
+      "body": "Recarga vía Heleket, CryptoBot, CrystalPay o transferencia manual verificada. Todos los pagos con clave de idempotencia y auditoría completa.",
+      "transactions": "Transacciones",
+      "paymentCenter": "Centro de pagos"
+    },
+    "ledger": {
+      "title": "Libro reciente",
+      "description": "Últimas 8 entradas",
+      "empty": "Sin transacciones aún"
+    },
+    "invoices": {
+      "title": "Facturas",
+      "description": "Documentos de facturación ordenables",
+      "empty": "Sin facturas aún"
+    },
+    "transactions": {
+      "title": "Toda la actividad",
+      "empty": "Sin transacciones aún"
+    },
+    "topup": {
+      "paymentPolicy": "Política de pago",
+      "paymentPolicyDesc": "Facturación DIOR.host",
+      "paymentPolicyBody": "Añade fondos por pasarelas cripto o transferencia manual verificada. Cada pago tiene clave de idempotencia y auditoría en el libro mayor.",
+      "paymentMethod": "Método de pago",
+      "paymentMethodHint": "Elige cómo financiar tu monedero",
+      "amount": "Importe",
+      "amountRange": "${min} – ${max} USD",
+      "manualHint": "Las transferencias directas se procesan en Telegram. Escribe a {telegram} con el importe y método — soporte acreditará tras verificación.",
+      "openTelegram": "Abrir {telegram} en Telegram",
+      "continuePayment": "Continuar al pago",
+      "creatingInvoice": "Creando factura…",
+      "createFailed": "No se pudo crear el pago"
+    },
+    "detail": {
+      "paymentConfirmed": "Pago confirmado",
+      "credited": "Se acreditaron {amount} en tu monedero",
+      "viewBilling": "Ver facturación",
+      "dashboard": "Panel",
+      "youReceive": "Recibes",
+      "created": "Creado",
+      "expires": "Expira",
+      "openInvoice": "Abrir factura de pago",
+      "refreshStatus": "Actualizar estado",
+      "newTopup": "Nueva recarga",
+      "activity": "Actividad",
+      "manualTitle": "Esperando verificación manual",
+      "manualBody": "Contacta soporte con tu referencia de pago. Los fondos se acreditan tras confirmación del operador — normalmente en horas.",
+      "paymentId": "ID de pago",
+      "support": "Soporte",
+      "openSupport": "Abrir {telegram}"
+    },
+    "providers": {
+      "HELEKET": {
+        "name": "Heleket",
+        "description": "Checkout cripto multi-activo con liquidación rápida",
+        "speed": "~5 min"
+      },
+      "CRYPTOBOT": {
+        "name": "CryptoBot",
+        "description": "Telegram Crypto Pay — facturas rápidas en la app",
+        "speed": "Instantáneo"
+      },
+      "CRYSTALPAY": {
+        "name": "CrystalPay",
+        "description": "Cripto y fiat flexibles para recargas globales",
+        "speed": "~10 min"
+      },
+      "MANUAL_TRANSFER": {
+        "name": "Transferencia directa",
+        "description": "Banco/cripto vía soporte Telegram con aprobación manual",
+        "speed": "1–24 h"
+      }
+    },
+    "methods": {
+      "BTC": "BTC",
+      "ETH": "ETH",
+      "USDT": "USDT",
+      "LTC": "LTC",
+      "TON": "TON",
+      "TRX": "TRX",
+      "Bank": "Banco",
+      "Crypto": "Cripto",
+      "Other": "Otro"
+    },
+    "status": {
+      "PENDING": "Pendiente",
+      "PROCESSING": "Procesando",
+      "PAID": "Pagado",
+      "FAILED": "Fallido",
+      "EXPIRED": "Expirado",
+      "REFUNDED": "Reembolsado",
+      "MANUAL_REVIEW": "Revisión manual"
+    }
+  },
+  "dashboard": {
+    "systemHealth": "Salud del sistema",
+    "systemHealthDesc": "Estado de la plataforma",
+    "traffic": "Tráfico",
+    "trafficDesc": "Salida (7d) — agregado",
+    "activeServices": "Servicios activos",
+    "activeServicesDesc": "Tu infraestructura en ejecución",
+    "infraFeed": "Feed de infraestructura",
+    "quickActions": "Acciones rápidas",
+    "quickActionsDesc": "Operaciones comunes",
+    "topUpBalance": "Recargar saldo",
+    "openTicket": "Abrir ticket",
+    "viewServices": "Ver servicios",
+    "referrals": "Afiliados",
+    "noServices": "Sin servicios activos",
+    "orderPlan": "Pedir plan",
+    "manage": "Gestionar",
+    "renewal": "Renueva {date}",
+    "servicesCount": "{count} servicios"
+  },
+  "plans": {
+    "productNav": "Líneas de producto",
+    "bpDomainsTitle": "Dominios bulletproof y registro offshore",
+    "bpDomainsDesc": "Registro DMCA-ignored con revisión manual de abuso y DNS offshore.",
+    "bpVpsTitle": "Hosting Bulletproof VPS/VDS",
+    "bpVpsDesc": "VPS/VDS offshore con políticas DMCA-ignored y entrega instantánea",
+    "bpVpsDeploy": "Desplegar VPS",
+    "bpVpsPanel": "Entrega instantánea",
+    "bpDedicatedTitle": "Servidores dedicados bulletproof",
+    "bpDedicatedDesc": "Bare-metal bajo política bulletproof — cargas de alta confianza y hosting DMCA-ignored.",
+    "stdVpsTitle": "Hosting VPS/VDS",
+    "stdVpsDesc": "VPS estándar en Rusia, Bielorrusia y Abjasia. Pedidos manuales vía soporte tras el pago.",
+    "stdVpsDeploy": "Pedir vía soporte",
+    "stdVpsPanel": "Configuración del pedido",
+    "stdDedicatedTitle": "Servidores dedicados",
+    "stdDedicatedDesc": "Bare-metal estándar con configs fijas, rendimiento SLA y uplinks anti-DDoS.",
+    "deployConfig": "Configuración de despliegue",
+    "deployConfigDesc": "VPS offshore con revisión manual de abuso. Elige plan, región y despliega.",
+    "selectLocation": "Seleccionar ubicación",
+    "creatingOrder": "Creando pedido…",
+    "deployFailed": "Error al desplegar",
+    "lines": {
+      "bulletproof-vps": {
+        "label": "Bulletproof VPS/VDS",
+        "short": "BP VPS",
+        "desc": "Hosting offshore DMCA-ignored"
+      },
+      "bulletproof-dedicated": {
+        "label": "Dedicados bulletproof",
+        "short": "BP Dedicated",
+        "desc": "Bare metal con política bulletproof"
+      },
+      "bulletproof-domains": {
+        "label": "Dominios bulletproof",
+        "short": "BP Domains",
+        "desc": "Registro y DNS resistentes al abuso"
+      },
+      "vps": {
+        "label": "VPS/VDS",
+        "short": "VPS",
+        "desc": "VPS estándar con aprovisionamiento rápido"
+      },
+      "dedicated": {
+        "label": "Servidores dedicados",
+        "short": "Dedicated",
+        "desc": "Infra bare-metal estándar"
+      },
+      "turbovds": {
+        "label": "Turbovds",
+        "short": "Turbovds",
+        "desc": "Cómputo de alta frecuencia para baja latencia"
+      }
+    }
+  },
+  "services": {
+    "title": "Mis servicios",
+    "empty": "Sin servicios aún",
+    "manage": "Gestionar",
+    "endpoint": "Endpoint",
+    "region": "Región",
+    "plan": "Plan",
+    "renews": "Renueva",
+    "actions": "Acciones"
+  },
+  "support": {
+    "yourTickets": "Tus tickets",
+    "ticketsTotal": "{count} en total",
+    "newTicket": "Nuevo ticket",
+    "describeIssue": "Describe el problema",
+    "conversation": "Conversación",
+    "reply": "Responder",
+    "ticketPrefix": "Ticket #{id}"
+  },
+  "auth": {
+    "signInSubtitle": "Inicia sesión en tu cuenta",
+    "signIn": "Iniciar sesión",
+    "signInDesc": "Entra con email y contraseña",
+    "email": "Email",
+    "password": "Contraseña",
+    "signingIn": "Iniciando sesión…",
+    "loginFailed": "Error al iniciar sesión",
+    "noAccount": "¿Sin cuenta?",
+    "register": "Registrarse",
+    "createAccount": "Crear cuenta",
+    "registerDesc": "Regístrate con email y contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "creating": "Creando cuenta…",
+    "registerFailed": "Error al registrarse",
+    "hasAccount": "¿Ya tienes cuenta?",
+    "signInLink": "Iniciar sesión"
+  },
   "promo": {
     "title": "Código promocional",
     "description": "Introduce el código — el bono se acreditará en tu saldo.",
@@ -151,5 +480,10 @@
       "saved": "Guardado",
       "error": "Error"
     }
+  },
+  "error": {
+    "title": "Algo salió mal",
+    "description": "No se pudo cargar la página",
+    "retry": "Reintentar"
   }
 }

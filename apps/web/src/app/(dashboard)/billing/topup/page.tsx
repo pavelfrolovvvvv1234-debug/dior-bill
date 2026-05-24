@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { PageHeader } from "@/components/ui/enterprise/page-header";
+import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { TopUpFlowSection } from "@/components/billing/topup-flow-section";
 import { TopUpFlowSkeleton } from "@/components/billing/billing-skeletons";
@@ -7,12 +7,12 @@ import { TopUpFlowSkeleton } from "@/components/billing/billing-skeletons";
 export default function TopUpPage() {
   return (
     <>
-      <PageHeader
-        title="Add funds"
-        description="Secure balance top-up — enterprise payment center"
+      <I18nPageHeader
+        titleKey="pages.topup.title"
+        descriptionKey="pages.topup.description"
         breadcrumbs={[
-          { label: "Billing", href: "/billing" },
-          { label: "Add funds" },
+          { labelKey: "breadcrumbs.billing", href: "/billing" },
+          { labelKey: "breadcrumbs.addFunds" },
         ]}
       />
       <PageContainer className="max-w-3xl">

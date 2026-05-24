@@ -12,12 +12,9 @@ import { BULLETPROOF_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
 import { STANDARD_VPS_COUNTRY_CODES } from "@/lib/vps-plan-locations";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
 import { STANDARD_DEDICATED_PLANS } from "@/lib/dedicated-plans";
-import {
-  PLAN_PRODUCT_LINES_VISIBLE,
-  parsePlanTab,
-  getPlanProductLine,
-  type PlanTab,
-} from "@/lib/plan-catalog";
+import { parsePlanTab, getPlanProductLine, type PlanTab } from "@/lib/plan-catalog";
+import { usePlanProductLines } from "@/lib/i18n/use-plan-lines";
+import { useI18n } from "@/lib/i18n/store";
 import { Badge } from "@/components/ui/badge";
 import { Shield } from "lucide-react";
 
@@ -59,6 +56,8 @@ export function PlansHub({
 }: PlansHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
+  const productLines = usePlanProductLines();
   const [tab, setTab] = useState<PlanTab>(defaultTab);
 
   useEffect(() => {
@@ -79,7 +78,7 @@ export function PlansHub({
 
   return (
     <div className="space-y-6">
-      <PlanProductNav lines={PLAN_PRODUCT_LINES_VISIBLE} value={tab} onChange={setTabAndUrl} />
+      <PlanProductNav lines={productLines} value={tab} onChange={setTabAndUrl} />
 
       {tab !== "bulletproof-vps" &&
         tab !== "bulletproof-domains" &&
@@ -92,7 +91,7 @@ export function PlansHub({
           {product.bulletproof && (
             <Badge variant="muted" className="gap-1">
               <Shield className="h-3 w-3" strokeWidth={1.5} />
-              Bulletproof
+              {t("common.bulletproof")}
             </Badge>
           )}
         </div>
@@ -102,18 +101,18 @@ export function PlansHub({
         {tab === "bulletproof-domains" && (
           <DomainsPlansTab
             bulletproof
-            title="Bulletproof Domains & Offshore Registration"
-            description="DMCA-ignored registration with manual abuse review and offshore DNS."
+            title={t("plans.bpDomainsTitle")}
+            description={t("plans.bpDomainsDesc")}
           />
         )}
         {tab === "bulletproof-vps" && (
           <VpsPlansTab
             locations={locations}
             plans={bulletproofVpsPlans}
-            title="Bulletproof VPS/VDS Hosting"
-            description="Offshore VPS/VDS with DMCA-ignored policies and instant delivery"
-            deployLabel="Deploy VPS"
-            panelTitle="Instant delivery"
+            title={t("plans.bpVpsTitle")}
+            description={t("plans.bpVpsDesc")}
+            deployLabel={t("plans.bpVpsDeploy")}
+            panelTitle={t("plans.bpVpsPanel")}
             detailedCatalog
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
             filterLocationsByPlan
@@ -123,20 +122,20 @@ export function PlansHub({
           <DedicatedPlansTab
             inventory={inventory}
             bulletproof
-            title="Bulletproof Dedicated Servers"
+            title={t("plans.bpDedicatedTitle")}
             catalog={BULLETPROOF_DEDICATED_PLANS}
             detailedCatalog
-            description="Bare-metal servers under bulletproof policy — high-trust workloads and DMCA-ignored hosting."
+            description={t("plans.bpDedicatedDesc")}
           />
         )}
         {tab === "vps" && (
           <VpsPlansTab
             locations={locations}
             plans={standardVpsPlans}
-            title="VPS/VDS Hosting"
-            description="Standard virtual servers in Russia, Belarus, and Abkhazia. Orders are fulfilled manually via support after payment."
-            deployLabel="Order via support"
-            panelTitle="Order configuration"
+            title={t("plans.stdVpsTitle")}
+            description={t("plans.stdVpsDesc")}
+            deployLabel={t("plans.stdVpsDeploy")}
+            panelTitle={t("plans.stdVpsPanel")}
             detailedCatalog
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
             allowedCountryCodes={STANDARD_VPS_COUNTRY_CODES}
@@ -148,9 +147,9 @@ export function PlansHub({
         {tab === "dedicated" && (
           <DedicatedPlansTab
             inventory={inventory}
-            title="Dedicated Servers"
+            title={t("plans.stdDedicatedTitle")}
             catalog={STANDARD_DEDICATED_PLANS}
-            description="Standard bare-metal servers with fixed configs, SLA-backed performance, and DDoS-ready uplinks."
+            description={t("plans.stdDedicatedDesc")}
           />
         )}
         {tab === "turbovds" && <TurbovdsPlansTab locations={locations} plans={turboPlans} />}

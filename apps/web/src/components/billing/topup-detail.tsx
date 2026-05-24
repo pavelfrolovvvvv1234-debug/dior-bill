@@ -16,7 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { syncTopUpAction } from "@/app/actions/topup";
 import { formatMoney, formatDate } from "@/lib/utils";
-import { MANUAL_SUPPORT_TELEGRAM, TOPUP_PROVIDER_META } from "@dior/shared";
+import { MANUAL_SUPPORT_TELEGRAM } from "@dior/shared";
+import { useI18n } from "@/lib/i18n/store";
+import { useTopUpProviderLabel } from "@/lib/i18n/use-topup-providers";
 
 interface TopUpDetailProps {
   topUp: {
@@ -37,11 +39,11 @@ interface TopUpDetailProps {
 }
 
 export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
+  const { t } = useI18n();
   const [topUp, setTopUp] = useState(initial);
+  const providerName = useTopUpProviderLabel(topUp.provider as import("@dior/shared").TopUpProviderId);
   const [copied, setCopied] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-
-  const providerMeta = TOPUP_PROVIDER_META.find((p) => p.id === topUp.provider);
   const isManual = topUp.provider === "MANUAL_TRANSFER";
   const isPaid = topUp.status === "PAID";
   const isPending = ["PENDING", "PROCESSING", "MANUAL_REVIEW"].includes(topUp.status);
@@ -93,16 +95,16 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
           <CheckCircle2 className="h-10 w-10 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight">Payment confirmed</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">{t("billing.detail.paymentConfirmed")}</h2>
         <p className="mt-2 text-muted-foreground">
-          {formatMoney(Number(topUp.netAmount))} has been credited to your wallet
+          {t("billing.detail.credited", { amount: formatMoney(Number(topUp.netAmount)) })}
         </p>
-        <div className="mt-8 flex justify-center gap-3">
-          <Button asChild>
-            <FastLink href="/billing">View billing</FastLink>
+        <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
+          <Button className="w-full sm:w-auto" asChild>
+            <FastLink href="/billing">{t("billing.detail.viewBilling")}</FastLink>
           </Button>
-          <Button variant="outline" asChild>
-            <FastLink href="/dashboard">Dashboard</FastLink>
+          <Button variant="outline" className="w-full sm:w-auto" asChild>
+            <FastLink href="/dashboard">{t("billing.detail.dashboard")}</FastLink>
           </Button>
         </div>
       </div>
@@ -110,23 +112,25 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto w-full max-w-2xl space-y-6">
       <Card className="overflow-hidden border-primary/20">
         <div className="h-1 bg-gradient-to-r from-primary/80 via-primary to-primary/40" />
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle className="text-xl">{providerMeta?.name ?? topUp.provider}</CardTitle>
-            <p className="mt-1 font-mono text-sm text-muted-foreground">{topUp.referenceCode}</p>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle className="text-lg sm:text-xl">{providerName}</CardTitle>
+            <p className="mt-1 break-all font-mono text-sm text-muted-foreground">{topUp.referenceCode}</p>
           </div>
-          <TopUpStatusBadge status={topUp.status} />
+          <TopUpStatusBadge status={topUp.status} className="w-fit shrink-0" />
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Stat label="Amount" value={formatMoney(Number(topUp.amount))} />
-            <Stat label="Fee" value={formatMoney(Number(topUp.fee))} />
-            <Stat label="You receive" value={formatMoney(Number(topUp.netAmount))} highlight />
-            <Stat label="Created" value={formatDate(topUp.createdAt)} />
-            {topUp.expiresAt && <Stat label="Expires" value={formatDate(topUp.expiresAt)} />}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            <Stat label={t("common.amount")} value={formatMoney(Number(topUp.amount))} />
+            <Stat label={t("common.fee")} value={formatMoney(Number(topUp.fee))} />
+            <Stat label={t("billing.detail.youReceive")} value={formatMoney(Number(topUp.netAmount))} highlight />
+            <Stat label={t("billing.detail.created")} value={formatDate(topUp.createdAt)} />
+            {topUp.expiresAt && (
+              <Stat label={t("billing.detail.expires")} value={formatDate(topUp.expiresAt)} />
+            )}
           </div>
 
           {isManual ? (
@@ -135,12 +139,13 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
               amount={Number(topUp.amount)}
               copied={copied}
               onCopy={copy}
+              t={t}
             />
           ) : (
             topUp.paymentUrl && (
               <Button className="w-full gap-2" size="lg" asChild>
                 <a href={topUp.paymentUrl} target="_blank" rel="noopener noreferrer">
-                  Open payment invoice
+                  {t("billing.detail.openInvoice")}
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
@@ -160,10 +165,10 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
               ) : (
                 <RefreshCw className="mr-1 h-3 w-3" />
               )}
-              Refresh status
+              {t("billing.detail.refreshStatus")}
             </Button>
             <Button variant="ghost" size="sm" asChild>
-              <FastLink href="/billing/topup">New top-up</FastLink>
+              <FastLink href="/billing/topup">{t("billing.detail.newTopup")}</FastLink>
             </Button>
           </div>
         </CardContent>
@@ -171,7 +176,7 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
 
       <Card className="glass">
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Activity</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("billing.detail.activity")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ol className="relative space-y-4 border-l border-border pl-6">
@@ -211,11 +216,13 @@ function ManualTransferCard({
   amount,
   copied,
   onCopy,
+  t,
 }: {
   referenceCode: string;
   amount: number;
   copied: string | null;
   onCopy: (text: string, key: string) => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   const telegramUrl = `https://t.me/${MANUAL_SUPPORT_TELEGRAM.replace("@", "")}`;
 
@@ -224,36 +231,35 @@ function ManualTransferCard({
       <div className="flex items-start gap-3">
         <Clock className="mt-0.5 h-5 w-5 text-amber-500" />
         <div>
-          <p className="font-medium">Awaiting manual verification</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Contact support with your payment reference. Funds are credited after operator
-            confirmation — typically within a few hours.
-          </p>
+          <p className="font-medium">{t("billing.detail.manualTitle")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("billing.detail.manualBody")}</p>
         </div>
       </div>
 
       <div className="space-y-2 rounded-lg bg-background/80 p-4 font-mono text-sm">
-        <Row label="Payment ID" value={referenceCode} copied={copied} copyKey="ref" onCopy={onCopy} />
+        <Row label={t("billing.detail.paymentId")} value={referenceCode} copied={copied} copyKey="ref" onCopy={onCopy} t={t} />
         <Row
-          label="Amount"
+          label={t("common.amount")}
           value={`$${amount.toFixed(2)} USD`}
           copied={copied}
           copyKey="amt"
           onCopy={onCopy}
+          t={t}
         />
         <Row
-          label="Support"
+          label={t("billing.detail.support")}
           value={MANUAL_SUPPORT_TELEGRAM}
           copied={copied}
           copyKey="tg"
           onCopy={onCopy}
+          t={t}
         />
       </div>
 
       <Button className="w-full gap-2" asChild>
         <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
           <MessageCircle className="h-4 w-4" />
-          Open {MANUAL_SUPPORT_TELEGRAM}
+          {t("billing.detail.openSupport", { telegram: MANUAL_SUPPORT_TELEGRAM })}
         </a>
       </Button>
     </div>
@@ -266,24 +272,28 @@ function Row({
   copied,
   copyKey,
   onCopy,
+  t,
 }: {
   label: string;
   value: string;
   copied: string | null;
   copyKey: string;
   onCopy: (text: string, key: string) => void;
+  t: (key: string) => string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-muted-foreground">{label}</span>
+    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
       <button
         type="button"
         onClick={() => onCopy(value, copyKey)}
-        className="flex items-center gap-1 hover:text-primary"
+        className="flex min-w-0 items-center gap-1 text-left hover:text-primary sm:justify-end"
       >
-        {value}
-        <Copy className="h-3 w-3" />
-        {copied === copyKey && <span className="text-[10px] text-emerald-500">Copied</span>}
+        <span className="break-all">{value}</span>
+        <Copy className="h-3 w-3 shrink-0" />
+        {copied === copyKey && (
+          <span className="shrink-0 text-[10px] text-emerald-500">{t("common.copied")}</span>
+        )}
       </button>
     </div>
   );

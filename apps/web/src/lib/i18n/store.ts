@@ -3,27 +3,37 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { isLocaleId, translate, type LocaleId } from "./index";
+import { setLocaleCookie } from "./cookie";
 
 type I18nState = {
   locale: LocaleId;
   setLocale: (locale: LocaleId) => void;
-  t: (key: string) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
 export const useI18n = create<I18nState>()(
   persist(
     (set, get) => ({
       locale: "en",
-      setLocale: (locale) => set({ locale }),
-      t: (key) => translate(get().locale, key),
+      setLocale: (locale) => {
+        setLocaleCookie(locale);
+        set({ locale });
+      },
+      t: (key, vars) => translate(get().locale, key, vars),
     }),
-    { name: "dior-locale" },
+    {
+      name: "dior-locale",
+      onRehydrateStorage: () => (state) => {
+        if (state?.locale) setLocaleCookie(state.locale);
+      },
+    },
   ),
 );
 
 export function syncLocaleFromProfile(locale: string | undefined) {
   if (locale && isLocaleId(locale)) {
-    useI18n.getState().setLocale(locale);
+    const { setLocale } = useI18n.getState();
+    setLocale(locale);
   }
 }
 
