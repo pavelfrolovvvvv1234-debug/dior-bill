@@ -7,11 +7,21 @@ interface PanelProps {
   children: React.ReactNode;
   className?: string;
   noPadding?: boolean;
+  /** Allow dropdowns/menus to extend outside the panel (order forms) */
+  allowOverflow?: boolean;
 }
 
-export function Panel({ title, description, action, children, className, noPadding }: PanelProps) {
+export function Panel({
+  title,
+  description,
+  action,
+  children,
+  className,
+  noPadding,
+  allowOverflow = false,
+}: PanelProps) {
   return (
-    <section className={cn("panel overflow-hidden", className)}>
+    <section className={cn("panel", !allowOverflow && "overflow-hidden", className)}>
       {(title || action) && (
         <header className="panel-header">
           <div className="min-w-0">

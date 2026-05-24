@@ -9,24 +9,22 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
+const selectTriggerClassName = cn(
+  "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground",
+  "transition-premium placeholder:text-muted-foreground",
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+  "disabled:cursor-not-allowed disabled:opacity-50",
+  "[&>span]:line-clamp-1",
+);
+
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-foreground transition-premium",
-      "placeholder:text-muted-foreground focus:outline-none focus-glow",
-      "disabled:cursor-not-allowed disabled:opacity-50",
-      "[&>span]:line-clamp-1",
-      className,
-    )}
-    {...props}
-  >
+  <SelectPrimitive.Trigger ref={ref} className={cn(selectTriggerClassName, className)} {...props}>
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground opacity-80" strokeWidth={1.5} />
+      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -40,20 +38,18 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       position={position}
+      sideOffset={4}
+      collisionPadding={12}
       className={cn(
-        "relative z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-white/10 bg-[#0a0f18] text-foreground shadow-float",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        position === "popper" &&
-          "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
+        "z-[100] max-h-60 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-card text-card-foreground shadow-md",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "data-[state=closed]:duration-100 data-[state=open]:duration-100",
         className,
       )}
       {...props}
     >
-      <SelectPrimitive.Viewport
-        className={cn("p-1", position === "popper" && "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]")}
-      >
-        {children}
-      </SelectPrimitive.Viewport>
+      <SelectPrimitive.Viewport className="max-h-60 p-1">{children}</SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ));
@@ -66,8 +62,10 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm text-foreground outline-none",
-      "focus:bg-primary/10 data-[highlighted]:bg-primary/15 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none",
+      "text-foreground focus:bg-accent focus:text-accent-foreground",
+      "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
+      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}
@@ -98,7 +96,7 @@ const SelectSeparator = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Separator>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-white/8", className)} {...props} />
+  <SelectPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-border", className)} {...props} />
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
@@ -123,15 +121,21 @@ function FormSelect({
   className?: string;
 }) {
   return (
-    <>
+    <div className="relative">
       <input type="hidden" name={name} value={value} required={required} />
-      <Select value={value || undefined} onValueChange={onValueChange} required={required} disabled={disabled}>
+      <Select
+        value={value || undefined}
+        onValueChange={onValueChange}
+        required={required}
+        disabled={disabled}
+        modal={false}
+      >
         <SelectTrigger className={className}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>{children}</SelectContent>
       </Select>
-    </>
+    </div>
   );
 }
 
@@ -145,4 +149,5 @@ export {
   SelectLabel,
   SelectSeparator,
   FormSelect,
+  selectTriggerClassName,
 };

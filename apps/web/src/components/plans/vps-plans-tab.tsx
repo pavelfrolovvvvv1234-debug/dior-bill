@@ -102,10 +102,10 @@ export function VpsPlansTab({
       setLocationId("");
       return;
     }
-    if (!availableLocations.some((loc) => loc.id === locationId)) {
-      setLocationId(availableLocations[0].id);
-    }
-  }, [availableLocations, locationId]);
+    setLocationId((current) =>
+      availableLocations.some((loc) => loc.id === current) ? current : availableLocations[0].id,
+    );
+  }, [availableLocations]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -175,6 +175,7 @@ export function VpsPlansTab({
           title={panelTitle}
           description={selected ? `${selected.name} — ${selected.cpuCores} vCPU` : undefined}
           className="xl:sticky xl:top-20"
+          allowOverflow
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <input type="hidden" name="planId" value={selectedPlan} />
