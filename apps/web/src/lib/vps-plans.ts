@@ -1,6 +1,9 @@
 /** Shared network profile for bulletproof offshore VPS line */
 const BP_NETWORK = { networkMbps: 150, bandwidthLabel: "Unlimited" as const, bandwidthTb: 999 };
 
+/** Standard VPS/VDS — same card layout as bulletproof */
+const STD_VPS_NETWORK = { networkMbps: 150, bandwidthLabel: "Unlimited" as const, bandwidthTb: 999 };
+
 export type VpsPlanDisplay = "standard" | "bulletproof" | "turbovds";
 
 export type VpsPlan = {
@@ -23,50 +26,18 @@ export type VpsPlan = {
   ppsDisplay?: string;
 };
 
-const STD_NETWORK = { networkMbps: 1000, bandwidthLabel: "Fair use" as const, bandwidthTb: 10 };
-
+/** Non-abuse VPS/VDS — ticket provisioning only; RU / BY / AB regions */
 export const STANDARD_VPS_PLANS: readonly VpsPlan[] = [
-  {
-    id: "std-1",
-    name: "VPS S",
-    cpuCores: 1,
-    ramMb: 2048,
-    diskGb: 40,
-    ...STD_NETWORK,
-    price: 12,
-    display: "standard",
-  },
-  {
-    id: "std-2",
-    name: "VPS M",
-    cpuCores: 2,
-    ramMb: 4096,
-    diskGb: 80,
-    ...STD_NETWORK,
-    price: 24,
-    popular: true,
-    display: "standard",
-  },
-  {
-    id: "std-3",
-    name: "VPS L",
-    cpuCores: 4,
-    ramMb: 8192,
-    diskGb: 160,
-    ...STD_NETWORK,
-    price: 48,
-    display: "standard",
-  },
-  {
-    id: "std-4",
-    name: "VDS XL",
-    cpuCores: 8,
-    ramMb: 16384,
-    diskGb: 320,
-    ...STD_NETWORK,
-    price: 96,
-    display: "standard",
-  },
+  { id: "std-1", name: "VPS 1", cpuCores: 1, ramMb: 1024, diskGb: 10, ...STD_VPS_NETWORK, price: 4, display: "standard" },
+  { id: "std-2", name: "VPS 2", cpuCores: 2, ramMb: 2048, diskGb: 40, ...STD_VPS_NETWORK, price: 8, display: "standard" },
+  { id: "std-3", name: "VPS 3", cpuCores: 2, ramMb: 4096, diskGb: 50, ...STD_VPS_NETWORK, price: 10, popular: true, display: "standard" },
+  { id: "std-4", name: "VPS 4", cpuCores: 4, ramMb: 8192, diskGb: 80, ...STD_VPS_NETWORK, price: 18, display: "standard" },
+  { id: "std-5", name: "VPS 5", cpuCores: 8, ramMb: 16384, diskGb: 150, ...STD_VPS_NETWORK, price: 35, display: "standard" },
+  { id: "std-6", name: "VPS 6", cpuCores: 8, ramMb: 24576, diskGb: 200, ...STD_VPS_NETWORK, price: 45, display: "standard" },
+  { id: "std-7", name: "VPS 7", cpuCores: 12, ramMb: 32768, diskGb: 250, ...STD_VPS_NETWORK, price: 59, display: "standard" },
+  { id: "std-8", name: "VPS 8", cpuCores: 16, ramMb: 65536, diskGb: 300, ...STD_VPS_NETWORK, price: 95, display: "standard" },
+  { id: "std-9", name: "VPS 9", cpuCores: 24, ramMb: 98304, diskGb: 500, ...STD_VPS_NETWORK, price: 139, display: "standard" },
+  { id: "std-10", name: "VDS 10", cpuCores: 24, ramMb: 131072, diskGb: 700, ...STD_VPS_NETWORK, price: 179, display: "standard" },
 ];
 
 export const VPS_PLANS: readonly VpsPlan[] = [
@@ -128,3 +99,7 @@ export const TURBO_VPS_PLANS: readonly VpsPlan[] = [
     ...TURBO_NET_SHARED,
   },
 ];
+
+export function isStandardVpsPlan(planId: string): boolean {
+  return STANDARD_VPS_PLANS.some((p) => p.id === planId);
+}

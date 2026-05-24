@@ -6,7 +6,8 @@ import { createTicketRecord } from "./create-ticket";
 export type TicketPurchaseProductLine =
   | "bulletproof-dedicated"
   | "dedicated"
-  | "turbovds";
+  | "turbovds"
+  | "standard-vps";
 
 export async function purchaseViaSupportTicket(params: {
   userId: string;

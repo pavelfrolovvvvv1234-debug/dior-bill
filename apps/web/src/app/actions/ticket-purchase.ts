@@ -7,10 +7,12 @@ import { assertSufficientBalance } from "@/app/actions/order";
 import { requireSession } from "@/lib/auth";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
 import { STANDARD_DEDICATED_PLANS } from "@/lib/dedicated-plans";
-import { TURBO_VPS_PLANS } from "@/lib/vps-plans";
+import { STANDARD_VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
+import { STANDARD_VPS_COUNTRY_CODES } from "@/lib/vps-plan-locations";
 import {
   buildDedicatedTicketCopy,
   buildInventoryDedicatedTicketCopy,
+  buildStandardVpsTicketCopy,
   buildTurbovdsTicketCopy,
   type TicketOrderProductLine,
 } from "@/lib/ticket-order-copy";
@@ -80,6 +82,60 @@ export async function purchaseInventoryDedicatedViaTicketAction(input: {
 
   revalidatePath("/billing");
   revalidatePath("/support");
+  redirect(`/support/${ticket.id}`);
+}
+
+export async function purchaseStandardVpsViaTicketAction(formData: FormData) {
+  const session = await requireSession();
+
+  const hostname = String(formData.get("hostname") ?? "").trim();
+  const locationId = String(formData.get("locationId") ?? "");
+  const planId = String(formData.get("planId") ?? "");
+  const os = String(formData.get("os") ?? "debian-12");
+
+  const plan = STANDARD_VPS_PLANS.find((p) => p.id === planId);
+  if (!hostname || !locationId || !plan) {
+    throw new Error("Fill hostname, region, and plan");
+  }
+
+  const locations = await getLocations();
+  const location = locations.find((l) => l.id === locationId);
+  if (!location) throw new Error("Invalid location");
+
+  const allowedCountries = new Set<string>([...STANDARD_VPS_COUNTRY_CODES]);
+  if (!allowedCountries.has(location.country.toUpperCase())) {
+    throw new Error("This region is not available for standard VPS/VDS");
+  }
+
+  await assertSufficientBalance(plan.price);
+
+  const locationLabel = location.city
+    ? `${location.name} (${location.city}, ${location.country})`
+    : `${location.name} (${location.country})`;
+
+  const copy = buildStandardVpsTicketCopy({
+    plan,
+    hostname,
+    locationLabel,
+    locationCode: location.code,
+    os,
+  });
+
+  const { ticket } = await purchaseViaSupportTicket({
+    userId: session.user.id,
+    amount: plan.price,
+    productLine: "standard-vps",
+    subject: copy.subject,
+    body: copy.body,
+    invoiceDescription: copy.invoiceDescription,
+    metadata: { planId, hostname, locationId, os },
+  });
+
+  revalidatePath("/billing");
+  revalidatePath("/support");
+  revalidatePath("/plans");
+  revalidatePath("/services");
+
   redirect(`/support/${ticket.id}`);
 }
 

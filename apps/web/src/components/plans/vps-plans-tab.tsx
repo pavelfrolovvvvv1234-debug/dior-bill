@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { deployVpsAction } from "@/app/actions/vps";
-import { purchaseTurbovdsViaTicketAction } from "@/app/actions/ticket-purchase";
+import {
+  purchaseStandardVpsViaTicketAction,
+  purchaseTurbovdsViaTicketAction,
+} from "@/app/actions/ticket-purchase";
 import { checkSufficientBalance } from "@/app/actions/order";
 import { handlePurchaseError, toastInsufficientBalance } from "@/lib/toast";
 import { Panel } from "@/components/ui/enterprise/panel";
@@ -18,6 +21,7 @@ import {
   type VpsOsOption,
 } from "@/lib/vps-os-options";
 import {
+  filterLocationsByCountryCodes,
   filterLocationsForBulletproofPlan,
   getLocationCountryLabel,
 } from "@/lib/vps-plan-locations";
@@ -40,7 +44,10 @@ export function VpsPlansTab({
   detailedCatalog = false,
   osOptions = STANDARD_VPS_OS_OPTIONS,
   filterLocationsByPlan = false,
+  allowedCountryCodes,
+  locationCountryLabels = false,
   purchaseViaTicket = false,
+  ticketKind = "turbovds",
 }: {
   locations: Location[];
   plans: readonly VpsPlan[];
@@ -52,8 +59,13 @@ export function VpsPlansTab({
   osOptions?: readonly VpsOsOption[];
   /** Bulletproof VPS: Lite → NL only; Elite/Mega → NL, DE, US, TR */
   filterLocationsByPlan?: boolean;
-  /** TurboVDS / manual provisioning: charge balance and open support ticket */
+  /** Restrict region list (e.g. RU, BY, AB for standard VPS) */
+  allowedCountryCodes?: readonly string[];
+  /** Show country names in region picker (bulletproof + standard VPS) */
+  locationCountryLabels?: boolean;
+  /** Charge balance and open support ticket instead of instant deploy */
   purchaseViaTicket?: boolean;
+  ticketKind?: "turbovds" | "standard-vps";
 }) {
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id ?? "");
   const [locationId, setLocationId] = useState("");
@@ -62,10 +74,16 @@ export function VpsPlansTab({
   const [loading, setLoading] = useState(false);
   const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
 
-  const availableLocations = useMemo(
-    () => filterLocationsForBulletproofPlan(locations, selectedPlan, filterLocationsByPlan),
-    [locations, selectedPlan, filterLocationsByPlan],
-  );
+  const availableLocations = useMemo(() => {
+    let list = [...locations];
+    if (allowedCountryCodes?.length) {
+      list = filterLocationsByCountryCodes(list, allowedCountryCodes);
+    }
+    if (filterLocationsByPlan) {
+      list = filterLocationsForBulletproofPlan(list, selectedPlan, true);
+    }
+    return list;
+  }, [locations, allowedCountryCodes, filterLocationsByPlan, selectedPlan]);
 
   useEffect(() => {
     if (availableLocations.length === 0) {
@@ -96,7 +114,11 @@ export function VpsPlansTab({
         return;
       }
       if (purchaseViaTicket) {
-        await purchaseTurbovdsViaTicketAction(form);
+        if (ticketKind === "standard-vps") {
+          await purchaseStandardVpsViaTicketAction(form);
+        } else {
+          await purchaseTurbovdsViaTicketAction(form);
+        }
       } else {
         await deployVpsAction(form);
       }
@@ -161,7 +183,7 @@ export function VpsPlansTab({
               >
                 {availableLocations.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
-                    {filterLocationsByPlan
+                    {filterLocationsByPlan || locationCountryLabels
                       ? getLocationCountryLabel(loc)
                       : loc.name}
                   </SelectItem>

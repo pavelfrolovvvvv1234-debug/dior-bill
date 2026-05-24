@@ -81,6 +81,21 @@ async function main() {
       update: {},
       create: { code: "fi-hel", name: "Helsinki", country: "FI", city: "Helsinki", flag: "🇫🇮" },
     }),
+    prisma.location.upsert({
+      where: { code: "ru-msk" },
+      update: { name: "Russia", country: "RU", city: "Moscow", flag: "🇷🇺" },
+      create: { code: "ru-msk", name: "Russia", country: "RU", city: "Moscow", flag: "🇷🇺" },
+    }),
+    prisma.location.upsert({
+      where: { code: "by-msq" },
+      update: { name: "Belarus", country: "BY", city: "Minsk", flag: "🇧🇾" },
+      create: { code: "by-msq", name: "Belarus", country: "BY", city: "Minsk", flag: "🇧🇾" },
+    }),
+    prisma.location.upsert({
+      where: { code: "ab-suk" },
+      update: { name: "Abkhazia", country: "AB", city: "Sukhumi", flag: "🇦🇧" },
+      create: { code: "ab-suk", name: "Abkhazia", country: "AB", city: "Sukhumi", flag: "🇦🇧" },
+    }),
   ]);
 
   for (const loc of locations) {

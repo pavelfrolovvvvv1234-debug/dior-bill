@@ -9,6 +9,7 @@ import { DomainsPlansTab } from "./domains-plans-tab";
 import { TurbovdsPlansTab } from "./turbovds-plans-tab";
 import type { VpsPlan } from "@/lib/vps-plans";
 import { BULLETPROOF_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
+import { STANDARD_VPS_COUNTRY_CODES } from "@/lib/vps-plan-locations";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
 import { STANDARD_DEDICATED_PLANS } from "@/lib/dedicated-plans";
 import {
@@ -17,7 +18,6 @@ import {
   getPlanProductLine,
   type PlanTab,
 } from "@/lib/plan-catalog";
-import type { VpsPlan } from "@/lib/vps-plans";
 import { Badge } from "@/components/ui/badge";
 import { Shield } from "lucide-react";
 
@@ -134,9 +134,15 @@ export function PlansHub({
             locations={locations}
             plans={standardVpsPlans}
             title="VPS/VDS Hosting"
-            description="Standard virtual servers — pick a plan, region, and deploy instantly."
-            deployLabel="Deploy VPS"
-            panelTitle="Deploy configuration"
+            description="Standard virtual servers in Russia, Belarus, and Abkhazia. Orders are fulfilled manually via support after payment."
+            deployLabel="Order via support"
+            panelTitle="Order configuration"
+            detailedCatalog
+            osOptions={BULLETPROOF_VPS_OS_OPTIONS}
+            allowedCountryCodes={STANDARD_VPS_COUNTRY_CODES}
+            locationCountryLabels
+            purchaseViaTicket
+            ticketKind="standard-vps"
           />
         )}
         {tab === "dedicated" && (

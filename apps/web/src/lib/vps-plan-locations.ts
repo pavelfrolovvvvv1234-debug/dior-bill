@@ -5,7 +5,13 @@ export const VPS_COUNTRY_LABELS: Record<string, string> = {
   US: "USA",
   TR: "Turkey",
   FI: "Finland",
+  RU: "Russia",
+  BY: "Belarus",
+  AB: "Abkhazia",
 };
+
+/** Standard (non-bulletproof) VPS — Russia, Belarus, Abkhazia only */
+export const STANDARD_VPS_COUNTRY_CODES = ["RU", "BY", "AB"] as const;
 
 export type VpsLocationRef = {
   country: string;
@@ -65,4 +71,12 @@ export function filterLocationsForBulletproofPlan<T extends { code: string }>(
   if (!allowed) return [...locations];
   const codes = new Set<string>(allowed);
   return locations.filter((loc) => codes.has(loc.code));
+}
+
+export function filterLocationsByCountryCodes<T extends { country: string }>(
+  locations: readonly T[],
+  countryCodes: readonly string[],
+): T[] {
+  const allowed = new Set(countryCodes.map((c) => c.toUpperCase()));
+  return locations.filter((loc) => allowed.has(loc.country?.toUpperCase() ?? ""));
 }

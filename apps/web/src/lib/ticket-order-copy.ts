@@ -7,6 +7,7 @@ const PRODUCT_LINE_LABELS = {
   "bulletproof-dedicated": "Bulletproof Dedicated Server",
   dedicated: "Dedicated Server",
   turbovds: "TurboVDS",
+  "standard-vps": "VPS/VDS",
 } as const;
 
 export type TicketOrderProductLine = keyof typeof PRODUCT_LINE_LABELS;
@@ -89,6 +90,43 @@ export function buildInventoryDedicatedTicketCopy(item: {
 function osLabel(value: string, turbovds: boolean): string {
   const options = turbovds ? STANDARD_VPS_OS_OPTIONS : BULLETPROOF_VPS_OS_OPTIONS;
   return options.find((o) => o.value === value)?.label ?? value;
+}
+
+export function buildStandardVpsTicketCopy(params: {
+  plan: VpsPlan;
+  hostname: string;
+  locationLabel: string;
+  locationCode: string;
+  os: string;
+}): { subject: string; body: string; invoiceDescription: string } {
+  const lineLabel = getProductLineLabel("standard-vps");
+  const configuration = [
+    params.plan.name,
+    `${params.plan.cpuCores} vCPU`,
+    `${params.plan.ramMb / 1024} GB RAM`,
+    `${params.plan.diskGb} GB SSD`,
+    `${params.plan.networkMbps} Mbps`,
+    params.plan.bandwidthLabel,
+  ].join(" · ");
+
+  return {
+    subject: `Order: ${lineLabel} — ${params.plan.name} (${params.hostname})`,
+    invoiceDescription: `${lineLabel}: ${params.plan.name} @ ${params.locationCode}`,
+    body: [
+      "Paid order — balance charged. Please provision VPS/VDS and reply with access credentials.",
+      "",
+      `Product: ${lineLabel}`,
+      `Plan: ${params.plan.name}`,
+      `Configuration: ${configuration}`,
+      `Hostname: ${params.hostname}`,
+      `Region: ${params.locationLabel} (${params.locationCode})`,
+      `OS: ${osLabel(params.os, false)}`,
+      `Plan ID: ${params.plan.id}`,
+      `Monthly price: $${params.plan.price.toFixed(2)}`,
+      "",
+      "Please attach IP, root/login credentials, and panel URL when ready.",
+    ].join("\n"),
+  };
 }
 
 export function buildTurbovdsTicketCopy(params: {
