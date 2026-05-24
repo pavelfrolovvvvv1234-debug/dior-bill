@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getLocations, purchaseViaSupportTicket } from "@dior/backend";
+import { getLocations, purchaseViaSupportTicket, quoteOrderPromo } from "@dior/backend";
 import { assertSufficientBalance } from "@/app/actions/order";
 import { requireSession } from "@/lib/auth";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
@@ -17,9 +17,28 @@ import {
   type TicketOrderProductLine,
 } from "@/lib/ticket-order-copy";
 
+function parsePromoCode(raw?: string): string | undefined {
+  const code = raw?.trim();
+  return code ? code : undefined;
+}
+
+async function assertBalanceForOrder(
+  userId: string,
+  amount: number,
+  promoCode?: string,
+): Promise<void> {
+  let required = amount;
+  if (promoCode) {
+    const quote = await quoteOrderPromo(userId, promoCode, amount);
+    required = quote.finalAmount;
+  }
+  await assertSufficientBalance(required);
+}
+
 export async function purchaseDedicatedViaTicketAction(input: {
   planId: string;
   productLine: "bulletproof-dedicated" | "dedicated";
+  promoCode?: string;
 }) {
   const session = await requireSession();
   const catalog =
@@ -29,7 +48,8 @@ export async function purchaseDedicatedViaTicketAction(input: {
   const plan = catalog.find((p) => p.id === input.planId);
   if (!plan) throw new Error("Plan not found");
 
-  await assertSufficientBalance(plan.price);
+  const promoCode = parsePromoCode(input.promoCode);
+  await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
   const copy = buildDedicatedTicketCopy(plan, input.productLine);
   const { ticket } = await purchaseViaSupportTicket({
@@ -40,6 +60,7 @@ export async function purchaseDedicatedViaTicketAction(input: {
     body: copy.body,
     invoiceDescription: copy.invoiceDescription,
     metadata: { planId: plan.id, productLine: input.productLine },
+    promoCode,
   });
 
   revalidatePath("/billing");
@@ -53,6 +74,7 @@ export async function purchaseInventoryDedicatedViaTicketAction(input: {
   cpu: string;
   monthlyPrice: number;
   bulletproof?: boolean;
+  promoCode?: string;
 }) {
   const session = await requireSession();
   const price = Number(input.monthlyPrice);
@@ -60,7 +82,8 @@ export async function purchaseInventoryDedicatedViaTicketAction(input: {
     throw new Error("Invalid server configuration");
   }
 
-  await assertSufficientBalance(price);
+  const promoCode = parsePromoCode(input.promoCode);
+  await assertBalanceForOrder(session.user.id, price, promoCode);
 
   const copy = buildInventoryDedicatedTicketCopy({
     id: input.inventoryId,
@@ -78,6 +101,7 @@ export async function purchaseInventoryDedicatedViaTicketAction(input: {
     body: copy.body,
     invoiceDescription: copy.invoiceDescription,
     metadata: { inventoryId: input.inventoryId, productLine: copy.productLine },
+    promoCode,
   });
 
   revalidatePath("/billing");
@@ -92,6 +116,7 @@ export async function purchaseStandardVpsViaTicketAction(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const os = String(formData.get("os") ?? "debian-12");
+  const promoCode = parsePromoCode(String(formData.get("promoCode") ?? ""));
 
   const plan = STANDARD_VPS_PLANS.find((p) => p.id === planId);
   if (!hostname || !locationId || !plan) {
@@ -107,7 +132,7 @@ export async function purchaseStandardVpsViaTicketAction(formData: FormData) {
     throw new Error("This region is not available for standard VPS/VDS");
   }
 
-  await assertSufficientBalance(plan.price);
+  await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
   const locationLabel = location.city
     ? `${location.name} (${location.city}, ${location.country})`
@@ -129,6 +154,7 @@ export async function purchaseStandardVpsViaTicketAction(formData: FormData) {
     body: copy.body,
     invoiceDescription: copy.invoiceDescription,
     metadata: { planId, hostname, locationId, os },
+    promoCode,
   });
 
   revalidatePath("/billing");
@@ -146,6 +172,7 @@ export async function purchaseTurbovdsViaTicketAction(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const os = String(formData.get("os") ?? "debian-12");
+  const promoCode = parsePromoCode(String(formData.get("promoCode") ?? ""));
 
   const plan = TURBO_VPS_PLANS.find((p) => p.id === planId);
   if (!hostname || !locationId || !plan) {
@@ -156,7 +183,7 @@ export async function purchaseTurbovdsViaTicketAction(formData: FormData) {
   const location = locations.find((l) => l.id === locationId);
   if (!location) throw new Error("Invalid location");
 
-  await assertSufficientBalance(plan.price);
+  await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
   const locationLabel = location.city
     ? `${location.name} (${location.city}, ${location.country})`
@@ -178,6 +205,7 @@ export async function purchaseTurbovdsViaTicketAction(formData: FormData) {
     body: copy.body,
     invoiceDescription: copy.invoiceDescription,
     metadata: { planId, hostname, locationId, os },
+    promoCode,
   });
 
   revalidatePath("/billing");

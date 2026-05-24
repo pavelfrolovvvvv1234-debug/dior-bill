@@ -334,7 +334,7 @@
   },
   "promo": {
     "title": "Promo code",
-    "description": "Enter a code — the bonus will be credited to your balance.",
+    "description": "Enter a balance-credit code — the amount will be added to your billing balance. Percent-off codes are applied when you place an order.",
     "codeLabel": "Code",
     "apply": "Apply",
     "checking": "Checking…",
@@ -345,6 +345,8 @@
     "expired": "This promo code has expired",
     "noValue": "This promo code has no value",
     "alreadyUsed": "You have already used this promo code",
+    "checkoutOnly": "This promo code applies at checkout when placing an order",
+    "balanceOnly": "This promo code adds credit to your balance — apply it from Billing or the promo menu",
     "dbNotReady": "Promo codes are temporarily unavailable. Please try again in a few minutes.",
     "unauthorized": "Sign in to apply a promo code",
     "errorDefault": "Could not apply promo code",

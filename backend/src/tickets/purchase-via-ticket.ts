@@ -1,6 +1,12 @@
 import type { TicketPriority } from "@dior/database";
+import { prisma } from "@dior/database";
 import { ValidationError } from "@dior/shared";
-import { createInvoice, payInvoiceFromBalance } from "../billing";
+import {
+  applyPromoToOrderTotal,
+  createInvoice,
+  finalizeOrderPromo,
+  payInvoiceFromBalance,
+} from "../billing";
 import { createTicketRecord } from "./create-ticket";
 
 export type TicketPurchaseProductLine =
@@ -18,17 +24,31 @@ export async function purchaseViaSupportTicket(params: {
   invoiceDescription: string;
   priority?: TicketPriority;
   metadata?: Record<string, unknown>;
+  promoCode?: string;
 }) {
   if (params.amount <= 0) {
     throw new ValidationError("Invalid order amount");
   }
 
+  const promo = await applyPromoToOrderTotal(params.userId, params.promoCode, params.amount);
+
+  const user = await prisma.user.findUnique({ where: { id: params.userId } });
+  if (!user) throw new ValidationError("User not found");
+  if (Number(user.balance) < promo.chargeAmount) {
+    throw new ValidationError("Insufficient balance");
+  }
+
+  const description =
+    promo.discount > 0 && promo.promoCode
+      ? `${params.invoiceDescription} (promo ${promo.promoCode}: -$${promo.discount.toFixed(2)})`
+      : params.invoiceDescription;
+
   const invoice = await createInvoice({
     userId: params.userId,
     items: [
       {
-        description: params.invoiceDescription,
-        unitPrice: params.amount,
+        description,
+        unitPrice: promo.chargeAmount,
         quantity: 1,
       },
     ],
@@ -37,6 +57,10 @@ export async function purchaseViaSupportTicket(params: {
   });
 
   await payInvoiceFromBalance(invoice.id, params.userId);
+
+  if (promo.promoId && promo.discount > 0) {
+    await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+  }
 
   const ticket = await createTicketRecord({
     userId: params.userId,

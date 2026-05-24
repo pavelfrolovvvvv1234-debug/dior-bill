@@ -102,5 +102,12 @@ export async function renewService(serviceId: string) {
   return invoice;
 }
 
-export { applyPromoCode, redeemPromoCode, topUpBalance } from "./legacy-helpers";
+export {
+  applyPromoCode,
+  applyPromoToOrderTotal,
+  finalizeOrderPromo,
+  quoteOrderPromo,
+  redeemPromoCode,
+  topUpBalance,
+} from "./legacy-helpers";
 export { getBillingOverview, type BillingOverviewData } from "./overview";

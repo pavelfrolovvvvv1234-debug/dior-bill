@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { assertSufficientBalance } from "@/app/actions/order";
-import { getLocations, provisionVps } from "@dior/backend";
+import { getLocations, provisionVps, quoteOrderPromo } from "@dior/backend";
 import { VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
 import { isLocationAllowedForBulletproofPlan } from "@/lib/vps-plan-locations";
 
@@ -26,6 +26,7 @@ export async function deployVpsAction(formData: FormData) {
   const locationId = String(formData.get("locationId") ?? "");
   const planId = String(formData.get("planId") ?? "");
   const os = String(formData.get("os") ?? "debian-12");
+  const promoCode = String(formData.get("promoCode") ?? "").trim() || undefined;
 
   const plan = ALL_VPS_PLANS.find((p) => p.id === planId);
   if (!hostname || !locationId || !plan) {
@@ -44,7 +45,12 @@ export async function deployVpsAction(formData: FormData) {
     throw new Error("This location is not available for the selected plan");
   }
 
-  await assertSufficientBalance(plan.price);
+  let chargeAmount = plan.price;
+  if (promoCode) {
+    const quote = await quoteOrderPromo(session.user.id, promoCode, plan.price);
+    chargeAmount = quote.finalAmount;
+  }
+  await assertSufficientBalance(chargeAmount);
 
   const { vps } = await provisionVps({
     userId: session.user.id,
@@ -59,6 +65,7 @@ export async function deployVpsAction(formData: FormData) {
     },
     os,
     prepaid: true,
+    promoCode,
   });
 
   revalidatePath("/services");

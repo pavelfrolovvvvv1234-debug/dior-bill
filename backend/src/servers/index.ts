@@ -4,7 +4,12 @@ import { createAuditLog } from "../audit";
 import { encrypt } from "../lib/crypto";
 import { createServiceOrder, startProvisioning } from "../core/provisioning/engine";
 import { selectNodeForProvisioning } from "../core/inventory/service";
-import { createInvoice, payInvoiceFromBalance } from "../billing";
+import {
+  applyPromoToOrderTotal,
+  createInvoice,
+  finalizeOrderPromo,
+  payInvoiceFromBalance,
+} from "../billing";
 import { emitPaymentConfirmed } from "../core/billing/engine";
 import { enqueueJob } from "../lib/queue";
 import {
@@ -65,6 +70,7 @@ export async function provisionVps(params: {
   idempotencyKey?: string;
   /** Dev/demo: skip invoice gate and provision immediately */
   prepaid?: boolean;
+  promoCode?: string;
 }) {
   await ensureBulletproofVpsLocations();
 
@@ -118,12 +124,23 @@ export async function provisionVps(params: {
     idempotencyKey: `vps:sub:${idempotencyKey}`,
   });
 
+  const promo = await applyPromoToOrderTotal(
+    params.userId,
+    params.promoCode,
+    params.plan.price,
+  );
+
+  const invoiceDescription =
+    promo.discount > 0 && promo.promoCode
+      ? `VPS: ${params.hostname} (promo ${promo.promoCode}: -$${promo.discount.toFixed(2)})`
+      : `VPS: ${params.hostname}`;
+
   const invoice = await createInvoice({
     userId: params.userId,
     items: [
       {
-        description: `VPS: ${params.hostname}`,
-        unitPrice: params.plan.price,
+        description: invoiceDescription,
+        unitPrice: promo.chargeAmount,
         serviceId,
       },
     ],
@@ -131,15 +148,21 @@ export async function provisionVps(params: {
 
   if (params.prepaid || process.env.BILLING_AUTO_PROVISION === "true") {
     const user = await prisma.user.findUnique({ where: { id: params.userId } });
-    if (user && Number(user.balance) >= params.plan.price) {
+    if (user && Number(user.balance) >= promo.chargeAmount) {
       await payInvoiceFromBalance(invoice.id, params.userId);
+      if (promo.promoId && promo.discount > 0) {
+        await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+      }
     } else if (params.prepaid) {
       await emitPaymentConfirmed({
         userId: params.userId,
         invoiceId: invoice.id,
-        amount: params.plan.price,
+        amount: promo.chargeAmount,
         idempotencyKey: `prepaid:${idempotencyKey}`,
       });
+      if (promo.promoId && promo.discount > 0) {
+        await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+      }
     }
   }
 

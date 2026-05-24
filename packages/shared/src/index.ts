@@ -5,3 +5,4 @@ export * from "./errors";
 export * from "./utils";
 export * from "./payments";
 export * from "./admin-rbac";
+export * from "./promo";

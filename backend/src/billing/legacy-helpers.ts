@@ -3,43 +3,27 @@ import { NotFoundError, ValidationError } from "@dior/shared";
 import { toJsonValue } from "../lib/json";
 import {
   assertUserHasNotRedeemedPromo,
-  computePromoCredit,
+  computeBalanceCredit,
+  loadActivePromo,
   normalizePromoCode,
-  validatePromoForUse,
+  quoteOrderPromo,
 } from "./promo-redeem";
 
-/** Quote discount for checkout — does not consume the promo (see redeemPromoCode). */
+export { applyPromoToOrderTotal, finalizeOrderPromo, quoteOrderPromo } from "./promo-redeem";
+
+/** Quote discount for checkout — does not consume the promo. */
 export async function applyPromoCode(userId: string, code: string, amount: number) {
-  const normalized = normalizePromoCode(code);
-  const promo = await prisma.promoCode.findFirst({
-    where: { code: normalized, active: true },
-  });
-  if (!promo) throw new NotFoundError("Invalid promo code");
-  validatePromoForUse(promo);
-  await assertUserHasNotRedeemedPromo(userId, promo.id);
-
-  let discount = 0;
-  if (promo.discountType === "percent") {
-    discount = amount * (Number(promo.discountValue) / 100);
-  } else {
-    discount = Number(promo.discountValue);
-  }
-
-  return { discount, finalAmount: Math.max(0, amount - discount) };
+  const quote = await quoteOrderPromo(userId, code, amount);
+  return { discount: quote.discount, finalAmount: quote.finalAmount };
 }
 
-export async function redeemPromoCode(userId: string, code: string, baseAmount?: number) {
+export async function redeemPromoCode(userId: string, code: string) {
   const normalized = normalizePromoCode(code);
   if (!normalized) throw new ValidationError("Enter a promo code");
 
-  const promo = await prisma.promoCode.findFirst({
-    where: { code: normalized, active: true },
-  });
-  if (!promo) throw new NotFoundError("Invalid promo code");
-  validatePromoForUse(promo);
+  const promo = await loadActivePromo(normalized);
   await assertUserHasNotRedeemedPromo(userId, promo.id);
-
-  const credit = computePromoCredit(promo, baseAmount);
+  const credit = computeBalanceCredit(promo);
 
   const credited = await prisma.$transaction(async (tx) => {
     await assertUserHasNotRedeemedPromo(userId, promo.id, tx);

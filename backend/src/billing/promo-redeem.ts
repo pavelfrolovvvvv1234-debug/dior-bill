@@ -26,19 +26,90 @@ export function validatePromoForUse(promo: PromoRow, now = new Date()): void {
   if (promo.validUntil && promo.validUntil < now) throw new ValidationError("Promo expired");
 }
 
-export function computePromoCredit(
-  promo: Pick<PromoRow, "discountType" | "discountValue">,
-  baseAmount?: number,
-): number {
-  let credit = 0;
-  if (promo.discountType === "percent") {
-    const base = baseAmount && baseAmount > 0 ? baseAmount : 100;
-    credit = base * (Number(promo.discountValue) / 100);
-  } else {
-    credit = Number(promo.discountValue);
+export function computeBalanceCredit(promo: Pick<PromoRow, "discountType" | "discountValue">): number {
+  if (promo.discountType !== "fixed") {
+    throw new ValidationError(
+      "This promo code applies at checkout when placing an order",
+    );
   }
+  const credit = Number(promo.discountValue);
   if (credit <= 0) throw new ValidationError("Promo code has no value");
   return credit;
+}
+
+export function computeOrderDiscount(
+  promo: Pick<PromoRow, "discountType" | "discountValue">,
+  orderAmount: number,
+): number {
+  if (orderAmount <= 0) throw new ValidationError("Invalid order amount");
+  if (promo.discountType !== "percent") {
+    throw new ValidationError(
+      "This promo code adds credit to your balance — apply it from Billing or the promo menu",
+    );
+  }
+  const pct = Number(promo.discountValue);
+  if (pct <= 0 || pct > 100) throw new ValidationError("Promo code has no value");
+  const discount = orderAmount * (pct / 100);
+  if (discount <= 0) throw new ValidationError("Promo code has no value");
+  return Math.round(discount * 100) / 100;
+}
+
+export async function loadActivePromo(code: string): Promise<PromoRow> {
+  const normalized = normalizePromoCode(code);
+  if (!normalized) throw new ValidationError("Enter a promo code");
+  const promo = await prisma.promoCode.findFirst({
+    where: { code: normalized, active: true },
+  });
+  if (!promo) throw new NotFoundError("Invalid promo code");
+  validatePromoForUse(promo);
+  return promo;
+}
+
+export async function quoteOrderPromo(
+  userId: string,
+  code: string,
+  orderAmount: number,
+): Promise<{ code: string; discount: number; finalAmount: number; discountType: string }> {
+  const promo = await loadActivePromo(code);
+  await assertUserHasNotRedeemedPromo(userId, promo.id);
+  const discount = computeOrderDiscount(promo, orderAmount);
+  return {
+    code: promo.code,
+    discount,
+    finalAmount: Math.max(0, Math.round((orderAmount - discount) * 100) / 100),
+    discountType: promo.discountType,
+  };
+}
+
+export async function finalizeOrderPromo(
+  userId: string,
+  promoId: string,
+  discount: number,
+  tx?: Prisma.TransactionClient,
+): Promise<void> {
+  const run = async (db: Prisma.TransactionClient) => {
+    await assertUserHasNotRedeemedPromo(userId, promoId, db);
+    const promo = await db.promoCode.findUnique({ where: { id: promoId } });
+    if (!promo) throw new NotFoundError("Invalid promo code");
+    validatePromoForUse(promo);
+
+    const updated = await db.promoCode.updateMany({
+      where: {
+        id: promoId,
+        active: true,
+        usedCount: promo.maxUses ? { lt: promo.maxUses } : undefined,
+      },
+      data: { usedCount: { increment: 1 } },
+    });
+    if (updated.count === 0) throw new ValidationError("Promo code exhausted");
+
+    await db.promoCodeRedemption.create({
+      data: { userId, promoCodeId: promoId, credit: discount },
+    });
+  };
+
+  if (tx) await run(tx);
+  else await prisma.$transaction(run);
 }
 
 export async function assertUserHasNotRedeemedPromo(
@@ -53,4 +124,33 @@ export async function assertUserHasNotRedeemedPromo(
   if (existing) {
     throw new ValidationError("You have already used this promo code");
   }
+}
+
+/** Apply percent promo to an order total; consumes the code after payment succeeds. */
+export async function applyPromoToOrderTotal(
+  userId: string,
+  code: string | undefined,
+  orderAmount: number,
+): Promise<{
+  chargeAmount: number;
+  discount: number;
+  promoCode?: string;
+  promoId?: string;
+}> {
+  const trimmed = code?.trim();
+  if (!trimmed) {
+    return { chargeAmount: orderAmount, discount: 0 };
+  }
+
+  const promo = await loadActivePromo(trimmed);
+  await assertUserHasNotRedeemedPromo(userId, promo.id);
+  const discount = computeOrderDiscount(promo, orderAmount);
+  const chargeAmount = Math.max(0, Math.round((orderAmount - discount) * 100) / 100);
+
+  return {
+    chargeAmount,
+    discount,
+    promoCode: promo.code,
+    promoId: promo.id,
+  };
 }

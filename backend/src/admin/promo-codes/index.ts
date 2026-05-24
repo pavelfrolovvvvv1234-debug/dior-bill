@@ -1,5 +1,5 @@
 import { prisma } from "@dior/database";
-import { NotFoundError } from "@dior/shared";
+import { NotFoundError, validatePromoCreateInput } from "@dior/shared";
 import { createAuditLog } from "../../audit";
 import { requirePermission } from "../rbac";
 
@@ -31,12 +31,14 @@ export async function createPromoCode(
 ) {
   await requirePermission(actorId, "promo.write");
 
+  const validated = validatePromoCreateInput(data);
+
   const created = await prisma.promoCode.create({
     data: {
-      code: data.code.toUpperCase(),
-      discountType: data.discountType,
-      discountValue: data.discountValue,
-      maxUses: data.maxUses,
+      code: validated.code,
+      discountType: validated.discountType,
+      discountValue: validated.discountValue,
+      maxUses: validated.maxUses,
       validUntil: data.validUntil,
       active: true,
     },

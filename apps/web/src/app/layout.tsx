@@ -18,9 +18,9 @@ export const metadata: Metadata = {
   title: `${APP_NAME} — Infrastructure Console`,
   description: APP_TAGLINE,
   icons: {
-    icon: [{ url: BRAND_FAVICON_URL, sizes: "any" }],
-    apple: [{ url: BRAND_FAVICON_URL, sizes: "180x180" }],
-    shortcut: [{ url: BRAND_FAVICON_URL }],
+    icon: [{ url: BRAND_FAVICON_URL, type: "image/x-icon", sizes: "any" }],
+    apple: [{ url: BRAND_FAVICON_URL, type: "image/x-icon", sizes: "180x180" }],
+    shortcut: [{ url: BRAND_FAVICON_URL, type: "image/x-icon" }],
   },
   manifest: "/site.webmanifest",
 };

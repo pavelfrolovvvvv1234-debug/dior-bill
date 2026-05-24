@@ -1,4 +1,5 @@
 import { listPromoCodes } from "@dior/backend";
+import { formatPromoValue } from "@dior/shared";
 import { PageHeader } from "@/components/control/page-header";
 import { PageContainer } from "@/components/control/page-container";
 import { Panel } from "@/components/control/panel";
@@ -39,7 +40,7 @@ export default async function PromoPage() {
                 data.items.map((p) => (
                   <DataTableRow key={p.id}>
                     <DataTableTd mono className="font-medium">{p.code}</DataTableTd>
-                    <DataTableTd>{p.discountType} / {Number(p.discountValue)}</DataTableTd>
+                    <DataTableTd>{formatPromoValue(p.discountType, Number(p.discountValue))}</DataTableTd>
                     <DataTableTd>{p.usedCount}{p.maxUses ? ` / ${p.maxUses}` : ""}</DataTableTd>
                     <DataTableTd><Badge variant={p.active ? "success" : "warning"}>{p.active ? "Active" : "Off"}</Badge></DataTableTd>
                   </DataTableRow>

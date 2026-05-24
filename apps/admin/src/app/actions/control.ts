@@ -66,6 +66,7 @@ export async function createPromoAction(data: {
   code: string;
   discountType: "percent" | "fixed";
   discountValue: number;
+  maxUses?: number;
 }) {
   const actor = await requireControlSession();
   await createPromoCode(actor.id, data);

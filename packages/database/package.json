@@ -8,6 +8,7 @@
     "generate": "dotenv -e ../../.env -- prisma generate",
     "push": "dotenv -e ../../.env -- prisma db push",
     "migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "build": "prisma generate"
   },

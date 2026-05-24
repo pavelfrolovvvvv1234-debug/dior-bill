@@ -358,7 +358,7 @@
   },
   "promo": {
     "title": "优惠码",
-    "description": "输入代码，奖金将计入余额。",
+    "description": "输入余额充值码。百分比折扣码在下单时使用。",
     "codeLabel": "代码",
     "apply": "应用",
     "checking": "验证中…",
@@ -369,6 +369,8 @@
     "expired": "优惠码已过期",
     "noValue": "优惠码无可用金额",
     "alreadyUsed": "您已使用过此优惠码",
+    "checkoutOnly": "此优惠码需在下单时使用",
+    "balanceOnly": "此优惠码用于充值余额，请在账单或优惠码菜单中应用",
     "dbNotReady": "优惠码功能暂时不可用，请稍后再试。",
     "unauthorized": "请先登录后再使用优惠码",
     "errorDefault": "无法应用优惠码",

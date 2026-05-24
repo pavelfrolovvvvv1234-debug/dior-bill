@@ -358,7 +358,7 @@
   },
   "promo": {
     "title": "Código promocional",
-    "description": "Introduce el código — el bono se acreditará en tu saldo.",
+    "description": "Introduce un código de saldo. Los códigos con % de descuento se aplican al hacer un pedido.",
     "codeLabel": "Código",
     "apply": "Aplicar",
     "checking": "Comprobando…",
@@ -369,6 +369,8 @@
     "expired": "Este código ha caducado",
     "noValue": "Este código no tiene valor",
     "alreadyUsed": "Ya has usado este código promocional",
+    "checkoutOnly": "Este código se aplica al hacer un pedido",
+    "balanceOnly": "Este código añade saldo — aplícalo desde Facturación o el menú de promociones",
     "dbNotReady": "Los códigos promocionales no están disponibles temporalmente. Inténtalo en unos minutos.",
     "unauthorized": "Inicia sesión para aplicar un código",
     "errorDefault": "No se pudo aplicar el código",

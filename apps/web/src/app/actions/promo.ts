@@ -15,17 +15,14 @@ export type RedeemPromoCodeResult =
     }
   | { ok: false; error: string };
 
-export async function redeemPromoCodeAction(
-  code: string,
-  baseAmount?: number,
-): Promise<RedeemPromoCodeResult> {
+export async function redeemPromoCodeAction(code: string): Promise<RedeemPromoCodeResult> {
   const session = await getSession();
   if (!session) {
     return { ok: false, error: "Unauthorized" };
   }
 
   try {
-    const result = await redeemPromoCode(session.user.id, code, baseAmount);
+    const result = await redeemPromoCode(session.user.id, code);
 
     revalidatePath("/billing");
     revalidatePath("/dashboard");

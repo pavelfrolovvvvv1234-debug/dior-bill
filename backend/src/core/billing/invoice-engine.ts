@@ -82,6 +82,31 @@ export async function payInvoiceFromBalanceInEngine(
 
   const remaining = Number(invoice.total) - Number(invoice.amountPaid);
   const payAmount = amount ?? remaining;
+
+  if (remaining <= 0 && Number(invoice.total) === 0) {
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          amountPaid: 0,
+          status: "PAID",
+          paidAt: new Date(),
+        },
+        include: { items: true },
+      });
+      return { updated, isPaid: true, payAmount: 0 };
+    });
+    if (result.isPaid) {
+      await emitPaymentConfirmed({
+        userId,
+        invoiceId,
+        amount: 0,
+        idempotencyKey: `invoice.paid:${invoiceId}`,
+      });
+    }
+    return result;
+  }
+
   if (payAmount <= 0 || payAmount > remaining) {
     throw new ValidationError("Invalid payment amount");
   }

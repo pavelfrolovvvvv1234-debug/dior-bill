@@ -130,6 +130,22 @@ export function VpsDeployForm({
           </NativeSelect>
         </div>
 
+        <div className="space-y-2">
+          <label htmlFor="promoCode" className="text-sm font-medium">
+            Promo code <span className="font-normal text-muted-foreground">(optional)</span>
+          </label>
+          <Input
+            id="promoCode"
+            name="promoCode"
+            placeholder="ORDER10"
+            autoComplete="off"
+            className="font-mono uppercase"
+          />
+          <p className="text-xs text-muted-foreground">
+            Percent-off codes apply here. Balance-credit codes use Billing → Promo.
+          </p>
+        </div>
+
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <Button type="submit" className="w-full" disabled={loading}>

@@ -6,6 +6,10 @@ const PROMO_ERROR_KEYS: Record<string, string> = {
   "Promo expired": "promo.expired",
   "Promo code has no value": "promo.noValue",
   "You have already used this promo code": "promo.alreadyUsed",
+  "This promo code applies at checkout when placing an order":
+    "promo.checkoutOnly",
+  "This promo code adds credit to your balance — apply it from Billing or the promo menu":
+    "promo.balanceOnly",
   PROMO_DB_NOT_READY: "promo.dbNotReady",
   Unauthorized: "promo.unauthorized",
 };

@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment when new Prisma models are added (Settings API keys, 2FA, etc.) */
-const PRISMA_SCHEMA_STAMP = "settings-api-v1";
+const PRISMA_SCHEMA_STAMP = "promo-redemption-v1";
 
 function createPrismaClient() {
   return new PrismaClient({
