@@ -1,24 +1,32 @@
 import { createHmac } from "crypto";
-import type { PaymentProviderAdapter, CreateProviderInvoiceInput, ProviderInvoiceResult, ParsedWebhookPayload } from "./types";
-
-const API_BASE = process.env.HELEKET_API_URL ?? "https://api.heleket.com/v1";
+import type {
+  PaymentProviderAdapter,
+  CreateProviderInvoiceInput,
+  ProviderInvoiceResult,
+  ParsedWebhookPayload,
+} from "./types";
+import { assertProviderConfigured, isProductionRuntime, paymentConfig } from "../config";
 
 export const heleketProvider: PaymentProviderAdapter = {
   provider: "HELEKET",
 
   async createInvoice(input: CreateProviderInvoiceInput): Promise<ProviderInvoiceResult> {
-    const apiKey = process.env.HELEKET_API_KEY;
-    const merchantId = process.env.HELEKET_MERCHANT_ID;
-
+    assertProviderConfigured("HELEKET");
+    const apiKey = paymentConfig.heleket.apiKey;
+    const merchantId = paymentConfig.heleket.merchantId;
     if (!apiKey || !merchantId) {
-      const expiresAt = defaultExpiry();
-      return {
-        externalId: `hk_sim_${input.topUpId}`,
-        paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/billing/topup/${input.topUpId}?sim=heleket`,
-        expiresAt,
-        raw: { simulated: true },
-      };
+      if (!isProductionRuntime()) {
+        return {
+          externalId: `hk_sim_${input.topUpId}`,
+          paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/billing/topup/${input.topUpId}?sim=heleket`,
+          expiresAt: defaultExpiry(),
+          raw: { simulated: true },
+        };
+      }
+      throw new Error("Heleket credentials are not configured");
     }
+
+    const API_BASE = paymentConfig.heleket.apiUrl;
 
     const res = await fetch(`${API_BASE}/invoices`, {
       method: "POST",
@@ -45,20 +53,27 @@ export const heleketProvider: PaymentProviderAdapter = {
 
     const data = (await res.json()) as {
       id: string;
-      pay_url: string;
+      pay_url?: string;
+      payment_url?: string;
+      url?: string;
       expires_at?: string;
     };
 
+    const payUrl = data.pay_url ?? data.payment_url ?? data.url;
+    if (!payUrl) {
+      throw new Error("Heleket did not return a payment URL");
+    }
+
     return {
       externalId: data.id,
-      paymentUrl: data.pay_url,
+      paymentUrl: payUrl,
       expiresAt: data.expires_at ? new Date(data.expires_at) : defaultExpiry(),
       raw: data as unknown as Record<string, unknown>,
     };
   },
 
   verifyWebhook(headers, body) {
-    const secret = process.env.HELEKET_WEBHOOK_SECRET;
+    const secret = paymentConfig.heleket.webhookSecret;
     if (!secret) return process.env.NODE_ENV === "development";
     const sig = headers["x-heleket-signature"] ?? headers["x-signature"];
     if (typeof sig !== "string") return false;
@@ -81,9 +96,10 @@ export const heleketProvider: PaymentProviderAdapter = {
     const status = statusMap[String(data.status ?? "").toLowerCase()] ?? "pending";
     return {
       externalId: String(data.invoice_id ?? data.id ?? ""),
-      topUpId: data.metadata && typeof data.metadata === "object"
-        ? String((data.metadata as Record<string, unknown>).top_up_id ?? "")
-        : undefined,
+      topUpId:
+        data.metadata && typeof data.metadata === "object"
+          ? String((data.metadata as Record<string, unknown>).top_up_id ?? "")
+          : undefined,
       status,
       amount: data.amount ? Number(data.amount) : undefined,
       raw: data,

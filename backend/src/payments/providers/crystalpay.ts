@@ -1,23 +1,32 @@
 import { createHash } from "crypto";
-import type { PaymentProviderAdapter, CreateProviderInvoiceInput, ProviderInvoiceResult, ParsedWebhookPayload } from "./types";
-
-const API_BASE = process.env.CRYSTALPAY_API_URL ?? "https://api.crystalpay.io/v2";
+import type {
+  PaymentProviderAdapter,
+  CreateProviderInvoiceInput,
+  ProviderInvoiceResult,
+  ParsedWebhookPayload,
+} from "./types";
+import { assertProviderConfigured, isProductionRuntime, paymentConfig } from "../config";
 
 export const crystalpayProvider: PaymentProviderAdapter = {
   provider: "CRYSTALPAY",
 
   async createInvoice(input: CreateProviderInvoiceInput): Promise<ProviderInvoiceResult> {
-    const authLogin = process.env.CRYSTALPAY_AUTH_LOGIN;
-    const authSecret = process.env.CRYSTALPAY_AUTH_SECRET;
-
+    assertProviderConfigured("CRYSTALPAY");
+    const authLogin = paymentConfig.crystalpay.authLogin;
+    const authSecret = paymentConfig.crystalpay.authSecret;
     if (!authLogin || !authSecret) {
-      return {
-        externalId: `cp_sim_${input.topUpId}`,
-        paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/billing/topup/${input.topUpId}?sim=crystalpay`,
-        expiresAt: defaultExpiry(),
-        raw: { simulated: true },
-      };
+      if (!isProductionRuntime()) {
+        return {
+          externalId: `cp_sim_${input.topUpId}`,
+          paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/billing/topup/${input.topUpId}?sim=crystalpay`,
+          expiresAt: defaultExpiry(),
+          raw: { simulated: true },
+        };
+      }
+      throw new Error("CrystalPay credentials are not configured");
     }
+
+    const API_BASE = paymentConfig.crystalpay.apiUrl;
 
     const res = await fetch(`${API_BASE}/invoice/create/`, {
       method: "POST",
@@ -31,30 +40,37 @@ export const crystalpayProvider: PaymentProviderAdapter = {
         description: `Balance top-up ${input.referenceCode}`,
         extra: input.referenceCode,
         callback_url: `${process.env.API_URL}/webhooks/crystalpay`,
+        redirect_url: input.returnUrl,
       }),
     });
 
     const data = (await res.json()) as {
       error?: boolean;
+      errors?: unknown[];
       id?: string;
       url?: string;
       expired_at?: string;
     };
 
     if (data.error || !data.id) {
-      throw new Error("CrystalPay invoice creation failed");
+      const detail = Array.isArray(data.errors) ? JSON.stringify(data.errors) : "API error";
+      throw new Error(`CrystalPay invoice creation failed: ${detail}`);
+    }
+
+    if (!data.url) {
+      throw new Error("CrystalPay did not return a payment URL");
     }
 
     return {
       externalId: data.id,
-      paymentUrl: data.url ?? null,
+      paymentUrl: data.url,
       expiresAt: data.expired_at ? new Date(data.expired_at) : defaultExpiry(),
       raw: data as unknown as Record<string, unknown>,
     };
   },
 
   verifyWebhook(_headers, body) {
-    const secret = process.env.CRYSTALPAY_CALLBACK_SECRET;
+    const secret = paymentConfig.crystalpay.callbackSecret;
     if (!secret) return process.env.NODE_ENV === "development";
     const data = body as Record<string, unknown>;
     const signature = String(data.signature ?? "");

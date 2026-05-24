@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { redeemPromoCodeAction } from "@/app/actions/promo";
 import { useI18n } from "@/lib/i18n/store";
+import { getPromoErrorMessage } from "@/lib/promo-errors";
 
 interface PromoCodeDialogProps {
   open: boolean;
@@ -49,10 +50,15 @@ export function PromoCodeDialog({ open, onOpenChange, onSuccess }: PromoCodeDial
 
     try {
       const result = await redeemPromoCodeAction(trimmed);
+      if (!result.ok) {
+        setError(getPromoErrorMessage(result.error, t));
+        return;
+      }
+
       onOpenChange(false);
       onSuccess({ credit: result.credit, code: result.code });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("promo.errorDefault"));
+    } catch {
+      setError(t("promo.errorDefault"));
     } finally {
       setLoading(false);
     }

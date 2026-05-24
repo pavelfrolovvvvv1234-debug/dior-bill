@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { KpiCard } from "@/components/ui/enterprise/kpi-card";
 import { createTopUpAction } from "@/app/actions/topup";
+import { isExternalPaymentUrl, openPaymentUrl } from "@/lib/payment-url";
 import { formatMoney } from "@/lib/utils";
 
 const presets = [25, 50, 100, 250, 500, 1000];
@@ -67,9 +68,16 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
         idempotencyKey,
       });
 
-      if (result.paymentUrl) {
-        window.open(result.paymentUrl, "_blank", "noopener,noreferrer");
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+
+      if (result.paymentUrl && isExternalPaymentUrl(result.paymentUrl)) {
+        openPaymentUrl(result.paymentUrl);
+        return;
+      }
+
       router.push(`/billing/topup/${result.id}`);
       router.refresh();
     } catch (e) {
@@ -155,7 +163,12 @@ export function TopUpFlow({ availableBalance, lockedBalance }: TopUpFlowProps) {
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="h-10 w-full gap-2" disabled={!valid || loading} onClick={handleSubmit}>
+            <Button
+              type="button"
+              className="h-10 w-full gap-2"
+              disabled={!valid || loading}
+              onClick={handleSubmit}
+            >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -15,6 +15,7 @@ import { TopUpStatusBadge } from "./topup-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { syncTopUpAction } from "@/app/actions/topup";
+import { isExternalPaymentUrl, openPaymentUrl } from "@/lib/payment-url";
 import { formatMoney, formatDate } from "@/lib/utils";
 import { MANUAL_SUPPORT_TELEGRAM } from "@dior/shared";
 import { useI18n } from "@/lib/i18n/store";
@@ -47,6 +48,17 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
   const isManual = topUp.provider === "MANUAL_TRANSFER";
   const isPaid = topUp.status === "PAID";
   const isPending = ["PENDING", "PROCESSING", "MANUAL_REVIEW"].includes(topUp.status);
+  const paymentUrl = topUp.paymentUrl;
+  const hasExternalPayment =
+    Boolean(paymentUrl) && isExternalPaymentUrl(paymentUrl as string);
+
+  useEffect(() => {
+    if (!isPending || isPaid || isManual || !hasExternalPayment || !paymentUrl) return;
+    const key = `topup-pay-opened:${topUp.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    openPaymentUrl(paymentUrl);
+  }, [topUp.id, isPending, isPaid, isManual, hasExternalPayment, paymentUrl]);
 
   useEffect(() => {
     if (!isPending || isPaid) return;
@@ -141,16 +153,29 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
               onCopy={copy}
               t={t}
             />
-          ) : (
-            topUp.paymentUrl && (
-              <Button className="w-full gap-2" size="lg" asChild>
-                <a href={topUp.paymentUrl} target="_blank" rel="noopener noreferrer">
-                  {t("billing.detail.openInvoice")}
-                  <ExternalLink className="h-4 w-4" />
-                </a>
+          ) : paymentUrl ? (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                className="w-full gap-2"
+                size="lg"
+                onClick={() => {
+                  if (hasExternalPayment) {
+                    openPaymentUrl(paymentUrl);
+                  }
+                }}
+                disabled={!hasExternalPayment}
+              >
+                {t("billing.detail.openInvoice")}
+                <ExternalLink className="h-4 w-4" />
               </Button>
-            )
-          )}
+              {!hasExternalPayment && (
+                <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-muted-foreground">
+                  {t("billing.detail.paymentNotConfigured")}
+                </p>
+              )}
+            </div>
+          ) : null}
 
           {topUp.failureReason && (
             <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">

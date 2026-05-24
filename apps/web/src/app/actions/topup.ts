@@ -12,28 +12,46 @@ import type { TopUpProvider } from "@dior/database";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
+export type CreateTopUpActionResult =
+  | {
+      ok: true;
+      id: string;
+      status: string;
+      paymentUrl: string | null;
+      referenceCode: string;
+      provider: TopUpProvider;
+    }
+  | { ok: false; error: string };
+
 export async function createTopUpAction(input: {
   amount: number;
   provider: TopUpProvider;
   idempotencyKey: string;
-}) {
+}): Promise<CreateTopUpActionResult> {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const topUp = await createTopUp({
-    userId: session.user.id,
-    amount: input.amount,
-    provider: input.provider,
-    idempotencyKey: input.idempotencyKey,
-  });
+  try {
+    const topUp = await createTopUp({
+      userId: session.user.id,
+      amount: input.amount,
+      provider: input.provider,
+      idempotencyKey: input.idempotencyKey,
+    });
 
-  return {
-    id: topUp.id,
-    status: topUp.status,
-    paymentUrl: topUp.paymentUrl,
-    referenceCode: topUp.referenceCode,
-    provider: topUp.provider,
-  };
+    return {
+      ok: true,
+      id: topUp.id,
+      status: topUp.status,
+      paymentUrl: topUp.paymentUrl,
+      referenceCode: topUp.referenceCode,
+      provider: topUp.provider,
+    };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Could not create payment invoice";
+    return { ok: false, error: message };
+  }
 }
 
 export async function getTopUpAction(id: string) {

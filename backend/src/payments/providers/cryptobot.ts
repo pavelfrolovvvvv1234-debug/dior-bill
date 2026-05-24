@@ -1,5 +1,11 @@
 import { createHash } from "crypto";
-import type { PaymentProviderAdapter, CreateProviderInvoiceInput, ProviderInvoiceResult, ParsedWebhookPayload } from "./types";
+import type {
+  PaymentProviderAdapter,
+  CreateProviderInvoiceInput,
+  ProviderInvoiceResult,
+  ParsedWebhookPayload,
+} from "./types";
+import { assertProviderConfigured, isProductionRuntime, paymentConfig } from "../config";
 
 const API_BASE = "https://pay.crypt.bot/api";
 
@@ -7,15 +13,18 @@ export const cryptobotProvider: PaymentProviderAdapter = {
   provider: "CRYPTOBOT",
 
   async createInvoice(input: CreateProviderInvoiceInput): Promise<ProviderInvoiceResult> {
-    const token = process.env.CRYPTOBOT_API_TOKEN;
-
+    assertProviderConfigured("CRYPTOBOT");
+    const token = paymentConfig.cryptobot.token;
     if (!token) {
-      return {
-        externalId: `cb_sim_${input.topUpId}`,
-        paymentUrl: `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "CryptoBot"}?start=pay_${input.referenceCode}`,
-        expiresAt: defaultExpiry(),
-        raw: { simulated: true },
-      };
+      if (!isProductionRuntime()) {
+        return {
+          externalId: `cb_sim_${input.topUpId}`,
+          paymentUrl: `https://t.me/${paymentConfig.cryptobot.botUsername}`,
+          expiresAt: defaultExpiry(),
+          raw: { simulated: true },
+        };
+      }
+      throw new Error("CryptoBot API token is not configured");
     }
 
     const res = await fetch(`${API_BASE}/createInvoice`, {
@@ -33,9 +42,14 @@ export const cryptobotProvider: PaymentProviderAdapter = {
       }),
     });
 
-    const json = (await res.json()) as { ok: boolean; result?: { invoice_id: number; pay_url: string; expiration_date?: string } };
-    if (!json.ok || !json.result) {
-      throw new Error("CryptoBot createInvoice failed");
+    const json = (await res.json()) as {
+      ok: boolean;
+      result?: { invoice_id: number; pay_url: string; expiration_date?: string };
+      error?: { name?: string; code?: string };
+    };
+    if (!json.ok || !json.result?.pay_url) {
+      const detail = json.error?.name ?? json.error?.code ?? "unknown error";
+      throw new Error(`CryptoBot createInvoice failed: ${detail}`);
     }
 
     return {
@@ -49,7 +63,7 @@ export const cryptobotProvider: PaymentProviderAdapter = {
   },
 
   verifyWebhook(headers, body) {
-    const token = process.env.CRYPTOBOT_API_TOKEN;
+    const token = paymentConfig.cryptobot.token;
     if (!token) return process.env.NODE_ENV === "development";
     const signature = headers["crypto-pay-api-signature"];
     if (typeof signature !== "string") return false;
