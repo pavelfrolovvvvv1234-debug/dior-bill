@@ -128,7 +128,6 @@ function FormSelect({
         onValueChange={onValueChange}
         required={required}
         disabled={disabled}
-        modal={false}
       >
         <SelectTrigger className={className}>
           <SelectValue placeholder={placeholder} />
