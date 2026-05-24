@@ -25,6 +25,20 @@ export function getLocationCountryLabel(loc: VpsLocationRef): string {
   return loc.name;
 }
 
+/** Region line in order form: "Russia — Moscow" */
+export function getLocationRegionLabel(loc: VpsLocationRef): string {
+  const country = getLocationCountryLabel(loc);
+  if (loc.city?.trim()) return `${country} — ${loc.city.trim()}`;
+  return country;
+}
+
+/** Fallback when DB has no RU/BY/AB rows yet (matched by code after ensure on server) */
+export const STANDARD_VPS_LOCATION_DEFS = [
+  { code: "ru-msk", name: "Russia", country: "RU", city: "Moscow" },
+  { code: "by-msq", name: "Belarus", country: "BY", city: "Minsk" },
+  { code: "ab-suk", name: "Abkhazia", country: "AB", city: "Sukhumi" },
+] as const;
+
 /** Location codes available per Bulletproof VPS tier */
 export const BP_VPS_LITE_LOCATION_CODES = ["nl-ams"] as const;
 export const BP_VPS_ELITE_LOCATION_CODES = [

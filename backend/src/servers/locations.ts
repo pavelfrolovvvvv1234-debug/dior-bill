@@ -32,10 +32,36 @@ const BULLETPROOF_VPS_LOCATIONS = [
   },
 ] as const;
 
-let ensured = false;
+/** Standard VPS — Russia, Belarus, Abkhazia */
+const STANDARD_VPS_LOCATIONS = [
+  {
+    code: "ru-msk",
+    name: "Russia",
+    country: "RU",
+    city: "Moscow",
+    flag: "🇷🇺",
+  },
+  {
+    code: "by-msq",
+    name: "Belarus",
+    country: "BY",
+    city: "Minsk",
+    flag: "🇧🇾",
+  },
+  {
+    code: "ab-suk",
+    name: "Abkhazia",
+    country: "AB",
+    city: "Sukhumi",
+    flag: "🇦🇧",
+  },
+] as const;
+
+let bulletproofEnsured = false;
+let standardEnsured = false;
 
 export async function ensureBulletproofVpsLocations() {
-  if (ensured) return;
+  if (bulletproofEnsured) return;
 
   for (const loc of BULLETPROOF_VPS_LOCATIONS) {
     const location = await prisma.location.upsert({
@@ -81,7 +107,57 @@ export async function ensureBulletproofVpsLocations() {
     await ensureNodeIpPool(node);
   }
 
-  ensured = true;
+  bulletproofEnsured = true;
+}
+
+export async function ensureStandardVpsLocations() {
+  if (standardEnsured) return;
+
+  for (const loc of STANDARD_VPS_LOCATIONS) {
+    const location = await prisma.location.upsert({
+      where: { code: loc.code },
+      update: {
+        name: loc.name,
+        country: loc.country,
+        city: loc.city,
+        flag: loc.flag,
+        active: true,
+      },
+      create: {
+        code: loc.code,
+        name: loc.name,
+        country: loc.country,
+        city: loc.city,
+        flag: loc.flag,
+        active: true,
+      },
+    });
+
+    const node = await prisma.node.upsert({
+      where: { hostname: `node-${loc.code}-01` },
+      update: { locationId: location.id, status: "online" },
+      create: {
+        name: `${loc.name} Node 01`,
+        hostname: `node-${loc.code}-01`,
+        locationId: location.id,
+        type: "compute",
+        cpuCores: 64,
+        ramGb: 256,
+        diskGb: 4000,
+        loadPercent: 35,
+        activeVps: 0,
+        proxmoxNode: `pve-${loc.code}`,
+        ipv4Total: 256,
+        ipv4Available: 200,
+        capacityPercent: 40,
+        status: "online",
+      },
+    });
+
+    await ensureNodeIpPool(node);
+  }
+
+  standardEnsured = true;
 }
 
 /** Seed available IPv4 rows so provisioning can allocate addresses. */

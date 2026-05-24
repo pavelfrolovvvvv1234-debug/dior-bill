@@ -15,7 +15,7 @@ import {
   stopVpsOnProxmox,
 } from "../proxmox";
 import { createHash } from "crypto";
-import { ensureBulletproofVpsLocations } from "./locations";
+import { ensureBulletproofVpsLocations, ensureStandardVpsLocations } from "./locations";
 
 export async function getUserVpsInstances(userId: string) {
   return prisma.vpsInstance.findMany({
@@ -255,6 +255,7 @@ export async function getNodes(locationId?: string) {
 
 export async function getLocations() {
   await ensureBulletproofVpsLocations();
+  await ensureStandardVpsLocations();
   return prisma.location.findMany({
     where: { active: true },
     orderBy: { name: "asc" },

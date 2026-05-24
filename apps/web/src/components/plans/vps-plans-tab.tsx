@@ -24,6 +24,8 @@ import {
   filterLocationsByCountryCodes,
   filterLocationsForBulletproofPlan,
   getLocationCountryLabel,
+  getLocationRegionLabel,
+  STANDARD_VPS_LOCATION_DEFS,
 } from "@/lib/vps-plan-locations";
 
 interface Location {
@@ -78,9 +80,19 @@ export function VpsPlansTab({
     let list = [...locations];
     if (allowedCountryCodes?.length) {
       list = filterLocationsByCountryCodes(list, allowedCountryCodes);
+      if (list.length === 0 && locations.length > 0) {
+        const byCode = new Map(locations.map((l) => [l.code, l]));
+        list = STANDARD_VPS_LOCATION_DEFS.map((def) => byCode.get(def.code)).filter(
+          (l): l is Location => l != null,
+        );
+      }
     }
     if (filterLocationsByPlan) {
       list = filterLocationsForBulletproofPlan(list, selectedPlan, true);
+    }
+    if (allowedCountryCodes?.length && list.length > 1) {
+      const order = STANDARD_VPS_LOCATION_DEFS.map((d) => d.code);
+      list.sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
     }
     return list;
   }, [locations, allowedCountryCodes, filterLocationsByPlan, selectedPlan]);
@@ -174,21 +186,28 @@ export function VpsPlansTab({
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Region</label>
-              <FormSelect
-                name="locationId"
-                value={locationId}
-                onValueChange={setLocationId}
-                placeholder="Select location"
-                required
-              >
-                {availableLocations.map((loc) => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    {filterLocationsByPlan || locationCountryLabels
-                      ? getLocationCountryLabel(loc)
-                      : loc.name}
-                  </SelectItem>
-                ))}
-              </FormSelect>
+              {availableLocations.length === 0 ? (
+                <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  Regions are loading. Refresh the page or contact support.
+                </p>
+              ) : (
+                <FormSelect
+                  name="locationId"
+                  value={locationId}
+                  onValueChange={setLocationId}
+                  placeholder="Select location"
+                  required
+                  disabled={availableLocations.length === 0}
+                >
+                  {availableLocations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {filterLocationsByPlan || locationCountryLabels
+                        ? getLocationRegionLabel(loc)
+                        : loc.name}
+                    </SelectItem>
+                  ))}
+                </FormSelect>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Operating system</label>
