@@ -5,6 +5,7 @@ const PROMO_ERROR_KEYS: Record<string, string> = {
   "Promo not yet valid": "promo.notYetValid",
   "Promo expired": "promo.expired",
   "Promo code has no value": "promo.noValue",
+  "You have already used this promo code": "promo.alreadyUsed",
   Unauthorized: "promo.unauthorized",
 };
 

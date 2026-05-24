@@ -368,6 +368,7 @@
     "notYetValid": "优惠码尚未生效",
     "expired": "优惠码已过期",
     "noValue": "优惠码无可用金额",
+    "alreadyUsed": "您已使用过此优惠码",
     "unauthorized": "请先登录后再使用优惠码",
     "errorDefault": "无法应用优惠码",
     "close": "关闭",

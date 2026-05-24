@@ -344,6 +344,7 @@
     "notYetValid": "This promo code is not active yet",
     "expired": "This promo code has expired",
     "noValue": "This promo code has no value",
+    "alreadyUsed": "You have already used this promo code",
     "unauthorized": "Sign in to apply a promo code",
     "errorDefault": "Could not apply promo code",
     "close": "Close",

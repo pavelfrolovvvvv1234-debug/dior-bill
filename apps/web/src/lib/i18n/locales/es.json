@@ -368,6 +368,7 @@
     "notYetValid": "Este código aún no está activo",
     "expired": "Este código ha caducado",
     "noValue": "Este código no tiene valor",
+    "alreadyUsed": "Ya has usado este código promocional",
     "unauthorized": "Inicia sesión para aplicar un código",
     "errorDefault": "No se pudo aplicar el código",
     "close": "Cerrar",

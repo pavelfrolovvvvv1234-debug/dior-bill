@@ -76,6 +76,7 @@ model User {
   riskProfile           UserRiskProfile?
   manualReviews         ManualReviewQueue[]
   apiKeys               ApiKey[]
+  promoCodeRedemptions  PromoCodeRedemption[]
   telegramLinkTokens    TelegramLinkToken[]
   twoFactorRecoveryCodes TwoFactorRecoveryCode[]
 
@@ -714,7 +715,23 @@ model PromoCode {
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now()) @map("created_at")
 
+  redemptions PromoCodeRedemption[]
+
   @@map("promo_codes")
+}
+
+model PromoCodeRedemption {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promoCodeId String   @map("promo_code_id")
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  credit      Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, promoCodeId])
+  @@index([promoCodeId])
+  @@map("promo_code_redemptions")
 }
 
 // ─── Referrals ────────────────────────────────────────────────
