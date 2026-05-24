@@ -48,6 +48,13 @@ export async function handleProviderWebhook(
   }
 
   if (!topUp) {
+    const orderId = String((parsed.raw as Record<string, unknown>).order_id ?? "");
+    if (orderId) {
+      topUp = await prisma.topUp.findUnique({ where: { referenceCode: orderId } });
+    }
+  }
+
+  if (!topUp) {
     await handleOrphanWebhook(provider, parsed);
     return { orphan: true };
   }

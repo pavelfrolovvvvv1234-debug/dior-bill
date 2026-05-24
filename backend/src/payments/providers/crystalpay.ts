@@ -35,6 +35,8 @@ export const crystalpayProvider: PaymentProviderAdapter = {
         auth_login: authLogin,
         auth_secret: authSecret,
         amount: input.amount,
+        currency: input.currency.toUpperCase(),
+        amount_currency: input.currency.toUpperCase(),
         type: "purchase",
         lifetime: Number(process.env.TOPUP_EXPIRY_MINUTES ?? 60),
         description: `Balance top-up ${input.referenceCode}`,
