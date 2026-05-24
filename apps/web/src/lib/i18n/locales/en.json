@@ -345,6 +345,7 @@
     "expired": "This promo code has expired",
     "noValue": "This promo code has no value",
     "alreadyUsed": "You have already used this promo code",
+    "dbNotReady": "Promo codes are temporarily unavailable. Please try again in a few minutes.",
     "unauthorized": "Sign in to apply a promo code",
     "errorDefault": "Could not apply promo code",
     "close": "Close",

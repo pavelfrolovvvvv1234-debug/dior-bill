@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redeemPromoCode } from "@dior/backend";
 import { getSession } from "@/lib/auth";
+import { normalizePromoActionError } from "@/lib/promo-action-error";
 
 export type RedeemPromoCodeResult =
   | {
@@ -31,7 +32,6 @@ export async function redeemPromoCodeAction(
 
     return { ok: true, ...result };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not apply promo code";
-    return { ok: false, error: message };
+    return { ok: false, error: normalizePromoActionError(err) };
   }
 }

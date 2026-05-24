@@ -369,6 +369,7 @@
     "expired": "Este código ha caducado",
     "noValue": "Este código no tiene valor",
     "alreadyUsed": "Ya has usado este código promocional",
+    "dbNotReady": "Los códigos promocionales no están disponibles temporalmente. Inténtalo en unos minutos.",
     "unauthorized": "Inicia sesión para aplicar un código",
     "errorDefault": "No se pudo aplicar el código",
     "close": "Cerrar",
