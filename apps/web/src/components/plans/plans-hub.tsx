@@ -6,18 +6,18 @@ import { PlanProductNav } from "./plan-product-nav";
 import { VpsPlansTab } from "./vps-plans-tab";
 import { DedicatedPlansTab } from "./dedicated-plans-tab";
 import { DomainsPlansTab } from "./domains-plans-tab";
-import { CdnPlansTab } from "./cdn-plans-tab";
 import { TurbovdsPlansTab } from "./turbovds-plans-tab";
 import type { VpsPlan } from "@/lib/vps-plans";
 import { BULLETPROOF_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
 import { STANDARD_DEDICATED_PLANS } from "@/lib/dedicated-plans";
 import {
-  PLAN_PRODUCT_LINES,
+  PLAN_PRODUCT_LINES_VISIBLE,
   parsePlanTab,
   getPlanProductLine,
   type PlanTab,
 } from "@/lib/plan-catalog";
+import type { VpsPlan } from "@/lib/vps-plans";
 import { Badge } from "@/components/ui/badge";
 import { Shield } from "lucide-react";
 
@@ -42,6 +42,7 @@ interface PlansHubProps {
   defaultTab: PlanTab;
   locations: Location[];
   bulletproofVpsPlans: readonly VpsPlan[];
+  standardVpsPlans: readonly VpsPlan[];
   turboPlans: readonly VpsPlan[];
   inventory: InventoryItem[];
 }
@@ -52,6 +53,7 @@ export function PlansHub({
   defaultTab,
   locations,
   bulletproofVpsPlans,
+  standardVpsPlans,
   turboPlans,
   inventory,
 }: PlansHubProps) {
@@ -77,14 +79,14 @@ export function PlansHub({
 
   return (
     <div className="space-y-6">
-      <PlanProductNav lines={PLAN_PRODUCT_LINES} value={tab} onChange={setTabAndUrl} />
+      <PlanProductNav lines={PLAN_PRODUCT_LINES_VISIBLE} value={tab} onChange={setTabAndUrl} />
 
       {tab !== "bulletproof-vps" &&
         tab !== "bulletproof-domains" &&
         tab !== "bulletproof-dedicated" &&
+        tab !== "vps" &&
         tab !== "dedicated" &&
-        tab !== "turbovds" &&
-        tab !== "cdn" && (
+        tab !== "turbovds" && (
         <div className="flex flex-wrap items-center gap-2 border-b border-white/6 pb-4">
           <h2 className="text-lg font-semibold tracking-tight">{product.label}</h2>
           {product.bulletproof && (
@@ -127,6 +129,16 @@ export function PlansHub({
             description="Bare-metal servers under bulletproof policy — high-trust workloads and DMCA-ignored hosting."
           />
         )}
+        {tab === "vps" && (
+          <VpsPlansTab
+            locations={locations}
+            plans={standardVpsPlans}
+            title="VPS/VDS Hosting"
+            description="Standard virtual servers — pick a plan, region, and deploy instantly."
+            deployLabel="Deploy VPS"
+            panelTitle="Deploy configuration"
+          />
+        )}
         {tab === "dedicated" && (
           <DedicatedPlansTab
             inventory={inventory}
@@ -136,7 +148,6 @@ export function PlansHub({
           />
         )}
         {tab === "turbovds" && <TurbovdsPlansTab locations={locations} plans={turboPlans} />}
-        {tab === "cdn" && <CdnPlansTab />}
       </div>
     </div>
   );

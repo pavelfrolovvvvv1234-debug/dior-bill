@@ -2,6 +2,7 @@ export type PlanTab =
   | "bulletproof-domains"
   | "bulletproof-vps"
   | "bulletproof-dedicated"
+  | "vps"
   | "dedicated"
   | "turbovds"
   | "cdn";
@@ -12,6 +13,8 @@ export type PlanProductLine = {
   shortLabel: string;
   description: string;
   bulletproof?: boolean;
+  /** Temporarily hidden from plan picker (e.g. CDN) */
+  hidden?: boolean;
 };
 
 export const PLAN_PRODUCT_LINES: PlanProductLine[] = [
@@ -37,6 +40,12 @@ export const PLAN_PRODUCT_LINES: PlanProductLine[] = [
     bulletproof: true,
   },
   {
+    id: "vps",
+    label: "VPS/VDS",
+    shortLabel: "VPS",
+    description: "Standard virtual servers with instant provisioning",
+  },
+  {
     id: "dedicated",
     label: "Dedicated servers",
     shortLabel: "Dedicated",
@@ -53,17 +62,23 @@ export const PLAN_PRODUCT_LINES: PlanProductLine[] = [
     label: "CDN",
     shortLabel: "CDN",
     description: "Global edge delivery & caching",
+    hidden: true,
   },
 ];
 
+/** Visible product cards in the plan picker (order = grid layout). */
+export const PLAN_PRODUCT_LINES_VISIBLE = PLAN_PRODUCT_LINES.filter((p) => !p.hidden);
+
 const LEGACY_TAB_MAP: Record<string, PlanTab> = {
-  vps: "bulletproof-vps",
+  "bulletproof-vps": "bulletproof-vps",
+  vps: "vps",
   domains: "bulletproof-domains",
   dedicated: "dedicated",
-  cdn: "cdn",
+  turbovds: "turbovds",
+  cdn: "bulletproof-vps",
 };
 
-const VALID_TABS = new Set(PLAN_PRODUCT_LINES.map((p) => p.id));
+const VALID_TABS = new Set(PLAN_PRODUCT_LINES_VISIBLE.map((p) => p.id));
 
 export function parsePlanTab(value: string | null | undefined): PlanTab {
   if (!value) return "bulletproof-vps";

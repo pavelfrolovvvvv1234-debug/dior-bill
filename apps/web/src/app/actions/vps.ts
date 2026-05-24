@@ -4,15 +4,20 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { assertSufficientBalance } from "@/app/actions/order";
 import { getLocations, provisionVps } from "@dior/backend";
-import { VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
+import { VPS_PLANS, STANDARD_VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
 import { isLocationAllowedForBulletproofPlan } from "@/lib/vps-plan-locations";
 
-const ALL_VPS_PLANS = [...VPS_PLANS, ...TURBO_VPS_PLANS];
+const ALL_VPS_PLANS = [...VPS_PLANS, ...STANDARD_VPS_PLANS, ...TURBO_VPS_PLANS];
 
 export async function getVpsOrderOptions() {
   await requireSession();
   const locations = await getLocations();
-  return { locations, plans: VPS_PLANS, turboPlans: TURBO_VPS_PLANS };
+  return {
+    locations,
+    plans: VPS_PLANS,
+    standardPlans: STANDARD_VPS_PLANS,
+    turboPlans: TURBO_VPS_PLANS,
+  };
 }
 
 export async function deployVpsAction(formData: FormData) {

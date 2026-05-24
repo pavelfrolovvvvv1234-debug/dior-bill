@@ -23,6 +23,52 @@ export type VpsPlan = {
   ppsDisplay?: string;
 };
 
+const STD_NETWORK = { networkMbps: 1000, bandwidthLabel: "Fair use" as const, bandwidthTb: 10 };
+
+export const STANDARD_VPS_PLANS: readonly VpsPlan[] = [
+  {
+    id: "std-1",
+    name: "VPS S",
+    cpuCores: 1,
+    ramMb: 2048,
+    diskGb: 40,
+    ...STD_NETWORK,
+    price: 12,
+    display: "standard",
+  },
+  {
+    id: "std-2",
+    name: "VPS M",
+    cpuCores: 2,
+    ramMb: 4096,
+    diskGb: 80,
+    ...STD_NETWORK,
+    price: 24,
+    popular: true,
+    display: "standard",
+  },
+  {
+    id: "std-3",
+    name: "VPS L",
+    cpuCores: 4,
+    ramMb: 8192,
+    diskGb: 160,
+    ...STD_NETWORK,
+    price: 48,
+    display: "standard",
+  },
+  {
+    id: "std-4",
+    name: "VDS XL",
+    cpuCores: 8,
+    ramMb: 16384,
+    diskGb: 320,
+    ...STD_NETWORK,
+    price: 96,
+    display: "standard",
+  },
+];
+
 export const VPS_PLANS: readonly VpsPlan[] = [
   { id: "lite1", name: "Lite 1", cpuCores: 1, ramMb: 1024, diskGb: 10, ...BP_NETWORK, price: 25 },
   { id: "lite2", name: "Lite 2", cpuCores: 2, ramMb: 2048, diskGb: 40, ...BP_NETWORK, price: 27, popular: true },

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/enterprise/page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlansHub } from "@/components/plans/plans-hub";
 import { parsePlanTab } from "@/lib/plan-catalog";
-import { VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
+import { VPS_PLANS, STANDARD_VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
 
 export default async function SelectPlanPage({
   searchParams,
@@ -22,7 +22,7 @@ export default async function SelectPlanPage({
     <>
       <PageHeader
         title="Select Plan"
-        description="Bulletproof & standard infrastructure — domains, VPS, dedicated, Turbovds, CDN"
+        description="Bulletproof & standard infrastructure — domains, VPS, dedicated, and Turbovds"
         breadcrumbs={[{ label: "Overview", href: "/dashboard" }, { label: "Select Plan" }]}
       />
       <PageContainer>
@@ -31,6 +31,7 @@ export default async function SelectPlanPage({
             defaultTab={defaultTab}
             locations={locations}
             bulletproofVpsPlans={VPS_PLANS}
+            standardVpsPlans={STANDARD_VPS_PLANS}
             turboPlans={TURBO_VPS_PLANS}
             inventory={inventory}
           />
