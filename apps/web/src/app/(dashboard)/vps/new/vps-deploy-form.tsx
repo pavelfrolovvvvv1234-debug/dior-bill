@@ -9,7 +9,7 @@ import { VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FormSelect, SelectItem } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { formatMoney } from "@/lib/utils";
 import { DEFAULT_VPS_OS, STANDARD_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
 
@@ -85,48 +85,49 @@ export function VpsDeployForm({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Region</label>
-          <FormSelect
+          <NativeSelect
             name="locationId"
             value={locationId}
-            onValueChange={setLocationId}
-            placeholder="Select location"
+            onChange={(e) => setLocationId(e.target.value)}
             required
           >
+            <option value="" disabled>
+              Select location
+            </option>
             {locations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
+              <option key={loc.id} value={loc.id}>
                 {loc.name} ({loc.code})
-              </SelectItem>
+              </option>
             ))}
-          </FormSelect>
+          </NativeSelect>
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Plan</label>
-          <FormSelect
+          <NativeSelect
             name="planId"
             value={planId}
-            onValueChange={setPlanId}
-            placeholder="Select plan"
+            onChange={(e) => setPlanId(e.target.value)}
             required
           >
             {plans.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
+              <option key={p.id} value={p.id}>
                 {p.name} — {p.cpuCores} vCPU, {p.ramMb / 1024} GB RAM, {p.diskGb} GB —{" "}
                 {formatMoney(p.price)}/mo
-              </SelectItem>
+              </option>
             ))}
-          </FormSelect>
+          </NativeSelect>
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Operating system</label>
-          <FormSelect name="os" value={os} onValueChange={setOs} required>
+          <NativeSelect name="os" value={os} onChange={(e) => setOs(e.target.value)} required>
             {STANDARD_VPS_OS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <option key={option.value} value={option.value}>
                 {option.label}
-              </SelectItem>
+              </option>
             ))}
-          </FormSelect>
+          </NativeSelect>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}

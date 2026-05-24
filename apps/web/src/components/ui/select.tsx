@@ -41,10 +41,7 @@ const SelectContent = React.forwardRef<
       sideOffset={4}
       collisionPadding={12}
       className={cn(
-        "z-[100] max-h-60 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-card text-card-foreground shadow-md",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:duration-100 data-[state=open]:duration-100",
+        "z-[200] max-h-60 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-border bg-card text-card-foreground shadow-md",
         className,
       )}
       {...props}

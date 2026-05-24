@@ -11,7 +11,7 @@ import { handlePurchaseError, toastInsufficientBalance } from "@/lib/toast";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FormSelect, SelectItem } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { PurchaseSuccessDialog } from "@/components/billing/purchase-success-dialog";
 import { VpsPlanCard } from "./vps-plan-card";
 import type { VpsPlan } from "@/lib/vps-plans";
@@ -192,33 +192,39 @@ export function VpsPlansTab({
                   Regions are loading. Refresh the page or contact support.
                 </p>
               ) : (
-                <FormSelect
+                <NativeSelect
+                  id="locationId"
                   name="locationId"
                   value={locationId}
-                  onValueChange={setLocationId}
-                  placeholder="Select location"
+                  onChange={(e) => setLocationId(e.target.value)}
                   required
                   disabled={availableLocations.length === 0}
                 >
                   {availableLocations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
+                    <option key={loc.id} value={loc.id}>
                       {filterLocationsByPlan || locationCountryLabels
                         ? getLocationRegionLabel(loc)
                         : loc.name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </FormSelect>
+                </NativeSelect>
               )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Operating system</label>
-              <FormSelect name="os" value={os} onValueChange={setOs} required>
+              <NativeSelect
+                id="os"
+                name="os"
+                value={os}
+                onChange={(e) => setOs(e.target.value)}
+                required
+              >
                 {osOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <option key={option.value} value={option.value}>
                     {option.label}
-                  </SelectItem>
+                  </option>
                 ))}
-              </FormSelect>
+              </NativeSelect>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading || !selectedPlan}>

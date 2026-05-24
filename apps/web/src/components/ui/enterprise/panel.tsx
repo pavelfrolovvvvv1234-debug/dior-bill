@@ -21,7 +21,9 @@ export function Panel({
   allowOverflow = false,
 }: PanelProps) {
   return (
-    <section className={cn("panel", !allowOverflow && "overflow-hidden", className)}>
+    <section
+      className={cn("panel", allowOverflow && "panel-allow-overflow", className)}
+    >
       {(title || action) && (
         <header className="panel-header">
           <div className="min-w-0">

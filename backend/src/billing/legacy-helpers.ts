@@ -73,7 +73,7 @@ export async function redeemPromoCode(userId: string, code: string, baseAmount?:
         amount: credit,
         balanceAfter: newBalance,
         description: `Promo code: ${promo.code}`,
-        metadata: { promoCodeId: promo.id, promoCode: promo.code },
+        metadata: toJsonValue({ promoCodeId: promo.id, promoCode: promo.code }),
       },
     });
     return { credit, newBalance };

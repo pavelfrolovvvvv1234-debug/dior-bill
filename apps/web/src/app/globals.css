@@ -82,6 +82,14 @@
   html {
     scrollbar-gutter: stable;
   }
+
+  /* Radix Select/Dropdown scroll-lock must not shift layout */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    overflow: hidden;
+  }
+
   * {
     border-color: var(--border);
   }
@@ -202,6 +210,10 @@
     background: var(--card);
     border: 1px solid var(--border);
     box-shadow: none;
+  }
+
+  .panel.panel-allow-overflow {
+    overflow: visible;
   }
 
   .panel-header {
