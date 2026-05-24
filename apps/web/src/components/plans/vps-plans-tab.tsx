@@ -91,7 +91,7 @@ export function VpsPlansTab({
       list = filterLocationsForBulletproofPlan(list, selectedPlan, true);
     }
     if (allowedCountryCodes?.length && list.length > 1) {
-      const order = STANDARD_VPS_LOCATION_DEFS.map((d) => d.code);
+      const order: string[] = STANDARD_VPS_LOCATION_DEFS.map((d) => d.code);
       list.sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
     }
     return list;
