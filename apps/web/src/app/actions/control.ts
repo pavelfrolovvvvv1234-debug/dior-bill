@@ -47,7 +47,13 @@ export async function adjustBalanceAction(
   reason: string,
 ) {
   const actor = await requireControlSession();
-  await adjustUserBalance(actor.id, userId, { amount, type, reason });
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Amount must be greater than 0");
+  }
+  if (!reason.trim()) {
+    throw new Error("Reason is required");
+  }
+  await adjustUserBalance(actor.id, userId, { amount, type, reason: reason.trim() });
   revalidateControl(controlPath(`/users/${userId}`), controlPath("/users"));
 }
 

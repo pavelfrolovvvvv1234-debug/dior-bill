@@ -6,6 +6,7 @@ import { Panel } from "@/components/control/panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserActions } from "@/components/control/user-actions";
+import { UserBalanceForm } from "@/components/control/user-balance-form";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney, formatDate } from "@/lib/utils";
@@ -47,6 +48,9 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
+          <Panel title="Balance adjustment">
+            <UserBalanceForm userId={user.id} currentBalance={Number(user.balance)} />
+          </Panel>
           <Panel title="Profile">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Email</dt><dd>{user.email ?? "—"}</dd></div>

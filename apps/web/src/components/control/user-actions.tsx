@@ -5,7 +5,6 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   activateUserAction,
-  adjustBalanceAction,
   suspendUserAction,
   updateRoleAction,
 } from "@/app/actions/control";
@@ -54,21 +53,6 @@ export function UserActions({
           Activate
         </Button>
       )}
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={pending}
-        onClick={() => {
-          const amount = prompt("Credit amount (USD):");
-          if (!amount) return;
-          start(async () => {
-            await adjustBalanceAction(userId, Number(amount), "credit", "Admin credit");
-            refresh();
-          });
-        }}
-      >
-        Credit balance
-      </Button>
       <select
         className="h-8 rounded-md border border-white/10 bg-white/[0.03] px-2 text-xs"
         value={role}
