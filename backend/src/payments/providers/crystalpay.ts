@@ -97,6 +97,43 @@ export const crystalpayProvider: PaymentProviderAdapter = {
       raw: data,
     };
   },
+
+  async fetchPaymentStatus(externalId, context) {
+    const authLogin = paymentConfig.crystalpay.authLogin;
+    const authSecret = paymentConfig.crystalpay.authSecret;
+    if (!authLogin || !authSecret) return null;
+
+    const API_BASE = paymentConfig.crystalpay.apiUrl;
+    const res = await fetch(`${API_BASE}/invoice/info/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        auth_login: authLogin,
+        auth_secret: authSecret,
+        id: externalId,
+      }),
+    });
+
+    const data = (await res.json()) as Record<string, unknown>;
+    if (data.error) return null;
+
+    const state = String(data.state ?? "").toLowerCase();
+    let status: ParsedWebhookPayload["status"] = "pending";
+    if (state === "payed" || state === "paid" || state === "completed") status = "paid";
+    else if (state === "failed") status = "failed";
+    else if (state === "expired" || state === "unavailable") status = "expired";
+    else if (state === "processing") status = "processing";
+
+    const extra = String(data.extra ?? context?.referenceCode ?? "");
+
+    return {
+      externalId: String(data.id ?? externalId),
+      topUpId: context?.topUpId,
+      status,
+      amount: data.amount ? Number(data.amount) : undefined,
+      raw: { ...data, extra },
+    };
+  },
 };
 
 function defaultExpiry(): Date {

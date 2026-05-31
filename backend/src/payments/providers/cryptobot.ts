@@ -62,13 +62,14 @@ export const cryptobotProvider: PaymentProviderAdapter = {
     };
   },
 
-  verifyWebhook(headers, body) {
+  verifyWebhook(headers, body, rawBody) {
     const token = paymentConfig.cryptobot.token;
     if (!token) return process.env.NODE_ENV === "development";
     const signature = headers["crypto-pay-api-signature"];
     if (typeof signature !== "string") return false;
     const secret = createHash("sha256").update(token).digest();
-    const payload = typeof body === "string" ? body : JSON.stringify(body);
+    const payload =
+      rawBody ?? (typeof body === "string" ? body : JSON.stringify(body));
     const check = createHash("sha256").update(secret).update(payload).digest("hex");
     return signature === check;
   },
@@ -93,6 +94,47 @@ export const cryptobotProvider: PaymentProviderAdapter = {
 
     return {
       externalId: String(invoice.invoice_id ?? ""),
+      topUpId,
+      status: mapped,
+      amount: invoice.amount ? Number(invoice.amount) : undefined,
+      raw: invoice,
+    };
+  },
+
+  async fetchPaymentStatus(externalId) {
+    const token = paymentConfig.cryptobot.token;
+    if (!token) return null;
+
+    const res = await fetch(`${API_BASE}/getInvoices`, {
+      method: "POST",
+      headers: { "Crypto-Pay-API-Token": token, "Content-Type": "application/json" },
+      body: JSON.stringify({ invoice_ids: externalId }),
+    });
+
+    const json = (await res.json()) as {
+      ok: boolean;
+      result?: { items?: Array<Record<string, unknown>> };
+    };
+    if (!json.ok || !json.result?.items?.length) return null;
+
+    const invoice = json.result.items[0];
+    const status = String(invoice.status ?? "").toLowerCase();
+    let mapped: ParsedWebhookPayload["status"] = "pending";
+    if (status === "paid") mapped = "paid";
+    else if (status === "expired") mapped = "expired";
+
+    let topUpId: string | undefined;
+    if (invoice.payload && typeof invoice.payload === "string") {
+      try {
+        const p = JSON.parse(invoice.payload) as { top_up_id?: string };
+        topUpId = p.top_up_id;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return {
+      externalId: String(invoice.invoice_id ?? externalId),
       topUpId,
       status: mapped,
       amount: invoice.amount ? Number(invoice.amount) : undefined,

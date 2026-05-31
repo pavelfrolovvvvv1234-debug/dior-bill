@@ -343,7 +343,26 @@ export async function syncTopUpStatus(topUpId: string) {
   if (topUp.expiresAt && topUp.expiresAt < new Date()) {
     return expireTopUp(topUpId);
   }
-  return topUp;
+  if (topUp.provider === "MANUAL_TRANSFER") return topUp;
+  if (!topUp.externalId) return topUp;
+
+  const adapter = getProviderAdapter(topUp.provider);
+  if (!adapter.fetchPaymentStatus) return topUp;
+
+  try {
+    const parsed = await adapter.fetchPaymentStatus(topUp.externalId, {
+      referenceCode: topUp.referenceCode,
+      topUpId: topUp.id,
+    });
+    if (!parsed) return topUp;
+
+    const { applyTopUpProviderUpdate } = await import("../webhooks");
+    await applyTopUpProviderUpdate(topUp.provider, parsed, { skipIdempotency: true });
+  } catch (err) {
+    console.warn(`[topup] sync ${topUpId} failed:`, err);
+  }
+
+  return getTopUpById(topUpId);
 }
 
 async function logTopUpEvent(

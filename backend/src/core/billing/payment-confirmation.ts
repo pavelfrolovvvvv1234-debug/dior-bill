@@ -73,18 +73,6 @@ export async function handlePaymentConfirmation(params: {
     case "confirmed": {
       if (topUp.status === "PAID") return { handled: true, duplicate: true };
 
-      const needsMore =
-        params.requiredConfirmations &&
-        params.confirmations !== undefined &&
-        params.confirmations < params.requiredConfirmations;
-
-      if (needsMore) {
-        return handlePaymentConfirmation({
-          ...params,
-          status: "pending_confirmation",
-        });
-      }
-
       await completeTopUp(topUp.id);
       await emitPaymentConfirmed({
         userId: topUp.userId,
@@ -127,17 +115,10 @@ export async function handlePaymentConfirmation(params: {
 
 export function mapWebhookToConfirmationStatus(
   parsed: ParsedWebhookPayload,
-  provider: TopUpProvider,
+  _provider: TopUpProvider,
 ): PaymentConfirmationStatus {
-  const raw = parsed.raw as Record<string, unknown>;
-  const confirmations = Number(raw.confirmations ?? raw.confirmation_count ?? 0);
-  const required = Number(raw.required_confirmations ?? raw.confirmations_required ?? 1);
-
   switch (parsed.status) {
     case "paid":
-      if (provider !== "MANUAL_TRANSFER" && confirmations < required) {
-        return "pending_confirmation";
-      }
       return "confirmed";
     case "failed":
       return "failed";
@@ -145,9 +126,7 @@ export function mapWebhookToConfirmationStatus(
       return "expired";
     case "processing":
     case "pending":
-      return confirmations > 0 && confirmations < required
-        ? "pending_confirmation"
-        : "processing";
+      return "processing";
     default:
       return "processing";
   }

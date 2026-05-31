@@ -27,11 +27,24 @@ export interface ParsedWebhookPayload {
   raw: Record<string, unknown>;
 }
 
+export interface PaymentStatusContext {
+  referenceCode?: string;
+  topUpId?: string;
+}
+
 export interface PaymentProviderAdapter {
   readonly provider: TopUpProvider;
   createInvoice(input: CreateProviderInvoiceInput): Promise<ProviderInvoiceResult>;
-  verifyWebhook(headers: Record<string, string | string[] | undefined>, body: unknown): boolean;
+  verifyWebhook(
+    headers: Record<string, string | string[] | undefined>,
+    body: unknown,
+    rawBody?: string,
+  ): boolean;
   parseWebhook(body: unknown): ParsedWebhookPayload;
+  fetchPaymentStatus?(
+    externalId: string,
+    context?: PaymentStatusContext,
+  ): Promise<ParsedWebhookPayload | null>;
 }
 
 export function providerIdToEnum(id: TopUpProviderId): TopUpProvider {

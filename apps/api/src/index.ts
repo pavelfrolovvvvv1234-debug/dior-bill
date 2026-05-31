@@ -58,6 +58,39 @@ app.use(
     credentials: true,
   }),
 );
+
+const webhookBodyParser = express.raw({ type: "application/json", limit: "512kb" });
+
+async function handlePaymentWebhookRoute(
+  provider: import("@dior/database").TopUpProvider,
+  req: express.Request,
+  res: express.Response,
+) {
+  try {
+    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : undefined;
+    const body = rawBody != null ? (JSON.parse(rawBody) as unknown) : req.body;
+    const result = await handleProviderWebhook(
+      provider,
+      req.headers as Record<string, string>,
+      body,
+      rawBody,
+    );
+    apiSuccess(res, result);
+  } catch (e) {
+    apiError(res, e);
+  }
+}
+
+app.post("/webhooks/heleket", webhookBodyParser, (req, res) =>
+  handlePaymentWebhookRoute("HELEKET", req, res),
+);
+app.post("/webhooks/cryptobot", webhookBodyParser, (req, res) =>
+  handlePaymentWebhookRoute("CRYPTOBOT", req, res),
+);
+app.post("/webhooks/crystalpay", webhookBodyParser, (req, res) =>
+  handlePaymentWebhookRoute("CRYSTALPAY", req, res),
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -327,33 +360,6 @@ app.post("/api/admin/topups/:id/reject", authMiddleware, async (req, res) => {
       routeParam(req.params.id),
       req.body.reason ?? "Rejected",
     );
-    apiSuccess(res, result);
-  } catch (e) {
-    apiError(res, e);
-  }
-});
-
-app.post("/webhooks/heleket", async (req, res) => {
-  try {
-    const result = await handleProviderWebhook("HELEKET", req.headers as Record<string, string>, req.body);
-    apiSuccess(res, result);
-  } catch (e) {
-    apiError(res, e);
-  }
-});
-
-app.post("/webhooks/cryptobot", async (req, res) => {
-  try {
-    const result = await handleProviderWebhook("CRYPTOBOT", req.headers as Record<string, string>, req.body);
-    apiSuccess(res, result);
-  } catch (e) {
-    apiError(res, e);
-  }
-});
-
-app.post("/webhooks/crystalpay", async (req, res) => {
-  try {
-    const result = await handleProviderWebhook("CRYSTALPAY", req.headers as Record<string, string>, req.body);
     apiSuccess(res, result);
   } catch (e) {
     apiError(res, e);

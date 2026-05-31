@@ -24,7 +24,10 @@ export type HeleketApiEnvelope<T> = {
   errors?: Record<string, string[]>;
 };
 
-export async function heleketApiRequest<T>(payload: Record<string, unknown>): Promise<T> {
+export async function heleketApiRequest<T>(
+  payload: Record<string, unknown>,
+  path = "payment",
+): Promise<T> {
   const apiKey = paymentConfig.heleket.apiKey;
   const merchantId = paymentConfig.heleket.merchantId;
   if (!apiKey || !merchantId) {
@@ -33,7 +36,8 @@ export async function heleketApiRequest<T>(payload: Record<string, unknown>): Pr
 
   const base = paymentConfig.heleket.apiUrl.replace(/\/$/, "");
   const body = JSON.stringify(payload);
-  const res = await fetch(`${base}/payment`, {
+  const endpoint = `${base}/${path.replace(/^\//, "")}`;
+  const res = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

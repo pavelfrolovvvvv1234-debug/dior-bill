@@ -115,6 +115,56 @@ export const heleketProvider: PaymentProviderAdapter = {
       raw: data,
     };
   },
+
+  async fetchPaymentStatus(externalId, context) {
+    if (!paymentConfig.heleket.apiKey || !paymentConfig.heleket.merchantId) {
+      return null;
+    }
+
+    const payload: Record<string, unknown> = { uuid: externalId };
+    if (context?.referenceCode) {
+      payload.order_id = context.referenceCode;
+    }
+
+    const result = await heleketApiRequest<Record<string, unknown>>(payload, "payment/info");
+    const paymentStatus = String(result.payment_status ?? result.status ?? "").toLowerCase();
+
+    const statusMap: Record<string, ParsedWebhookPayload["status"]> = {
+      paid: "paid",
+      paid_over: "paid",
+      wrong_amount: "pending",
+      wrong_amount_waiting: "pending",
+      process: "processing",
+      confirm_check: "processing",
+      check: "pending",
+      fail: "failed",
+      cancel: "expired",
+      system_fail: "failed",
+    };
+    const status = statusMap[paymentStatus] ?? "pending";
+
+    let topUpId: string | undefined = context?.topUpId;
+    if (result.additional_data && typeof result.additional_data === "string") {
+      try {
+        const meta = JSON.parse(result.additional_data) as { top_up_id?: string };
+        topUpId = meta.top_up_id ?? topUpId;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return {
+      externalId: String(result.uuid ?? externalId),
+      topUpId,
+      status,
+      amount: result.payment_amount_usd
+        ? Number(result.payment_amount_usd)
+        : result.amount
+          ? Number(result.amount)
+          : undefined,
+      raw: result,
+    };
+  },
 };
 
 function defaultExpiry(): Date {
