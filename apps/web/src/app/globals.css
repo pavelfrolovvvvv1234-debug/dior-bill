@@ -290,6 +290,81 @@
   .scroll-dior {
     scrollbar-gutter: stable;
   }
+
+  @keyframes provision-orbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes provision-pulse-ring {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.04);
+    }
+  }
+
+  @keyframes provision-shimmer {
+    from {
+      transform: translateX(-120%);
+    }
+    to {
+      transform: translateX(220%);
+    }
+  }
+
+  @keyframes provision-step-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes provision-success-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    60% {
+      transform: scale(1.04);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .provision-orbit {
+    animation: provision-orbit 3.2s linear infinite;
+  }
+
+  .provision-pulse-ring {
+    animation: provision-pulse-ring 2.4s ease-in-out infinite;
+  }
+
+  .provision-shimmer {
+    animation: provision-shimmer 1.8s ease-in-out infinite;
+  }
+
+  .provision-step-in {
+    animation: provision-step-in 320ms var(--ease-out) both;
+  }
+
+  .provision-success-pop {
+    animation: provision-success-pop 480ms var(--ease-out) both;
+  }
 }
 
 /* Auth pages — flat, no mesh */

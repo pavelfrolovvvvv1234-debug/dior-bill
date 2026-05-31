@@ -65,6 +65,14 @@
     "searchPlaceholder": "Search services, IPs, invoices…",
     "topUp": "Top up"
   },
+  "search": {
+    "pages": "Pages",
+    "services": "Services",
+    "invoices": "Invoices",
+    "topUps": "Top-ups",
+    "noResults": "No results found",
+    "typeToSearch": "Type at least 2 characters to search services, IPs, and invoices"
+  },
   "sidebar": {
     "openMenu": "Open menu",
     "expand": "Expand sidebar",
@@ -82,8 +90,8 @@
   },
   "pages": {
     "dashboard": {
-      "title": "Overview",
-      "description": "Infrastructure, billing, and platform health at a glance"
+      "title": "Home",
+      "description": "Your services and available plans — deploy in a few clicks"
     },
     "plans": {
       "title": "Select Plan",
@@ -255,15 +263,25 @@
     "infraFeed": "Infrastructure feed",
     "quickActions": "Quick actions",
     "quickActionsDesc": "Common operations",
-    "topUpBalance": "Top up balance",
+    "topUpBalance": "Add funds",
     "openTicket": "Open ticket",
     "viewServices": "View services",
     "referrals": "Referrals",
     "noServices": "No active services",
+    "noServicesHint": "No services yet — pick a plan below to get started",
     "orderPlan": "Order a plan",
     "manage": "Manage",
     "renewal": "Renews {date}",
-    "servicesCount": "{count} services"
+    "servicesCount": "{count} services",
+    "myServices": "My services",
+    "myServicesDesc": "Active infrastructure on your account",
+    "addService": "Add service",
+    "addServiceDesc": "Choose a product line and configure your plan",
+    "browseAllPlans": "Browse all plans",
+    "catalogBulletproof": "Bulletproof",
+    "catalogStandard": "Standard",
+    "catalogConfigure": "Configure",
+    "colName": "Name"
   },
   "plans": {
     "productNav": "Product lines",
@@ -289,7 +307,7 @@
     "lines": {
       "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "DMCA-ignored offshore hosting" },
       "bulletproof-dedicated": { "label": "Bulletproof dedicated servers", "short": "BP Dedicated", "desc": "Bare metal with bulletproof policy" },
-      "bulletproof-domains": { "label": "Bulletproof domains", "short": "BP Domains", "desc": "Abuse-resistant registration & DNS" },
+      "bulletproof-domains": { "label": "Bulletproof domains", "short": "BP Domains", "desc": "Bulletproof registration & DNS" },
       "vps": { "label": "VPS/VDS", "short": "VPS", "desc": "Standard virtual servers with instant provisioning" },
       "dedicated": { "label": "Dedicated servers", "short": "Dedicated", "desc": "Standard bare-metal infrastructure" },
       "turbovds": { "label": "Turbovds", "short": "Turbovds", "desc": "High-frequency compute for latency-sensitive workloads" }
@@ -304,6 +322,20 @@
     "plan": "Plan",
     "renews": "Renews",
     "actions": "Actions"
+  },
+  "domains": {
+    "exactAvailableTitle": "{domain} is available",
+    "exactAvailableDesc": "This domain is free — you can register it now.",
+    "exactTakenTitle": "{domain} is taken",
+    "exactTakenDesc": "This extension is already registered. Check other TLDs below.",
+    "registerNow": "Register now",
+    "otherExtensions": "Other extensions",
+    "registerSuccessTitle": "Domain registered",
+    "registerSuccessDesc": "{domain} is now in your account.",
+    "registerFailed": "Registration failed",
+    "insufficientBalance": "You need {required} on your balance (available: {available}). Top up billing first.",
+    "addFunds": "Add funds",
+    "balanceHint": "Your spendable balance: {balance}. Domain registration is charged instantly from billing."
   },
   "support": {
     "yourTickets": "Your tickets",
@@ -356,6 +388,13 @@
     "done": "Done"
   },
   "purchase": {
+    "provisionTitle": "Setting up your service",
+    "provisionSubtitle": "We're allocating infrastructure and preparing your order. This usually takes a few seconds.",
+    "provisionProgress": "Progress",
+    "provisionStep1": "Validating order",
+    "provisionStep2": "Allocating resources",
+    "provisionStep3": "Provisioning service",
+    "provisionStep4": "Finalizing setup",
     "successTitle": "Congratulations on your purchase!",
     "successMessage": "Your order has been placed. Go to My Services to view details about your service.",
     "goToServices": "My Services",

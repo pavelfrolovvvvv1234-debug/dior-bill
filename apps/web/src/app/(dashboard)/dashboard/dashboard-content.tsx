@@ -1,279 +1,61 @@
 "use client";
 
 import { FastLink } from "@/components/ui/fast-link";
-import {
-  Server,
-  CreditCard,
-  Wallet,
-  Users,
-  ArrowUpRight,
-  LifeBuoy,
-  Activity,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { KpiCard } from "@/components/ui/enterprise/kpi-card";
-import { Panel } from "@/components/ui/enterprise/panel";
-import { StatusIndicator, mapServiceStatus } from "@/components/ui/enterprise/status-indicator";
-import { MetricChart } from "@/components/ui/enterprise/metric-chart";
+import { InvoiceStatusBadge } from "@/components/billing/invoice-status-badge";
 import {
   DataTable,
   DataTableBody,
+  DataTableEmpty,
   DataTableHead,
   DataTableRow,
   DataTableTd,
   DataTableTh,
 } from "@/components/ui/enterprise/data-table";
-import { formatMoney, formatRelative } from "@/lib/utils";
-import type { DashboardStats } from "@dior/shared";
-import { ActivityCenter, type ActivityItem } from "@/components/activity-center";
-import type { InfraStatusPage } from "@dior/backend";
-import { Badge } from "@/components/ui/badge";
+import { toServiceRow, sortServices } from "@/lib/service-catalog";
+import { formatDate, formatMoney } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/store";
+import { ArrowUpRight, Plus, Wallet } from "lucide-react";
+import type { DashboardStats } from "@dior/shared";
+import { DashboardMyServices } from "@/components/dashboard/dashboard-my-services";
+import { DashboardServiceCatalog } from "@/components/dashboard/dashboard-service-catalog";
 
-interface ServiceItem {
-  id: string;
-  type: string;
-  status: string;
-  label: string;
-  renewsAt: Date | null;
-  vpsInstance?: {
-    id: string;
-    primaryIp: string | null;
-    cpuUsage: number;
-    ramUsage: number;
-  } | null;
-}
-
-interface FeedItem {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  severity: string;
-  createdAt: Date;
-}
+type RawService = Parameters<typeof toServiceRow>[0] & { monthlyPrice: unknown };
 
 interface Props {
   stats: DashboardStats;
-  services: ServiceItem[];
-  feed: FeedItem[];
-  notifications: { id: string; title: string; body: string; read: boolean; createdAt: Date }[];
-  referralEarnings: number;
-  activity: ActivityItem[];
-  infraStatus: InfraStatusPage;
+  services: RawService[];
 }
 
-const severityVariant: Record<string, "default" | "success" | "warning" | "muted"> = {
-  info: "default",
-  success: "success",
-  warning: "warning",
-};
-
-export function DashboardContent({
-  stats,
-  services,
-  feed,
-  referralEarnings,
-  activity,
-  infraStatus,
-}: Props) {
+export function DashboardContent({ stats, services }: Props) {
   const { t } = useI18n();
-  const trafficData = [
-    { label: "Mon", value: 42 },
-    { label: "Tue", value: 58 },
-    { label: "Wed", value: 51 },
-    { label: "Thu", value: 67 },
-    { label: "Fri", value: 63 },
-    { label: "Sat", value: 48 },
-    { label: "Sun", value: 55 },
-  ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Balance" value={formatMoney(stats.balance)} icon={Wallet} href="/billing" />
-        <KpiCard
-          label="Active services"
-          value={String(stats.activeServices)}
-          icon={Server}
-          href="/services"
-        />
-        <KpiCard
-          label="Pending invoices"
-          value={String(stats.pendingInvoices)}
-          icon={CreditCard}
-          href="/billing"
-        />
-        <KpiCard
-          label="Referral earnings"
-          value={formatMoney(referralEarnings)}
-          icon={Users}
-          href="/referrals"
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-12">
-        <Panel
-          title={t("dashboard.systemHealth")}
-          description={t("dashboard.systemHealthDesc")}
-          className="lg:col-span-4"
-        >
-          <div className="space-y-4">
-            <StatusIndicator
-              status={infraStatus.overall === "operational" ? "operational" : "degraded"}
-              label={
-                infraStatus.overall === "operational"
-                  ? t("sidebar.allSystemsOperational")
-                  : `${t("common.status")}: ${infraStatus.overall}`
-              }
-            />
-            <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <dt className="text-xs text-muted-foreground">Live deployments</dt>
-                <dd className="mt-0.5 font-semibold tabular-nums">{infraStatus.activeDeployments}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Nodes online</dt>
-                <dd className="mt-0.5 font-semibold tabular-nums">
-                  {infraStatus.nodes.filter((n) => n.status === "online").length}/
-                  {infraStatus.nodes.length}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Uptime SLA</dt>
-                <dd className="mt-0.5 font-semibold tabular-nums">99.98%</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Abuse queue</dt>
-                <dd className="mt-0.5 font-semibold tabular-nums">0 open</dd>
-              </div>
-            </dl>
-            <Button variant="outline" size="sm" className="h-8 w-full" asChild>
-              <FastLink href="/status">Public status page</FastLink>
-            </Button>
+    <div className="space-y-10">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background">
+            <Wallet className="h-5 w-5 text-primary" strokeWidth={1.5} />
           </div>
-        </Panel>
-
-        <Panel
-          title={t("dashboard.traffic")}
-          description={t("dashboard.trafficDesc")}
-          className="lg:col-span-8"
-          action={
-            <Button variant="ghost" size="sm" className="h-8" asChild>
-              <FastLink href="/plans?tab=cdn">CDN</FastLink>
-            </Button>
-          }
-        >
-          <MetricChart data={trafficData} height={140} />
-        </Panel>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-12">
-        <Panel
-          title={t("dashboard.activeServices")}
-          description={t("dashboard.activeServicesDesc")}
-          className="lg:col-span-8"
-          action={
-            <Button variant="outline" size="sm" className="h-8 gap-1" asChild>
-              <FastLink href="/services">
-                {t("common.viewAll")}
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </FastLink>
-            </Button>
-          }
-          noPadding
-        >
-          <DataTable>
-            <DataTableHead>
-              <DataTableTh>Service</DataTableTh>
-              <DataTableTh>Endpoint</DataTableTh>
-              <DataTableTh>Status</DataTableTh>
-              <DataTableTh align="right">CPU</DataTableTh>
-            </DataTableHead>
-            <DataTableBody>
-              {services.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                    No active services.{" "}
-                    <FastLink href="/plans?tab=bulletproof-vps" className="text-primary hover:underline">
-                      Select plan
-                    </FastLink>
-                  </td>
-                </tr>
-              ) : (
-                services.slice(0, 6).map((s) => (
-                  <DataTableRow key={s.id}>
-                    <DataTableTd>
-                      <FastLink
-                        href={s.vpsInstance ? `/vps/${s.vpsInstance.id}` : "/services"}
-                        className="font-medium hover:text-primary"
-                      >
-                        {s.label}
-                      </FastLink>
-                      <p className="text-xs text-muted-foreground">{s.type}</p>
-                    </DataTableTd>
-                    <DataTableTd mono className="text-muted-foreground">
-                      {s.vpsInstance?.primaryIp ?? "—"}
-                    </DataTableTd>
-                    <DataTableTd>
-                      <StatusIndicator status={mapServiceStatus(s.status)} label={s.status} />
-                    </DataTableTd>
-                    <DataTableTd align="right" mono>
-                      {s.vpsInstance ? `${s.vpsInstance.cpuUsage}%` : "—"}
-                    </DataTableTd>
-                  </DataTableRow>
-                ))
-              )}
-            </DataTableBody>
-          </DataTable>
-        </Panel>
-
-        <Panel title={t("dashboard.infraFeed")} className="lg:col-span-4">
-          <div className="space-y-4">
-            {feed.slice(0, 5).map((item) => (
-              <article key={item.id} className="border-l-2 border-primary/40 pl-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium leading-snug">{item.title}</p>
-                  <Badge variant={severityVariant[item.severity] ?? "muted"} className="shrink-0 text-[10px]">
-                    {item.type}
-                  </Badge>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
-                <p className="mt-1 text-[10px] text-muted-foreground">{formatRelative(item.createdAt)}</p>
-              </article>
-            ))}
-            <Button variant="ghost" size="sm" className="h-8 w-full" asChild>
-              <FastLink href="/infrastructure">View feed</FastLink>
-            </Button>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {t("billing.availableBalance")}
+            </p>
+            <p className="text-2xl font-semibold tabular-nums tracking-tight">
+              {formatMoney(stats.balance)}
+            </p>
           </div>
-        </Panel>
+        </div>
+        <Button size="sm" className="h-9 gap-1.5 px-4" asChild>
+          <FastLink href="/billing/topup">
+            <Plus className="h-4 w-4" />
+            {t("dashboard.topUpBalance")}
+          </FastLink>
+        </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ActivityCenter items={activity} />
-
-        <Panel title={t("dashboard.quickActions")} description={t("dashboard.quickActionsDesc")}>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { labelKey: "nav.selectPlan", href: "/plans", icon: Server },
-              { labelKey: "dashboard.topUpBalance", href: "/billing/topup", icon: Wallet },
-              { labelKey: "nav.support", href: "/support", icon: LifeBuoy },
-              { labelKey: "dashboard.referrals", href: "/referrals", icon: Users },
-              { labelKey: "dashboard.infraFeed", href: "/infrastructure", icon: Activity },
-            ].map((a) => {
-              const Icon = a.icon;
-              return (
-                <Button key={a.href} variant="outline" className="h-auto justify-start gap-2 py-3" asChild>
-                  <FastLink href={a.href}>
-                    <Icon className="h-4 w-4 text-primary" strokeWidth={1.75} />
-                    {t(a.labelKey)}
-                  </FastLink>
-                </Button>
-              );
-            })}
-          </div>
-        </Panel>
-      </div>
+      <DashboardMyServices services={services} />
+      <DashboardServiceCatalog />
     </div>
   );
 }

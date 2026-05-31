@@ -43,6 +43,28 @@ export const BULLETPROOF_DOMAIN_ZONES: readonly DomainZone[] = [
 
 const ZONE_BY_TLD = new Map(BULLETPROOF_DOMAIN_ZONES.map((z) => [z.tld, z]));
 
+/** TLDs checked when the user enters a name without an extension */
+export const POPULAR_SEARCH_TLDS = [
+  "com",
+  "net",
+  "org",
+  "io",
+  "app",
+  "co",
+  "dev",
+  "top",
+  "club",
+  "info",
+  "pro",
+  "biz",
+  "uk",
+  "xyz",
+  "at",
+  "us",
+] as const;
+
+const LABEL_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
 export function getDomainZone(tld: string): DomainZone | undefined {
   return ZONE_BY_TLD.get(tld.replace(/^\./, "").toLowerCase());
 }
@@ -55,6 +77,45 @@ export function parseDomainInput(input: string): { name: string; tld: string; fq
   if (parts.length < 2) return null;
   const tld = parts[parts.length - 1];
   const name = parts.slice(0, -1).join(".");
-  if (!name) return null;
+  if (!name || !LABEL_RE.test(name)) return null;
   return { name, tld, fqdn };
+}
+
+/** Parse registrar-style search: "mybrand" or "mybrand.com" (also strips www.) */
+export function parseDomainSearchInput(
+  input: string,
+): { label: string; primaryTld?: string; fqdn?: string } | null {
+  let raw = input
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/\.$/, "");
+
+  if (raw.startsWith("www.")) raw = raw.slice(4);
+  if (!raw) return null;
+
+  if (raw.includes(".")) {
+    const parsed = parseDomainInput(raw);
+    if (!parsed) return null;
+    return { label: parsed.name, primaryTld: parsed.tld, fqdn: parsed.fqdn };
+  }
+
+  if (!LABEL_RE.test(raw)) return null;
+  return { label: raw };
+}
+
+export function buildSearchTldList(primaryTld?: string, limit = 20): string[] {
+  const catalog = new Set(BULLETPROOF_DOMAIN_ZONES.map((z) => z.tld));
+  const popular = POPULAR_SEARCH_TLDS.filter((tld) => catalog.has(tld));
+  const rest = BULLETPROOF_DOMAIN_ZONES.map((z) => z.tld).filter(
+    (tld) => !popular.includes(tld as (typeof POPULAR_SEARCH_TLDS)[number]),
+  );
+
+  let ordered = [...popular, ...rest];
+  if (primaryTld && catalog.has(primaryTld)) {
+    ordered = [primaryTld, ...ordered.filter((tld) => tld !== primaryTld)];
+  }
+
+  return ordered.slice(0, limit);
 }

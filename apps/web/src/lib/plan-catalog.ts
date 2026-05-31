@@ -36,7 +36,7 @@ export const PLAN_PRODUCT_LINES: PlanProductLine[] = [
     id: "bulletproof-domains",
     label: "Bulletproof domains",
     shortLabel: "BP Domains",
-    description: "Abuse-resistant registration & DNS",
+    description: "Bulletproof registration & DNS",
     bulletproof: true,
   },
   {

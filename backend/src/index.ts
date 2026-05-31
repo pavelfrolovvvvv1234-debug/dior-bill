@@ -41,4 +41,5 @@ export * from "./core";
 export * from "./audit";
 export * from "./admin";
 export * from "./settings";
+export * from "./search";
 export { AppError, RATE_LIMITS, ADMIN_ROLES } from "@dior/shared";

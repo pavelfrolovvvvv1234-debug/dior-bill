@@ -16,6 +16,7 @@ import {
   rejectTopUpAction,
   syncTopUpAction,
 } from "@/app/actions/billing";
+import { TopUpStatusControl } from "@/components/control/billing/topup-status-control";
 import { Button } from "@/components/ui/button";
 
 export function TopUpActions({
@@ -31,7 +32,9 @@ export function TopUpActions({
   const refresh = () => router.refresh();
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-3 sm:items-end">
+      <TopUpStatusControl topUpId={topUpId} status={status} />
+      <div className="flex flex-wrap gap-2">
       {status === "MANUAL_REVIEW" && (
         <>
           <Button
@@ -95,6 +98,7 @@ export function TopUpActions({
           Settled
         </span>
       )}
+      </div>
     </div>
   );
 }

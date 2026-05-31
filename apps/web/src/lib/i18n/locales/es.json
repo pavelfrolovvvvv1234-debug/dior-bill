@@ -65,6 +65,14 @@
     "searchPlaceholder": "Buscar servicios, IP, facturas…",
     "topUp": "Recargar"
   },
+  "search": {
+    "pages": "Páginas",
+    "services": "Servicios",
+    "invoices": "Facturas",
+    "topUps": "Recargas",
+    "noResults": "Sin resultados",
+    "typeToSearch": "Escribe al menos 2 caracteres para buscar servicios, IP y facturas"
+  },
   "sidebar": {
     "openMenu": "Abrir menú",
     "expand": "Expandir barra",
@@ -300,7 +308,7 @@
       "bulletproof-domains": {
         "label": "Dominios bulletproof",
         "short": "BP Domains",
-        "desc": "Registro y DNS resistentes al abuso"
+        "desc": "Registro y DNS bulletproof"
       },
       "vps": {
         "label": "VPS/VDS",
@@ -380,6 +388,13 @@
     "done": "Listo"
   },
   "purchase": {
+    "provisionTitle": "Configurando su servicio",
+    "provisionSubtitle": "Estamos asignando infraestructura y preparando su pedido. Suele tardar unos segundos.",
+    "provisionProgress": "Progreso",
+    "provisionStep1": "Validando pedido",
+    "provisionStep2": "Asignando recursos",
+    "provisionStep3": "Aprovisionando servicio",
+    "provisionStep4": "Finalizando",
     "successTitle": "¡Felicitaciones por su compra!",
     "successMessage": "Su pedido se ha realizado. Vaya a Mis servicios para ver la información de su servicio.",
     "goToServices": "Mis servicios",

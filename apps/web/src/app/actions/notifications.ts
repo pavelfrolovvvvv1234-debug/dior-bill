@@ -1,6 +1,6 @@
 "use server";
 
-import { getUserNotifications, markNotificationRead } from "@dior/backend";
+import { getUserNotifications, markNotificationRead, markAllRead } from "@dior/backend";
 import { requireSession } from "@/lib/auth";
 
 export async function getNotificationsPreviewAction() {
@@ -17,4 +17,9 @@ export async function getUnreadNotificationsCountAction() {
 export async function markNotificationReadAction(id: string) {
   const session = await requireSession();
   await markNotificationRead(id, session.user.id);
+}
+
+export async function markAllNotificationsReadAction() {
+  const session = await requireSession();
+  await markAllRead(session.user.id);
 }

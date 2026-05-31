@@ -12,6 +12,7 @@ import {
   DataTableTh,
 } from "@/components/control/data-table";
 import { BillingStatusBadge } from "@/components/control/billing/status-badge";
+import { TopUpStatusControl } from "@/components/control/billing/topup-status-control";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney, formatDate } from "@/lib/utils";
@@ -54,10 +55,11 @@ export default async function TopUpsPage({
             <DataTableTh>Amount</DataTableTh>
             <DataTableTh>Status</DataTableTh>
             <DataTableTh>Created</DataTableTh>
+            <DataTableTh align="right">Actions</DataTableTh>
           </DataTableHead>
           <DataTableBody>
             {data.items.length === 0 ? (
-              <DataTableEmpty message="No top-ups" colSpan={6} />
+              <DataTableEmpty message="No top-ups" colSpan={7} />
             ) : (
               data.items.map((t) => (
                 <DataTableRow key={t.id}>
@@ -71,6 +73,9 @@ export default async function TopUpsPage({
                   <DataTableTd mono>{formatMoney(Number(t.amount))}</DataTableTd>
                   <DataTableTd><BillingStatusBadge status={t.status} /></DataTableTd>
                   <DataTableTd className="text-[var(--muted-foreground)]">{formatDate(t.createdAt)}</DataTableTd>
+                  <DataTableTd align="right">
+                    <TopUpStatusControl topUpId={t.id} status={t.status} compact />
+                  </DataTableTd>
                 </DataTableRow>
               ))
             )}

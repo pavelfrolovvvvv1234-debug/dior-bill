@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { requireSession } from "@/lib/auth";
-import { getDedicatedInventory, getLocations } from "@dior/backend";
+import { getDedicatedInventory, getLocations, getWallet } from "@dior/backend";
 import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlansHub } from "@/components/plans/plans-hub";
@@ -12,11 +12,15 @@ export default async function SelectPlanPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  await requireSession();
+  const session = await requireSession();
   const { tab: tabParam } = await searchParams;
   const defaultTab = parsePlanTab(tabParam);
 
-  const [locations, inventory] = await Promise.all([getLocations(), getDedicatedInventory()]);
+  const [locations, inventory, wallet] = await Promise.all([
+    getLocations(),
+    getDedicatedInventory(),
+    getWallet(session.user.id),
+  ]);
 
   return (
     <>
@@ -37,6 +41,7 @@ export default async function SelectPlanPage({
             standardVpsPlans={STANDARD_VPS_PLANS}
             turboPlans={TURBO_VPS_PLANS}
             inventory={inventory}
+            spendableBalance={wallet.spendable}
           />
         </Suspense>
       </PageContainer>

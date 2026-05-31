@@ -14,13 +14,13 @@ async function main() {
     }),
     prisma.affiliateTier.upsert({
       where: { name: "Pro" },
-      update: {},
-      create: { name: "Pro", percent: 15, minReferrals: 10, minEarnings: 500 },
+      update: { percent: 10 },
+      create: { name: "Pro", percent: 10, minReferrals: 10, minEarnings: 500 },
     }),
     prisma.affiliateTier.upsert({
       where: { name: "VIP" },
-      update: {},
-      create: { name: "VIP", percent: 25, minReferrals: 50, minEarnings: 5000 },
+      update: { percent: 15 },
+      create: { name: "VIP", percent: 15, minReferrals: 50, minEarnings: 5000 },
     }),
   ]);
 

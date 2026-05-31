@@ -1,8 +1,10 @@
 import { ConflictError, NotFoundError, ValidationError } from "@dior/shared";
 import {
   amperGetDomainPrices,
+  amperGetAccount,
   amperRegisterDomain,
   amperSearchDomain,
+  amperBulkSearchDomains,
   amperSetNameservers,
   amperGetNameservers,
   AmperApiError,
@@ -23,6 +25,27 @@ export type DomainAvailabilityResult = {
   tld: string;
 };
 
+export type DomainBulkSearchResult = DomainAvailabilityResult & {
+  catalogPrice: number | null;
+  inCatalog: boolean;
+};
+
+function mapSearchHit(hit: {
+  domain: string;
+  available: boolean;
+  premium: boolean;
+  price: number;
+  tld: string;
+}): DomainAvailabilityResult {
+  return {
+    domain: hit.domain,
+    available: hit.available,
+    premium: hit.premium,
+    amperPrice: hit.price,
+    tld: hit.tld.replace(/^\./, ""),
+  };
+}
+
 export async function searchDomainAvailability(domain: string): Promise<DomainAvailabilityResult> {
   if (!isAmperConfigured()) {
     throw new ValidationError(
@@ -41,13 +64,61 @@ export async function searchDomainAvailability(domain: string): Promise<DomainAv
     throw new ValidationError("Could not check domain availability");
   }
 
-  return {
-    domain: hit.domain,
-    available: hit.available,
-    premium: hit.premium,
-    amperPrice: hit.price,
-    tld: hit.tld.replace(/^\./, ""),
-  };
+  return mapSearchHit(hit);
+}
+
+async function assertRegistrarCanRegister(requiredAmount: number) {
+  const account = await amperGetAccount();
+  if (account.balance < requiredAmount) {
+    throw new ValidationError(
+      "Domain registration is temporarily unavailable — registrar balance is low. Please contact support.",
+    );
+  }
+}
+
+export async function searchDomainAvailabilityBulk(
+  domains: string[],
+  catalogPrices: Record<string, number>,
+): Promise<DomainBulkSearchResult[]> {
+  if (!isAmperConfigured()) {
+    throw new ValidationError(
+      "Amper API is not configured — add AMPER_API_TOKEN to .env and restart the server",
+    );
+  }
+
+  const unique = [...new Set(domains.map((d) => d.trim().toLowerCase()).filter(Boolean))];
+  if (unique.length === 0) {
+    throw new ValidationError("Enter a valid domain name");
+  }
+
+  const data =
+    unique.length === 1
+      ? await amperSearchDomain(unique[0])
+      : await amperBulkSearchDomains(unique);
+
+  const byDomain = new Map(data.results.map((hit) => [hit.domain, mapSearchHit(hit)]));
+
+  return unique.map((fqdn) => {
+    const hit = byDomain.get(fqdn);
+    const tld = fqdn.split(".").pop() ?? "";
+    const catalogPrice = catalogPrices[tld] ?? null;
+    if (!hit) {
+      return {
+        domain: fqdn,
+        available: false,
+        premium: false,
+        amperPrice: 0,
+        tld,
+        catalogPrice,
+        inCatalog: catalogPrice != null,
+      };
+    }
+    return {
+      ...hit,
+      catalogPrice,
+      inCatalog: catalogPrice != null,
+    };
+  });
 }
 
 export async function getLiveTldPrices(): Promise<
@@ -78,6 +149,9 @@ export async function registerDomainViaAmper(params: {
   if (!availability.available) {
     throw new ValidationError(`Domain ${domainName} is not available`);
   }
+
+  const registrarCost = availability.amperPrice > 0 ? availability.amperPrice : params.retailPrice;
+  await assertRegistrarCanRegister(registrarCost);
 
   const existing = await prisma.domain.findUnique({ where: { domainName } });
   if (existing) throw new ConflictError("Domain already registered in DIOR");

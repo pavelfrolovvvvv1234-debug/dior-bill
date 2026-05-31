@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/enterprise/page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { SeverityTag } from "@/components/ui/enterprise/severity-tag";
+import { Timeline } from "@/components/ui/timeline";
 import { formatRelative } from "@/lib/utils";
 
 export default async function AbusePage() {
@@ -69,20 +70,15 @@ export default async function AbusePage() {
             description="Immutable activity timeline"
             className="lg:col-span-5"
           >
-            <ol className="relative border-l border-white/10 pl-4">
-              {activity.slice(0, 12).map((entry) => (
-                <li key={entry.id} className="mb-5 last:mb-0">
-                  <span className="absolute -left-[5px] mt-1.5 h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                  <p className="text-sm font-medium leading-snug">{entry.title}</p>
-                  {entry.subtitle && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{entry.subtitle}</p>
-                  )}
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    {formatRelative(entry.at)}
-                  </p>
-                </li>
-              ))}
-            </ol>
+            <Timeline
+              lineClassName="bg-white/10"
+              items={activity.slice(0, 12).map((entry) => ({
+                id: entry.id,
+                title: entry.title,
+                description: entry.subtitle,
+                meta: formatRelative(entry.at),
+              }))}
+            />
           </Panel>
         </div>
 

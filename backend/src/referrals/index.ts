@@ -57,7 +57,7 @@ export async function getReferralDashboard(userId: string) {
 
   return {
     referralCode: user.referralCode,
-    referralLink: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/register?ref=${user.referralCode}`,
+    referralLink: `${(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "")}/register?ref=${user.referralCode}`,
     tier: user.affiliateTier,
     percent,
     totalEarnings: Number(earnings._sum.amount ?? 0),

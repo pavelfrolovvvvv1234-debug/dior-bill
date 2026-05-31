@@ -8,6 +8,7 @@ import { FastLink } from "@/components/ui/fast-link";
 import {
   getNotificationsPreviewAction,
   getUnreadNotificationsCountAction,
+  markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@/app/actions/notifications";
 import { formatRelative } from "@/lib/utils";
@@ -69,6 +70,13 @@ export function NotificationBell() {
     setOpen(false);
   }
 
+  async function handleMarkAllRead() {
+    if (unreadCount === 0) return;
+    await markAllNotificationsReadAction();
+    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+  }
+
   return (
     <DropdownMenu.Root open={open} onOpenChange={setOpen}>
       <DropdownMenu.Trigger asChild>
@@ -98,15 +106,27 @@ export function NotificationBell() {
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
         >
-          <div className="flex h-10 items-center justify-between border-b border-border px-3">
+          <div className="flex h-10 items-center justify-between gap-2 border-b border-border px-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Уведомления
             </p>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                {unreadCount} новых
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => void handleMarkAllRead()}
+                    className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
+                  >
+                    Прочитать все
+                  </button>
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                    {unreadCount} новых
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="scroll-dior h-72 overflow-y-auto p-1">

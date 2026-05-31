@@ -65,6 +65,14 @@
     "searchPlaceholder": "Поиск услуг, IP, счетов…",
     "topUp": "Пополнить"
   },
+  "search": {
+    "pages": "Страницы",
+    "services": "Услуги",
+    "invoices": "Счета",
+    "topUps": "Пополнения",
+    "noResults": "Ничего не найдено",
+    "typeToSearch": "Введите минимум 2 символа для поиска услуг, IP и счетов"
+  },
   "sidebar": {
     "openMenu": "Открыть меню",
     "expand": "Развернуть панель",
@@ -82,8 +90,8 @@
   },
   "pages": {
     "dashboard": {
-      "title": "Обзор",
-      "description": "Инфраструктура, биллинг и состояние платформы"
+      "title": "Главная",
+      "description": "Ваши услуги и доступные тарифы — разверните за пару кликов"
     },
     "plans": {
       "title": "Выбор тарифа",
@@ -255,15 +263,25 @@
     "infraFeed": "Лента инфраструктуры",
     "quickActions": "Быстрые действия",
     "quickActionsDesc": "Частые операции",
-    "topUpBalance": "Пополнить баланс",
+    "topUpBalance": "Пополнить",
     "openTicket": "Создать тикет",
     "viewServices": "Мои услуги",
     "referrals": "Партнёрка",
     "noServices": "Нет активных услуг",
+    "noServicesHint": "Услуг пока нет — выберите тариф ниже",
     "orderPlan": "Заказать тариф",
     "manage": "Управление",
     "renewal": "Продление {date}",
-    "servicesCount": "Услуг: {count}"
+    "servicesCount": "Услуг: {count}",
+    "myServices": "Мои услуги",
+    "myServicesDesc": "Активная инфраструктура на аккаунте",
+    "addService": "Добавить услугу",
+    "addServiceDesc": "Выберите продукт и настройте тариф",
+    "browseAllPlans": "Все тарифы",
+    "catalogBulletproof": "Bulletproof",
+    "catalogStandard": "Стандарт",
+    "catalogConfigure": "Настроить",
+    "colName": "Название"
   },
   "plans": {
     "productNav": "Линейки продуктов",
@@ -289,7 +307,7 @@
     "lines": {
       "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "Офшорный DMCA-ignored хостинг" },
       "bulletproof-dedicated": { "label": "Bulletproof dedicated", "short": "BP Dedicated", "desc": "Bare metal с bulletproof политикой" },
-      "bulletproof-domains": { "label": "Bulletproof домены", "short": "BP Domains", "desc": "Регистрация и DNS с устойчивостью к abuse" },
+      "bulletproof-domains": { "label": "Bulletproof домены", "short": "BP Domains", "desc": "Bulletproof регистрация и DNS" },
       "vps": { "label": "VPS/VDS", "short": "VPS", "desc": "Стандартные VPS с быстрым провижинингом" },
       "dedicated": { "label": "Dedicated", "short": "Dedicated", "desc": "Стандартная bare-metal инфраструктура" },
       "turbovds": { "label": "Turbovds", "short": "Turbovds", "desc": "Высокочастотные вычисления для чувствительных к задержке задач" }
@@ -304,6 +322,20 @@
     "plan": "Тариф",
     "renews": "Продление",
     "actions": "Действия"
+  },
+  "domains": {
+    "exactAvailableTitle": "{domain} — свободен",
+    "exactAvailableDesc": "Домен доступен для регистрации. Можете оформить его прямо сейчас.",
+    "exactTakenTitle": "{domain} — занят",
+    "exactTakenDesc": "Это имя уже зарегистрировано. Посмотрите другие зоны ниже.",
+    "registerNow": "Зарегистрировать",
+    "otherExtensions": "Другие зоны",
+    "registerSuccessTitle": "Домен зарегистрирован",
+    "registerSuccessDesc": "{domain} добавлен в ваш аккаунт.",
+    "registerFailed": "Не удалось зарегистрировать",
+    "insufficientBalance": "Нужно {required} на балансе (доступно: {available}). Сначала пополните биллинг.",
+    "addFunds": "Пополнить",
+    "balanceHint": "Доступно на балансе: {balance}. Регистрация списывается с биллинга сразу."
   },
   "support": {
     "yourTickets": "Ваши тикеты",
@@ -356,6 +388,13 @@
     "done": "Готово"
   },
   "purchase": {
+    "provisionTitle": "Настраиваем вашу услугу",
+    "provisionSubtitle": "Выделяем инфраструктуру и готовим заказ. Обычно это занимает несколько секунд.",
+    "provisionProgress": "Прогресс",
+    "provisionStep1": "Проверка заказа",
+    "provisionStep2": "Выделение ресурсов",
+    "provisionStep3": "Настройка услуги",
+    "provisionStep4": "Завершение",
     "successTitle": "Поздравляем с покупкой!",
     "successMessage": "Заказ оформлен. Перейдите в «Мои услуги», чтобы получить информацию о вашей услуге.",
     "goToServices": "Мои услуги",

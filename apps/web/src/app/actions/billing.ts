@@ -9,6 +9,7 @@ import {
   adminRefundToBalance,
   adminRejectTopUp,
   adminSetBalanceLock,
+  adminSetTopUpStatus,
   adminSyncTopUp,
   adminTriggerReconciliation,
   adminExtendServiceRenewal,
@@ -151,4 +152,14 @@ export async function markPayoutPaidAction(payoutId: string) {
 export async function exportBillingCsvAction() {
   const actor = await requireControlSession();
   return exportBillingCsv(actor.id);
+}
+
+export async function setTopUpStatusAction(
+  topUpId: string,
+  status: import("@dior/database").TopUpStatus,
+  options?: { reason?: string; notes?: string },
+) {
+  const actor = await requireControlSession();
+  await adminSetTopUpStatus(actor.id, topUpId, status, options);
+  revalidateBilling("/billing/top-ups", `/billing/top-ups/${topUpId}`, "/payments");
 }

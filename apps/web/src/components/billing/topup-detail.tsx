@@ -14,6 +14,7 @@ import {
 import { TopUpStatusBadge } from "./topup-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Timeline } from "@/components/ui/timeline";
 import { syncTopUpAction } from "@/app/actions/topup";
 import { isExternalPaymentUrl, openPaymentUrl } from "@/lib/payment-url";
 import { formatMoney, formatDate } from "@/lib/utils";
@@ -204,15 +205,13 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
           <CardTitle className="text-sm font-medium">{t("billing.detail.activity")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol className="relative space-y-4 border-l border-border pl-6">
-            {topUp.events.map((ev) => (
-              <li key={`${ev.event}-${ev.createdAt.toISOString()}`} className="relative">
-                <span className="absolute -left-[1.55rem] top-1 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-background" />
-                <p className="text-sm font-medium capitalize">{ev.event.replace(/_/g, " ")}</p>
-                <p className="text-xs text-muted-foreground">{formatDate(ev.createdAt)}</p>
-              </li>
-            ))}
-          </ol>
+          <Timeline
+            items={topUp.events.map((ev) => ({
+              id: `${ev.event}-${ev.createdAt.toISOString()}`,
+              title: ev.event.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+              meta: formatDate(ev.createdAt),
+            }))}
+          />
         </CardContent>
       </Card>
     </div>

@@ -42,6 +42,7 @@ interface PlansHubProps {
   standardVpsPlans: readonly VpsPlan[];
   turboPlans: readonly VpsPlan[];
   inventory: InventoryItem[];
+  spendableBalance: number;
 }
 
 export type { PlanTab } from "@/lib/plan-catalog";
@@ -53,6 +54,7 @@ export function PlansHub({
   standardVpsPlans,
   turboPlans,
   inventory,
+  spendableBalance,
 }: PlansHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,6 +105,7 @@ export function PlansHub({
             bulletproof
             title={t("plans.bpDomainsTitle")}
             description={t("plans.bpDomainsDesc")}
+            spendableBalance={spendableBalance}
           />
         )}
         {tab === "bulletproof-vps" && (

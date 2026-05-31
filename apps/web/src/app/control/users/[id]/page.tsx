@@ -80,7 +80,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Email</dt><dd>{user.email ?? "—"}</dd></div>
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Telegram</dt><dd>{user.telegramUsername ?? "—"}</dd></div>
-              <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Role</dt><dd><Badge>{user.role}</Badge></dd></div>
+              <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Role</dt><dd><Badge variant="outline">{user.role.replace(/_/g, " ")}</Badge></dd></div>
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Created</dt><dd>{formatDate(user.createdAt)}</dd></div>
             </dl>
           </Panel>

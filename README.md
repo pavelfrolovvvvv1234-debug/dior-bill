@@ -1,6 +1,6 @@
 # Dior Cloud — Enterprise Billing Platform
 
-Premium infrastructure billing platform for abuse-resistant hosting providers. Built with Next.js 15, TypeScript, Prisma (MySQL), Redis queues, and a modular service architecture.
+Premium infrastructure billing platform for bulletproof hosting providers. Built with Next.js 15, TypeScript, Prisma (MySQL), Redis queues, and a modular service architecture.
 
 ## Architecture
 

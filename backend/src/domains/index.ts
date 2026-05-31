@@ -102,6 +102,7 @@ export {
 
 export {
   searchDomainAvailability,
+  searchDomainAvailabilityBulk,
   getLiveTldPrices,
   registerDomainViaAmper,
 } from "./amper-service";

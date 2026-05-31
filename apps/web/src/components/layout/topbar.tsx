@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
+import { DashboardSearch } from "@/components/layout/dashboard-search";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { StatusIndicator } from "@/components/ui/enterprise/status-indicator";
 import { FastLink } from "@/components/ui/fast-link";
 import { useI18n } from "@/lib/i18n/store";
@@ -37,16 +37,7 @@ export function Topbar({ user }: TopbarProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 pl-14 lg:gap-4 lg:px-6 lg:pl-6">
-      <div className="relative hidden min-w-0 flex-1 md:block md:max-w-md lg:ml-0">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-          strokeWidth={1.5}
-        />
-        <Input
-          placeholder={t("topbar.searchPlaceholder")}
-          className="h-9 pl-9 text-sm"
-        />
-      </div>
+      <DashboardSearch />
 
       <div className="ml-auto flex items-center gap-2">
         <StatusIndicator status="operational" showLabel={false} className="hidden sm:flex" />

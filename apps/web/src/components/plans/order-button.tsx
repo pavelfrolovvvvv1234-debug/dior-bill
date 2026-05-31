@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { checkSufficientBalance } from "@/app/actions/order";
+import { PurchaseSuccessDialog } from "@/components/billing/purchase-success-dialog";
 import { Button } from "@/components/ui/button";
 import { toastInsufficientBalance } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,8 @@ type OrderButtonProps = {
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "ghost" | "destructive" | "secondary" | "link";
   onAllowed?: () => void | Promise<void>;
+  /** Show premium provisioning + success flow after order completes */
+  showSuccessFlow?: boolean;
 };
 
 export function OrderButton({
@@ -25,9 +28,11 @@ export function OrderButton({
   size = "sm",
   variant = "outline",
   onAllowed,
+  showSuccessFlow = true,
 }: OrderButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
 
   async function handleClick() {
     setLoading(true);
@@ -39,6 +44,9 @@ export function OrderButton({
       }
       if (onAllowed) {
         await onAllowed();
+        if (showSuccessFlow) {
+          setPurchaseSuccessOpen(true);
+        }
         return;
       }
       router.push(href);
@@ -48,15 +56,24 @@ export function OrderButton({
   }
 
   return (
-    <Button
-      type="button"
-      size={size}
-      variant={variant}
-      className={cn(className)}
-      disabled={loading}
-      onClick={handleClick}
-    >
-      {loading ? "…" : children}
-    </Button>
+    <>
+      <Button
+        type="button"
+        size={size}
+        variant={variant}
+        className={cn(className)}
+        disabled={loading}
+        onClick={handleClick}
+      >
+        {loading ? "…" : children}
+      </Button>
+
+      {showSuccessFlow && onAllowed ? (
+        <PurchaseSuccessDialog
+          open={purchaseSuccessOpen}
+          onOpenChange={setPurchaseSuccessOpen}
+        />
+      ) : null}
+    </>
   );
 }

@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     [
       `👋 Hello, <b>${name}</b>!`,
       "",
-      "<b>DIOR Cloud</b> — abuse-resistant hosting & billing.",
+      "<b>DIOR Cloud</b> — bulletproof hosting & billing.",
       "",
       `🔐 Sign in on the site (Telegram button): ${loginUrl}`,
       refCode ? `📝 Register with your referral: ${registerUrl}` : `📝 New here: ${registerUrl}`,

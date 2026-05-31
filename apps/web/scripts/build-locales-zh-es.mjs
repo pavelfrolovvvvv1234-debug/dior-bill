@@ -498,7 +498,7 @@ for (const id of [
     const mapZh = {
       "bulletproof-vps": ["Bulletproof VPS/VDS", "BP VPS", "离岸 DMCA-ignored 托管"],
       "bulletproof-dedicated": ["Bulletproof 独服", "BP Dedicated", "Bulletproof 裸金属"],
-      "bulletproof-domains": ["Bulletproof 域名", "BP Domains", "抗滥用注册与 DNS"],
+      "bulletproof-domains": ["Bulletproof 域名", "BP Domains", "Bulletproof 注册与 DNS"],
       vps: ["VPS/VDS", "VPS", "标准 VPS 快速开通"],
       dedicated: ["独服", "Dedicated", "标准裸金属基础设施"],
       turbovds: ["Turbovds", "Turbovds", "高主频低延迟计算"],
@@ -506,7 +506,7 @@ for (const id of [
     const mapEs = {
       "bulletproof-vps": ["Bulletproof VPS/VDS", "BP VPS", "Hosting offshore DMCA-ignored"],
       "bulletproof-dedicated": ["Dedicados bulletproof", "BP Dedicated", "Bare metal con política bulletproof"],
-      "bulletproof-domains": ["Dominios bulletproof", "BP Domains", "Registro y DNS resistentes al abuso"],
+      "bulletproof-domains": ["Dominios bulletproof", "BP Domains", "Registro y DNS bulletproof"],
       vps: ["VPS/VDS", "VPS", "VPS estándar con aprovisionamiento rápido"],
       dedicated: ["Servidores dedicados", "Dedicated", "Infra bare-metal estándar"],
       turbovds: ["Turbovds", "Turbovds", "Cómputo de alta frecuencia para baja latencia"],

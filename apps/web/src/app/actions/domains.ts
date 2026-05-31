@@ -1,22 +1,63 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import {
   getDomainById,
   getDomainNameservers,
   getLiveTldPrices,
   registerDomainViaAmper,
   searchDomainAvailability,
+  searchDomainAvailabilityBulk,
   updateDomainNameservers,
 } from "@dior/backend";
 import { assertSufficientBalance } from "@/app/actions/order";
 import { requireSession } from "@/lib/auth";
-import { getDomainZone } from "@/lib/domain-zones";
+import {
+  BULLETPROOF_DOMAIN_ZONES,
+  buildSearchTldList,
+  getDomainZone,
+  parseDomainSearchInput,
+} from "@/lib/domain-zones";
 
 export async function searchDomainAction(domain: string) {
   await requireSession();
   return searchDomainAvailability(domain);
+}
+
+export async function searchDomainsBulkAction(input: string) {
+  await requireSession();
+  const parsed = parseDomainSearchInput(input);
+  if (!parsed) {
+    throw new Error("Enter a valid domain name (letters, numbers, hyphens).");
+  }
+
+  const tlds = buildSearchTldList(parsed.primaryTld);
+  const domains = tlds.map((tld) => `${parsed.label}.${tld}`);
+  const catalogPrices = Object.fromEntries(
+    BULLETPROOF_DOMAIN_ZONES.map((z) => [z.tld, z.priceYear]),
+  );
+
+  const results = await searchDomainAvailabilityBulk(domains, catalogPrices);
+  const primaryDomain = parsed.fqdn ?? `${parsed.label}.com`;
+
+  let merged = results;
+  if (parsed.fqdn && !results.some((r) => r.domain === primaryDomain)) {
+    const [primaryRow] = await searchDomainAvailabilityBulk([primaryDomain], catalogPrices);
+    if (primaryRow) merged = [primaryRow, ...results];
+  }
+
+  const inCatalog = merged.filter((r) => r.inCatalog);
+  const availableFirst = [...inCatalog].sort((a, b) => {
+    if (a.available !== b.available) return a.available ? -1 : 1;
+    return a.domain.localeCompare(b.domain);
+  });
+
+  return {
+    label: parsed.label,
+    query: primaryDomain,
+    primaryDomain,
+    results: availableFirst,
+  };
 }
 
 export async function getDomainPricesAction() {
@@ -41,16 +82,27 @@ export async function registerDomainAction(domain: string, years = 1) {
 
   await assertSufficientBalance(zone.priceYear);
 
-  const created = await registerDomainViaAmper({
-    userId: session.user.id,
-    domainName: parsed,
-    retailPrice: zone.priceYear,
-    years,
-  });
+  try {
+    const created = await registerDomainViaAmper({
+      userId: session.user.id,
+      domainName: parsed,
+      retailPrice: zone.priceYear,
+      years,
+    });
 
-  revalidatePath("/services");
-  revalidatePath("/plans");
-  redirect(`/domains/${created.id}`);
+    revalidatePath("/services");
+    revalidatePath("/plans");
+    revalidatePath("/dashboard");
+    revalidatePath("/domains");
+
+    return {
+      domainId: created.id,
+      domainName: created.domainName,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Registration failed";
+    throw new Error(message);
+  }
 }
 
 export async function updateDomainNameserversAction(domainId: string, nameservers: string[]) {

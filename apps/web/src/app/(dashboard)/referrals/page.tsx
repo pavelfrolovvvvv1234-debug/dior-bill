@@ -1,76 +1,50 @@
-import { Header } from "@/components/layout/header";
+import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
+import { PageContainer } from "@/components/layout/page-container";
+import { AffiliateDashboard } from "@/components/referrals/affiliate-dashboard";
 import { requireSession } from "@/lib/auth";
-import { getReferralDashboard } from "@dior/backend";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatMoney, formatDate } from "@/lib/utils";
-import { ReferralCopy } from "./referral-copy";
+import { getAffiliateTiers, getReferralDashboard } from "@dior/backend";
+
+function resolveReferralLink(code: string, backendLink: string) {
+  if (backendLink.startsWith("http://") || backendLink.startsWith("https://")) {
+    return backendLink;
+  }
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return `${base}/register?ref=${code}`;
+}
 
 export default async function ReferralsPage() {
   const session = await requireSession();
-  const data = await getReferralDashboard(session.user.id);
+  const [data, tiers] = await Promise.all([
+    getReferralDashboard(session.user.id),
+    getAffiliateTiers(),
+  ]);
+
+  const referralLink = resolveReferralLink(data.referralCode, data.referralLink);
 
   return (
     <>
-      <Header title="Affiliate" description="Referral program & earnings" user={session.user} />
-      <div className="space-y-6 p-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="glass stat-glow">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Total earnings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{formatMoney(data.totalEarnings)}</p>
-            </CardContent>
-          </Card>
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Referrals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{data.referralCount}</p>
-            </CardContent>
-          </Card>
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Commission</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{data.percent}%</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle>Your referral link</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ReferralCopy link={data.referralLink} code={data.referralCode} />
-          </CardContent>
-        </Card>
-
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle>Referrals</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.referrals.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between rounded-lg border border-border/50 p-4"
-              >
-                <div>
-                  <p className="font-medium">{r.email ?? (r.telegramUsername ? `@${r.telegramUsername}` : "User")}</p>
-                  <p className="text-xs text-muted-foreground">Joined {formatDate(r.createdAt)}</p>
-                </div>
-                <p className="font-mono text-sm text-emerald-500">
-                  +{formatMoney(r.totalEarned)}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      <I18nPageHeader
+        titleKey="pages.referrals.title"
+        descriptionKey="pages.referrals.description"
+        breadcrumbs={[
+          { labelKey: "breadcrumbs.overview", href: "/dashboard" },
+          { labelKey: "nav.affiliate" },
+        ]}
+      />
+      <PageContainer>
+        <AffiliateDashboard
+          referralCode={data.referralCode}
+          referralLink={referralLink}
+          tier={data.tier}
+          percent={data.percent}
+          totalEarnings={data.totalEarnings}
+          referralCount={data.referralCount}
+          referrals={data.referrals}
+          recentEarnings={data.recentEarnings}
+          payouts={data.payouts}
+          tiers={tiers}
+        />
+      </PageContainer>
     </>
   );
 }

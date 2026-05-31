@@ -65,6 +65,14 @@
     "searchPlaceholder": "搜索服务、IP、发票…",
     "topUp": "充值"
   },
+  "search": {
+    "pages": "页面",
+    "services": "服务",
+    "invoices": "发票",
+    "topUps": "充值记录",
+    "noResults": "未找到结果",
+    "typeToSearch": "输入至少 2 个字符以搜索服务、IP 和发票"
+  },
   "sidebar": {
     "openMenu": "打开菜单",
     "expand": "展开侧栏",
@@ -300,7 +308,7 @@
       "bulletproof-domains": {
         "label": "Bulletproof 域名",
         "short": "BP Domains",
-        "desc": "抗滥用注册与 DNS"
+        "desc": "Bulletproof 注册与 DNS"
       },
       "vps": {
         "label": "VPS/VDS",
@@ -380,6 +388,13 @@
     "done": "完成"
   },
   "purchase": {
+    "provisionTitle": "正在配置您的服务",
+    "provisionSubtitle": "我们正在分配基础设施并准备您的订单，通常只需几秒钟。",
+    "provisionProgress": "进度",
+    "provisionStep1": "验证订单",
+    "provisionStep2": "分配资源",
+    "provisionStep3": "配置服务",
+    "provisionStep4": "完成设置",
     "successTitle": "恭喜您购买成功！",
     "successMessage": "订单已提交。请前往「我的服务」查看服务详情。",
     "goToServices": "我的服务",
