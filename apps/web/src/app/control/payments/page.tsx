@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { controlPath } from "@/lib/control-paths";
 
-export default function PaymentsRedirect({
+export default async function PaymentsRedirect({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
