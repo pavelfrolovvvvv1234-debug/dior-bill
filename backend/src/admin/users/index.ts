@@ -1,8 +1,44 @@
 import { prisma } from "@dior/database";
-import type { UserRole, UserStatus } from "@dior/database";
+import type { Prisma, UserRole, UserStatus } from "@dior/database";
 import { NotFoundError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
 import { requirePermission } from "../rbac";
+
+export type AdminUserDetail = {
+  user: {
+    id: string;
+    email: string | null;
+    telegramUsername: string | null;
+    role: UserRole;
+    status: UserStatus;
+    balance: number;
+    createdAt: string;
+    serviceCount: number;
+    referralCount: number;
+    ticketCount: number;
+  };
+  totalSpent: number;
+  referralEarnings: number;
+  services: Array<{
+    id: string;
+    type: string;
+    status: string;
+    label: string;
+    monthlyPrice: number;
+  }>;
+  recentAudit: Array<{
+    id: string;
+    action: string;
+    createdAt: string;
+    actorEmail: string | null;
+  }>;
+};
+
+function toMoney(value: Prisma.Decimal | number | null | undefined): number {
+  if (value == null) return 0;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export async function listAdminUsers(
   actorId: string,
@@ -96,14 +132,22 @@ export async function listAdminUsers(
   };
 }
 
-export async function getAdminUserDetail(actorId: string, userId: string) {
+export async function getAdminUserDetail(
+  actorId: string,
+  userId: string,
+): Promise<AdminUserDetail> {
   await requirePermission(actorId, "users.read");
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      affiliateTier: true,
-      referredBy: { select: { id: true, email: true, referralCode: true } },
+    select: {
+      id: true,
+      email: true,
+      telegramUsername: true,
+      role: true,
+      status: true,
+      balance: true,
+      createdAt: true,
       _count: { select: { services: true, referrals: true, tickets: true } },
     },
   });
@@ -133,11 +177,33 @@ export async function getAdminUserDetail(actorId: string, userId: string) {
   ]);
 
   return {
-    user: { ...user, telegramId: user.telegramId?.toString() ?? null },
-    totalSpent: Number(totalSpent._sum.amount ?? 0),
-    referralEarnings: Number(referralEarnings._sum.amount ?? 0),
-    recentAudit,
-    services,
+    user: {
+      id: user.id,
+      email: user.email,
+      telegramUsername: user.telegramUsername,
+      role: user.role,
+      status: user.status,
+      balance: toMoney(user.balance),
+      createdAt: user.createdAt.toISOString(),
+      serviceCount: user._count.services,
+      referralCount: user._count.referrals,
+      ticketCount: user._count.tickets,
+    },
+    totalSpent: toMoney(totalSpent._sum.amount),
+    referralEarnings: toMoney(referralEarnings._sum.amount),
+    recentAudit: recentAudit.map((entry) => ({
+      id: entry.id,
+      action: entry.action,
+      createdAt: entry.createdAt.toISOString(),
+      actorEmail: entry.actor?.email ?? null,
+    })),
+    services: services.map((service) => ({
+      id: service.id,
+      type: service.type,
+      status: service.status,
+      label: service.label,
+      monthlyPrice: toMoney(service.monthlyPrice),
+    })),
   };
 }
 

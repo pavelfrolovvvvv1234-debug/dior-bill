@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
-import { adjustBalanceAction } from "@/app/actions/control";
+import { adjustBalanceAction } from "@/app/actions/user-balance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatMoney } from "@/lib/utils";
 
 export function UserBalanceForm({
   userId,
@@ -15,13 +16,16 @@ export function UserBalanceForm({
   currentBalance: number;
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [type, setType] = useState<"credit" | "debit">("credit");
+  const balance = Number.isFinite(currentBalance) ? currentBalance : 0;
 
   return (
     <form
+      ref={formRef}
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
@@ -46,10 +50,10 @@ export function UserBalanceForm({
             await adjustBalanceAction(userId, amount, actionType, reason);
             setSuccess(
               actionType === "credit"
-                ? `$${amount.toFixed(2)} credited to balance`
-                : `$${amount.toFixed(2)} debited from balance`,
+                ? `${formatMoney(amount)} credited to balance`
+                : `${formatMoney(amount)} debited from balance`,
             );
-            e.currentTarget.reset();
+            formRef.current?.reset();
             setType("credit");
             router.refresh();
           } catch (err) {
@@ -59,7 +63,8 @@ export function UserBalanceForm({
       }}
     >
       <p className="text-sm text-[var(--muted-foreground)]">
-        Current balance: <span className="font-medium text-foreground">${currentBalance.toFixed(2)}</span>
+        Current balance:{" "}
+        <span className="font-medium text-foreground">{formatMoney(balance)}</span>
       </p>
 
       <div className="flex flex-wrap gap-3">

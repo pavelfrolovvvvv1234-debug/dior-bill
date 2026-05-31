@@ -1,13 +1,7 @@
-import { prisma, type TopUpStatus, type TopUpProvider, type Prisma } from "@dior/database";
-import { ForbiddenError, ADMIN_ROLES } from "@dior/shared";
+import { prisma } from "@dior/database";
+import type { TopUpStatus, TopUpProvider, Prisma } from "@dior/database";
 import { approveManualTopUp, rejectManualTopUp, completeTopUp } from "../topup";
-
-async function assertAdmin(actorId: string) {
-  const user = await prisma.user.findUnique({ where: { id: actorId } });
-  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
-    throw new ForbiddenError();
-  }
-}
+import { requirePermission } from "../../admin/rbac";
 
 export async function listAdminTopUps(
   actorId: string,
@@ -18,9 +12,10 @@ export async function listAdminTopUps(
     page?: number;
     pageSize?: number;
     search?: string;
+    userId?: string;
   },
 ) {
-  await assertAdmin(actorId);
+  await requirePermission(actorId, "payments.read");
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 30;
 
@@ -41,6 +36,7 @@ export async function listAdminTopUps(
         { user: { email: { contains: filters.search } } },
       ],
     }),
+    ...(filters.userId && { userId: filters.userId }),
   };
 
   const [items, total, stats] = await Promise.all([
@@ -78,14 +74,16 @@ export async function adminApproveTopUp(
   partialAmount?: number,
   notes?: string,
 ) {
+  await requirePermission(actorId, "payments.write");
   return approveManualTopUp(topUpId, actorId, { partialAmount, notes });
 }
 
 export async function adminRejectTopUp(actorId: string, topUpId: string, reason: string) {
+  await requirePermission(actorId, "payments.write");
   return rejectManualTopUp(topUpId, actorId, reason);
 }
 
 export async function adminForceComplete(actorId: string, topUpId: string, notes?: string) {
-  await assertAdmin(actorId);
+  await requirePermission(actorId, "payments.write");
   return completeTopUp(topUpId, { actorId, adminNotes: notes });
 }

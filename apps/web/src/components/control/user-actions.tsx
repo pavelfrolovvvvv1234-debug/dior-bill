@@ -2,12 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { ROLES } from "@dior/shared";
 import { Button } from "@/components/ui/button";
 import {
   activateUserAction,
   suspendUserAction,
   updateRoleAction,
 } from "@/app/actions/control";
+
+const ASSIGNABLE_ROLES = Object.values(ROLES);
 
 export function UserActions({
   userId,
@@ -20,6 +23,9 @@ export function UserActions({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const safeRole = ASSIGNABLE_ROLES.includes(role as (typeof ASSIGNABLE_ROLES)[number])
+    ? role
+    : ROLES.USER;
 
   const refresh = () => router.refresh();
 
@@ -55,7 +61,7 @@ export function UserActions({
       )}
       <select
         className="h-8 rounded-md border border-white/10 bg-white/[0.03] px-2 text-xs"
-        value={role}
+        value={safeRole}
         disabled={pending}
         onChange={(e) =>
           start(async () => {
@@ -64,7 +70,7 @@ export function UserActions({
           })
         }
       >
-        {["USER", "SUPPORT", "OPERATOR", "ADMIN", "SUPER_ADMIN", "AFFILIATE_VIP"].map((r) => (
+        {ASSIGNABLE_ROLES.map((r) => (
           <option key={r} value={r}>
             {r}
           </option>

@@ -2,9 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
-  adjustUserBalance,
   adminGetDomainNameservers,
-  adminOverrideInvoice,
   adminResolveReview,
   adminUpdateDomainNameservers,
   adminUpdateServiceStatus,
@@ -13,6 +11,7 @@ import {
   createBroadcast,
   createPromoCode,
   togglePromoCode,
+  deletePromoCode,
   updateAdminUserRole,
   updateAdminUserStatus,
   updatePayoutStatus,
@@ -38,23 +37,6 @@ export async function activateUserAction(userId: string) {
   const actor = await requireControlSession();
   await updateAdminUserStatus(actor.id, userId, "ACTIVE");
   revalidateControl(controlPath("/users"), controlPath(`/users/${userId}`));
-}
-
-export async function adjustBalanceAction(
-  userId: string,
-  amount: number,
-  type: "credit" | "debit",
-  reason: string,
-) {
-  const actor = await requireControlSession();
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Amount must be greater than 0");
-  }
-  if (!reason.trim()) {
-    throw new Error("Reason is required");
-  }
-  await adjustUserBalance(actor.id, userId, { amount, type, reason: reason.trim() });
-  revalidateControl(controlPath(`/users/${userId}`), controlPath("/users"));
 }
 
 export async function updateRoleAction(userId: string, role: string) {
@@ -100,6 +82,12 @@ export async function createPromoAction(data: {
 export async function togglePromoAction(id: string, active: boolean) {
   const actor = await requireControlSession();
   await togglePromoCode(actor.id, id, active);
+  revalidateControl(controlPath("/promo"));
+}
+
+export async function deletePromoAction(id: string) {
+  const actor = await requireControlSession();
+  await deletePromoCode(actor.id, id);
   revalidateControl(controlPath("/promo"));
 }
 

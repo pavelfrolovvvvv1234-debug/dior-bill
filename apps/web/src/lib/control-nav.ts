@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   Layers,
-  CreditCard,
   Wallet,
   Tag,
   Share2,
@@ -31,8 +30,7 @@ export const CONTROL_NAV: ControlNavItem[] = [
   { href: BASE, label: "Dashboard", icon: LayoutDashboard },
   { href: `${BASE}/users`, label: "Users", icon: Users, permission: "users.read" },
   { href: `${BASE}/services`, label: "Services", icon: Layers, permission: "services.read" },
-  { href: `${BASE}/payments`, label: "Payments", icon: Wallet, permission: "payments.read" },
-  { href: `${BASE}/billing`, label: "Billing", icon: CreditCard, permission: "billing.read" },
+  { href: `${BASE}/billing`, label: "Billing", icon: Wallet, permission: "billing.read" },
   { href: `${BASE}/support`, label: "Tickets", icon: LifeBuoy, permission: "support.read" },
   {
     href: `${BASE}/infrastructure`,

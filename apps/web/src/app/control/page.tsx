@@ -73,7 +73,7 @@ export default async function ControlDashboardPage() {
           <KpiCard
             label="Failed payments"
             value={String(kpis.failedPayments)}
-            href={controlPath("/payments")}
+            href={controlPath("/billing/top-ups?status=FAILED")}
           />
           <KpiCard
             label="Referral payouts"

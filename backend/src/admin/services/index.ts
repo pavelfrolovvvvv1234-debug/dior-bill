@@ -109,3 +109,58 @@ export async function adminUpdateServiceStatus(
 
   return updated;
 }
+
+export async function adminToggleServiceAutoRenew(
+  actorId: string,
+  serviceId: string,
+  autoRenew: boolean,
+) {
+  await requirePermission(actorId, "billing.write");
+
+  const service = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!service) throw new NotFoundError();
+
+  const updated = await prisma.service.update({
+    where: { id: serviceId },
+    data: { autoRenew },
+  });
+
+  await createAuditLog({
+    actorId,
+    action: autoRenew ? "service.autorenew.enable" : "service.autorenew.disable",
+    entityType: "service",
+    entityId: serviceId,
+  });
+
+  return updated;
+}
+
+export async function adminExtendServiceRenewal(
+  actorId: string,
+  serviceId: string,
+  days: number,
+) {
+  await requirePermission(actorId, "billing.write");
+
+  const service = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!service) throw new NotFoundError();
+
+  const base = service.renewsAt ?? new Date();
+  const renewsAt = new Date(base);
+  renewsAt.setDate(renewsAt.getDate() + days);
+
+  const updated = await prisma.service.update({
+    where: { id: serviceId },
+    data: { renewsAt },
+  });
+
+  await createAuditLog({
+    actorId,
+    action: "service.renewal.extend",
+    entityType: "service",
+    entityId: serviceId,
+    metadata: { days, renewsAt: renewsAt.toISOString() },
+  });
+
+  return updated;
+}

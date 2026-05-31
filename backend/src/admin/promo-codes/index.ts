@@ -73,6 +73,79 @@ export async function togglePromoCode(actorId: string, id: string, active: boole
   return updated;
 }
 
+export async function listPromoRedemptions(
+  actorId: string,
+  options: { promoCodeId?: string; userId?: string; page?: number; pageSize?: number } = {},
+) {
+  await requirePermission(actorId, "promo.read");
+
+  const page = options.page ?? 1;
+  const pageSize = Math.min(options.pageSize ?? 30, 100);
+
+  const where = {
+    ...(options.promoCodeId && { promoCodeId: options.promoCodeId }),
+    ...(options.userId && { userId: options.userId }),
+  };
+
+  const [items, total] = await Promise.all([
+    prisma.promoCodeRedemption.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, email: true } },
+        promoCode: { select: { id: true, code: true, discountType: true } },
+      },
+    }),
+    prisma.promoCodeRedemption.count({ where }),
+  ]);
+
+  return {
+    items: items.map((r) => ({
+      id: r.id,
+      credit: Number(r.credit),
+      createdAt: r.createdAt.toISOString(),
+      user: r.user,
+      promoCode: r.promoCode,
+    })),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getPromoCodeDetail(actorId: string, id: string) {
+  await requirePermission(actorId, "promo.read");
+
+  const promo = await prisma.promoCode.findUnique({
+    where: { id },
+    include: {
+      redemptions: {
+        take: 20,
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { id: true, email: true } } },
+      },
+    },
+  });
+  if (!promo) throw new NotFoundError();
+
+  return {
+    ...promo,
+    discountValue: Number(promo.discountValue),
+    validFrom: promo.validFrom?.toISOString() ?? null,
+    validUntil: promo.validUntil?.toISOString() ?? null,
+    createdAt: promo.createdAt.toISOString(),
+    redemptions: promo.redemptions.map((r) => ({
+      id: r.id,
+      credit: Number(r.credit),
+      createdAt: r.createdAt.toISOString(),
+      user: r.user,
+    })),
+  };
+}
+
 export async function deletePromoCode(actorId: string, id: string) {
   await requirePermission(actorId, "promo.write");
 

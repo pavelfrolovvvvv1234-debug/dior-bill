@@ -1,12 +1,15 @@
 import Link from "next/link";
-import { getAdminUserDetail } from "@dior/backend";
+import { getAdminUserDetail, getAdminUserFinancials } from "@dior/backend";
 import { PageHeader } from "@/components/control/page-header";
 import { PageContainer } from "@/components/control/page-container";
 import { Panel } from "@/components/control/panel";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { UserActions } from "@/components/control/user-actions";
 import { UserBalanceForm } from "@/components/control/user-balance-form";
+import { CreateInvoiceForm } from "@/components/control/billing/create-invoice-form";
+import { ReferralPercentForm } from "@/components/control/billing/referral-percent-form";
+import { UserFinancialPanel } from "@/components/control/billing/user-financial-panel";
+import { WalletControlsForm } from "@/components/control/billing/wallet-controls-form";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney, formatDate } from "@/lib/utils";
@@ -17,8 +20,12 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   const actor = await requireControlSession();
 
   let data;
+  let financials;
   try {
-    data = await getAdminUserDetail(actor.id, id);
+    [data, financials] = await Promise.all([
+      getAdminUserDetail(actor.id, id),
+      getAdminUserFinancials(actor.id, id),
+    ]);
   } catch {
     notFound();
   }
@@ -32,13 +39,13 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         description={user.id}
         actions={<UserActions userId={user.id} status={user.status} role={user.role} />}
       />
-      <PageContainer>
+      <PageContainer className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Balance", value: formatMoney(Number(user.balance)) },
+            { label: "Balance", value: formatMoney(user.balance) },
             { label: "Total spent", value: formatMoney(data.totalSpent) },
             { label: "Referral earnings", value: formatMoney(data.referralEarnings) },
-            { label: "Services", value: String(user._count.services) },
+            { label: "Services", value: String(user.serviceCount) },
           ].map((k) => (
             <div key={k.label} className="panel p-4">
               <p className="text-xs text-[var(--muted-foreground)]">{k.label}</p>
@@ -47,9 +54,27 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           ))}
         </div>
 
+        <Panel title="Financial overview" description="Billing activity across invoices, top-ups, and ledger">
+          <UserFinancialPanel data={financials} userId={user.id} />
+        </Panel>
+
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel title="Balance adjustment">
-            <UserBalanceForm userId={user.id} currentBalance={Number(user.balance)} />
+            <UserBalanceForm userId={user.id} currentBalance={user.balance} />
+          </Panel>
+          <Panel title="Wallet controls" description="Lock funds, grant credits, issue refunds">
+            <WalletControlsForm
+              userId={user.id}
+              balance={financials.wallet.balance}
+              balanceLocked={financials.wallet.balanceLocked}
+              credits={financials.wallet.credits}
+            />
+          </Panel>
+          <Panel title="Create invoice">
+            <CreateInvoiceForm userId={user.id} />
+          </Panel>
+          <Panel title="Referral program">
+            <ReferralPercentForm userId={user.id} currentPercent={financials.wallet.customReferralPercent} />
           </Panel>
           <Panel title="Profile">
             <dl className="space-y-2 text-sm">
@@ -76,7 +101,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           <ul className="space-y-2 text-xs text-[var(--muted-foreground)]">
             {data.recentAudit.map((a) => (
               <li key={a.id}>
-                {formatDate(a.createdAt)} — {a.action} {a.actor?.email ? `by ${a.actor.email}` : ""}
+                {formatDate(a.createdAt)} — {a.action} {a.actorEmail ? `by ${a.actorEmail}` : ""}
               </li>
             ))}
           </ul>
