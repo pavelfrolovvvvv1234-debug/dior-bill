@@ -4,8 +4,9 @@ import { markSubscriptionPastDue } from "./subscriptions";
 
 const GRACE_DAYS = 3;
 
-/** Automatic service suspension after grace is disabled — only marks subscriptions past due. */
-export const AUTOMATIC_SERVICE_SUSPENSION = false;
+/** Automatic service suspension after grace — set BILLING_AUTO_SUSPEND=true in production. */
+export const AUTOMATIC_SERVICE_SUSPENSION =
+  process.env.BILLING_AUTO_SUSPEND === "true";
 
 /**
  * Job: mark overdue subscriptions (grace). Does not suspend services while AUTOMATIC_SERVICE_SUSPENSION is off.

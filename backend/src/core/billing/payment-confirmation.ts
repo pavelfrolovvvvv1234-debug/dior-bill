@@ -6,6 +6,9 @@ import { emitPaymentConfirmed, emitPaymentFailed } from "./engine";
 import { recordPaymentFingerprint } from "../abuse/fingerprint";
 import { createAuditLog } from "../../audit";
 import { toJsonValue } from "../../lib/json";
+import { assertTopUpAmountMatches } from "../../billing/guards";
+import { createNotification } from "../../notifications";
+import { NOTIFICATION_TYPES } from "@dior/shared";
 import type { ParsedWebhookPayload } from "../../payments/providers/types";
 
 export type PaymentConfirmationStatus =
@@ -72,6 +75,27 @@ export async function handlePaymentConfirmation(params: {
 
     case "confirmed": {
       if (topUp.status === "PAID") return { handled: true, duplicate: true };
+
+      if (params.amount != null) {
+        const check = await assertTopUpAmountMatches(topUp.id, params.amount);
+        if (!check.ok) {
+          await prisma.topUp.update({
+            where: { id: topUp.id },
+            data: {
+              status: "MANUAL_REVIEW",
+              failureReason: check.reason,
+              metadata: toJsonValue({ amountMismatch: true, received: params.amount, ...params.raw }),
+            },
+          });
+          await createAuditLog({
+            action: "topup.amount_mismatch",
+            entityType: "top_up",
+            entityId: topUp.id,
+            metadata: { reason: check.reason },
+          });
+          return { handled: true };
+        }
+      }
 
       await completeTopUp(topUp.id);
       await emitPaymentConfirmed({

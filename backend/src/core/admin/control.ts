@@ -8,7 +8,7 @@ import {
   adminForceLifecycleTransition,
   startProvisioning,
 } from "../provisioning/engine";
-import { emitPaymentConfirmed } from "../billing/engine";
+import { adminMarkInvoicePaid } from "../../billing/admin-invoice";
 import { enqueueJob } from "../../lib/queue";
 
 async function assertAdmin(actorId: string) {
@@ -84,22 +84,12 @@ export async function adminBillingCorrection(params: {
   markPaid: boolean;
 }) {
   await assertAdmin(params.actorId);
-  await createAuditLog({
-    actorId: params.actorId,
-    action: "admin.billing_correction",
-    entityType: "invoice",
-    entityId: params.invoiceId,
-    metadata: { markPaid: params.markPaid },
-  });
 
   if (params.markPaid) {
-    const invoice = await prisma.invoice.findUnique({ where: { id: params.invoiceId } });
-    if (!invoice) throw new NotFoundError("Invoice not found");
-    await emitPaymentConfirmed({
-      userId: params.userId,
+    return adminMarkInvoicePaid({
       invoiceId: params.invoiceId,
-      amount: Number(invoice.total),
-      idempotencyKey: `admin:correct:${params.invoiceId}`,
+      userId: params.userId,
+      actorId: params.actorId,
     });
   }
 }

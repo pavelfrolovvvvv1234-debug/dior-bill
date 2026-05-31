@@ -7,10 +7,10 @@ import { INSUFFICIENT_BALANCE_MESSAGE } from "@/lib/order-errors";
 export async function checkSufficientBalance(requiredAmount: number) {
   const session = await requireSession();
   const wallet = await getWallet(session.user.id);
-  const available = wallet.available;
+  const spendable = wallet.spendable;
   return {
-    sufficient: available >= requiredAmount,
-    available,
+    sufficient: spendable >= requiredAmount,
+    available: spendable,
     required: requiredAmount,
   };
 }

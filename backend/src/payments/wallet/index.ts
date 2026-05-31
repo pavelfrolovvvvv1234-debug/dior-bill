@@ -8,6 +8,8 @@ export interface WalletSnapshot {
   locked: number;
   available: number;
   credits: number;
+  /** Balance available for checkout (available + promo credits). */
+  spendable: number;
 }
 
 export async function getWallet(userId: string): Promise<WalletSnapshot> {
@@ -18,11 +20,14 @@ export async function getWallet(userId: string): Promise<WalletSnapshot> {
   if (!user) throw new NotFoundError("User not found");
   const balance = Number(user.balance);
   const locked = Number(user.balanceLocked);
+  const available = balance - locked;
+  const credits = Number(user.credits);
   return {
     balance,
     locked,
-    available: balance - locked,
-    credits: Number(user.credits),
+    available,
+    credits,
+    spendable: available + credits,
   };
 }
 

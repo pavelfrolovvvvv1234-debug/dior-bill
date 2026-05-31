@@ -8,6 +8,7 @@ import {
   getTopUpById,
 } from "../topup";
 import { toJsonValue } from "../../lib/json";
+import { checkRateLimit } from "../../lib/rate-limit";
 import {
   handlePaymentConfirmation,
   mapWebhookToConfirmationStatus,
@@ -21,6 +22,9 @@ export async function handleProviderWebhook(
   body: unknown,
   rawBody?: string,
 ) {
+  const { allowed } = await checkRateLimit(`webhook:${provider}`, 120, 60 * 1000);
+  if (!allowed) throw new Error("Webhook rate limit exceeded");
+
   const adapter = getProviderAdapter(provider);
 
   if (!adapter.verifyWebhook(headers, body, rawBody)) {

@@ -10,7 +10,8 @@ import {
   finalizeOrderPromo,
   payInvoiceFromBalance,
 } from "../billing";
-import { emitPaymentConfirmed } from "../core/billing/engine";
+import { assertBillingAllowed } from "../billing/guards";
+import { getWallet, lockBalance, unlockBalance } from "../payments/wallet";
 import { enqueueJob } from "../lib/queue";
 import {
   isProxmoxConfigured,
@@ -72,6 +73,8 @@ export async function provisionVps(params: {
   prepaid?: boolean;
   promoCode?: string;
 }) {
+  await assertBillingAllowed(params.userId);
+
   await ensureBulletproofVpsLocations();
 
   const location = await prisma.location.findUnique({ where: { id: params.locationId } });
@@ -147,13 +150,19 @@ export async function provisionVps(params: {
   });
 
   if (params.prepaid || process.env.BILLING_AUTO_PROVISION === "true") {
-    const user = await prisma.user.findUnique({ where: { id: params.userId } });
-    if (user && Number(user.balance) >= promo.chargeAmount) {
-      await payInvoiceFromBalance(invoice.id, params.userId);
-      if (promo.promoId && promo.discount > 0) {
-        await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+    const wallet = await getWallet(params.userId);
+    if (wallet.spendable >= promo.chargeAmount) {
+      await lockBalance(params.userId, promo.chargeAmount);
+      try {
+        await payInvoiceFromBalance(invoice.id, params.userId);
+        if (promo.promoId && promo.discount > 0) {
+          await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+        }
+      } finally {
+        await unlockBalance(params.userId, promo.chargeAmount);
       }
     } else if (params.prepaid) {
+      const { emitPaymentConfirmed } = await import("../core/billing/engine");
       await emitPaymentConfirmed({
         userId: params.userId,
         invoiceId: invoice.id,

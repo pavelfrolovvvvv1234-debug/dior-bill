@@ -63,8 +63,7 @@ export async function getTopUpAction(id: string) {
 export async function syncTopUpAction(id: string) {
   const session = await getSession();
   if (!session) redirect("/login");
-  await getTopUpById(id, session.user.id);
-  return syncTopUpStatus(id);
+  return syncTopUpStatus(id, session.user.id);
 }
 
 export async function getWalletAction() {

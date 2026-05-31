@@ -12,6 +12,9 @@ import {
   runReconciliation,
   runAllReconciliations,
   runUnpaidServiceChecker,
+  runBillingScheduler,
+  handleInvoiceOverdue,
+  renewService,
 } from "@dior/backend";
 import { prisma } from "@dior/database";
 import { createNotification, deliverTelegramNotification } from "@dior/backend";
@@ -46,8 +49,12 @@ async function processVpsProvision(payload: {
 let lastReconciliation = 0;
 const RECONCILE_INTERVAL_MS = 15 * 60 * 1000;
 
+let lastBillingScheduler = 0;
+const BILLING_SCHEDULER_INTERVAL_MS = 60 * 60 * 1000;
+
 async function run() {
   console.log("Dior worker started (event-driven control plane)");
+  runBillingScheduler().catch((e) => console.error("Initial billing scheduler:", e));
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
@@ -55,6 +62,13 @@ async function run() {
         lastReconciliation = Date.now();
         runAllReconciliations().catch((e) =>
           console.error("Reconciliation error:", e),
+        );
+      }
+
+      if (Date.now() - lastBillingScheduler > BILLING_SCHEDULER_INTERVAL_MS) {
+        lastBillingScheduler = Date.now();
+        runBillingScheduler().catch((e) =>
+          console.error("Billing scheduler error:", e),
         );
       }
 
@@ -128,6 +142,19 @@ async function run() {
           case "topup.expire":
             await processExpiredTopUps();
             break;
+          case "billing.scheduler":
+            await runBillingScheduler();
+            break;
+          case "invoice.overdue": {
+            const payload = job.payload as { invoiceId: string; userId: string };
+            await handleInvoiceOverdue(payload);
+            break;
+          }
+          case "service.renew": {
+            const { serviceId } = job.payload as { serviceId: string };
+            await renewService(serviceId);
+            break;
+          }
           case "billing.unpaid_check":
             await runUnpaidServiceChecker();
             break;

@@ -59,7 +59,8 @@ export type QueueJobType =
   | "service.renew"
   | "event.process"
   | "reconciliation.run"
-  | "billing.unpaid_check";
+  | "billing.unpaid_check"
+  | "billing.scheduler";
 
 export interface QueueJob<T = Record<string, unknown>> {
   id: string;

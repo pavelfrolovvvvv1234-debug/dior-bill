@@ -306,7 +306,7 @@ app.get("/api/topup/:id", authMiddleware, async (req, res) => {
 
 app.post("/api/topup/:id/sync", authMiddleware, async (req, res) => {
   try {
-    const topUp = await syncTopUpStatus(routeParam(req.params.id));
+    const topUp = await syncTopUpStatus(routeParam(req.params.id), req.userId!);
     apiSuccess(res, topUp);
   } catch (e) {
     apiError(res, e);

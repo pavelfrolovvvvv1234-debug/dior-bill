@@ -6,9 +6,17 @@ import {
   payInvoiceFromBalanceInEngine,
   markInvoicesOverdueInEngine,
   getUserInvoicesFromEngine,
+  getInvoiceForUser,
 } from "../core/billing/invoice-engine";
 import { createSubscription } from "../core/billing/subscriptions";
 import { updateServiceRenewalDates } from "../core/provisioning/engine";
+import { getWallet } from "../payments/wallet";
+
+export { runBillingScheduler } from "./scheduler";
+export { handleInvoiceOverdue } from "./dunning";
+export { adminMarkInvoicePaid } from "./admin-invoice";
+export { assertBillingAllowed, assertTopUpAmountMatches } from "./guards";
+export { exportBillingCsv } from "./exports";
 
 export async function createInvoice(
   params: Parameters<typeof createInvoiceInEngine>[0],
@@ -31,6 +39,10 @@ export async function getUserInvoices(
   pageSize = 20,
 ) {
   return getUserInvoicesFromEngine(userId, status, page, pageSize);
+}
+
+export async function getUserInvoiceDetail(invoiceId: string, userId: string) {
+  return getInvoiceForUser(invoiceId, userId);
 }
 
 export async function getUserTransactions(userId: string, page = 1, pageSize = 20) {
@@ -74,28 +86,31 @@ export async function renewService(serviceId: string) {
     idempotencyKey: `renew:${serviceId}:${Date.now()}`,
   });
 
-  if (service.autoRenew && Number(service.user.balance) >= Number(service.monthlyPrice)) {
-    await payInvoiceFromBalanceInEngine(invoice.id, service.userId);
-    const renewsAt = new Date();
-    renewsAt.setMonth(renewsAt.getMonth() + 1);
-    await updateServiceRenewalDates({
-      serviceId,
-      renewsAt,
-      expiresAt: renewsAt,
-      idempotencyKey: `renew:dates:${invoice.id}`,
-    });
-    const sub = await prisma.subscription.findUnique({ where: { serviceId } });
-    if (sub) {
-      await prisma.subscription.update({
-        where: { serviceId },
-        data: { nextRenewAt: renewsAt, status: "active", graceUntil: null },
-      });
-    } else {
-      await createSubscription({
+  if (service.autoRenew) {
+    const wallet = await getWallet(service.userId);
+    if (wallet.spendable >= Number(service.monthlyPrice)) {
+      await payInvoiceFromBalanceInEngine(invoice.id, service.userId);
+      const renewsAt = new Date();
+      renewsAt.setMonth(renewsAt.getMonth() + 1);
+      await updateServiceRenewalDates({
         serviceId,
-        nextRenewAt: renewsAt,
-        idempotencyKey: `renew:sub:${serviceId}`,
+        renewsAt,
+        expiresAt: renewsAt,
+        idempotencyKey: `renew:dates:${invoice.id}`,
       });
+      const sub = await prisma.subscription.findUnique({ where: { serviceId } });
+      if (sub) {
+        await prisma.subscription.update({
+          where: { serviceId },
+          data: { nextRenewAt: renewsAt, status: "active", graceUntil: null },
+        });
+      } else {
+        await createSubscription({
+          serviceId,
+          nextRenewAt: renewsAt,
+          idempotencyKey: `renew:sub:${serviceId}`,
+        });
+      }
     }
   }
 
@@ -111,3 +126,4 @@ export {
   topUpBalance,
 } from "./legacy-helpers";
 export { getBillingOverview, type BillingOverviewData } from "./overview";
+export { renderInvoiceText } from "./invoice-document";

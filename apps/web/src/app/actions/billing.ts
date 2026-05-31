@@ -15,6 +15,7 @@ import {
   adminToggleServiceAutoRenew,
   createManualInvoice,
   createTopUp,
+  exportBillingCsv,
   updateReferralPercent,
 } from "@dior/backend";
 import { requireControlSession } from "@/lib/auth";
@@ -145,4 +146,9 @@ export async function markPayoutPaidAction(payoutId: string) {
   const { updatePayoutStatus } = await import("@dior/backend");
   await updatePayoutStatus(actor.id, payoutId, "PAID");
   revalidateBilling("/referrals");
+}
+
+export async function exportBillingCsvAction() {
+  const actor = await requireControlSession();
+  return exportBillingCsv(actor.id);
 }

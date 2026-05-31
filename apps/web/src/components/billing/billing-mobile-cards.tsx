@@ -41,18 +41,20 @@ export function RecentLedgerCard({
 }
 
 export function InvoiceCard({
+  id,
   number,
   createdAt,
   status,
   total,
 }: {
+  id: string;
   number: string;
   createdAt: Date;
   status: string;
   total: number;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <FastLink href={`/billing/invoices/${id}`} className="block rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-mono text-sm font-medium">{number}</p>
@@ -63,7 +65,7 @@ export function InvoiceCard({
       <div className="mt-3 border-t border-border pt-3">
         <InvoiceStatusBadge status={status} />
       </div>
-    </div>
+    </FastLink>
   );
 }
 

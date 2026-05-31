@@ -21,6 +21,8 @@ import {
 } from "../../telegram";
 import { NOTIFICATION_TYPES } from "@dior/shared";
 import { createHash } from "crypto";
+import { assertBillingAllowed } from "../../billing/guards";
+import { processReferralCommission } from "../../referrals";
 
 export interface CreateTopUpInput {
   userId: string;
@@ -31,6 +33,8 @@ export interface CreateTopUpInput {
 }
 
 export async function createTopUp(input: CreateTopUpInput) {
+  await assertBillingAllowed(input.userId);
+
   const { allowed } = await checkRateLimit(
     `topup:create:${input.userId}`,
     10,
@@ -239,6 +243,9 @@ export async function completeTopUp(
       provider: updated.provider,
       referenceCode: updated.referenceCode,
     }).catch((err) => console.warn("[telegram] admin top-up notify:", err));
+    await processReferralCommission(updated.userId, Number(updated.netAmount)).catch((err) =>
+      console.warn("[referral] top-up commission:", err),
+    );
     await createAuditLog({
       actorId: options?.actorId ?? updated.userId,
       action: "topup.completed",
@@ -337,9 +344,12 @@ export async function processExpiredTopUps() {
   return expired.length;
 }
 
-export async function syncTopUpStatus(topUpId: string) {
-  const topUp = await prisma.topUp.findUnique({ where: { id: topUpId } });
-  if (!topUp || topUp.status === "PAID" || topUp.status === "EXPIRED") return topUp;
+export async function syncTopUpStatus(topUpId: string, userId?: string) {
+  const topUp = await prisma.topUp.findFirst({
+    where: { id: topUpId, ...(userId && { userId }) },
+  });
+  if (!topUp) throw new NotFoundError("Top-up not found");
+  if (topUp.status === "PAID" || topUp.status === "EXPIRED") return topUp;
   if (topUp.expiresAt && topUp.expiresAt < new Date()) {
     return expireTopUp(topUpId);
   }
@@ -362,7 +372,7 @@ export async function syncTopUpStatus(topUpId: string) {
     console.warn(`[topup] sync ${topUpId} failed:`, err);
   }
 
-  return getTopUpById(topUpId);
+  return getTopUpById(topUpId, userId);
 }
 
 async function logTopUpEvent(

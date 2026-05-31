@@ -112,30 +112,54 @@ export async function payInvoiceFromBalanceInEngine(
   }
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || Number(user.balance) < payAmount) {
+  if (!user) throw new ValidationError("Insufficient balance");
+
+  const creditsAvailable = Number(user.credits);
+  const balanceAvailable = Number(user.balance) - Number(user.balanceLocked);
+  const totalAvailable = creditsAvailable + balanceAvailable;
+  if (totalAvailable < payAmount) {
     throw new ValidationError("Insufficient balance");
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const newBalance = Number(user.balance) - payAmount;
+    let creditsUsed = Math.min(creditsAvailable, payAmount);
+    let balanceUsed = payAmount - creditsUsed;
+    let newCredits = creditsAvailable - creditsUsed;
+    let newBalance = Number(user.balance) - balanceUsed;
     const newAmountPaid = Number(invoice.amountPaid) + payAmount;
     const isPaid = newAmountPaid >= Number(invoice.total);
 
     await tx.user.update({
       where: { id: userId },
-      data: { balance: newBalance },
+      data: { balance: newBalance, credits: newCredits },
     });
 
-    await tx.transaction.create({
-      data: {
-        userId,
-        invoiceId,
-        type: "DEBIT",
-        amount: payAmount,
-        balanceAfter: newBalance,
-        description: `Payment for invoice ${invoice.number}`,
-      },
-    });
+    if (creditsUsed > 0) {
+      await tx.transaction.create({
+        data: {
+          userId,
+          invoiceId,
+          type: "DEBIT",
+          amount: creditsUsed,
+          balanceAfter: newBalance,
+          description: `Promo credits applied to invoice ${invoice.number}`,
+          metadata: { source: "credits" },
+        },
+      });
+    }
+
+    if (balanceUsed > 0) {
+      await tx.transaction.create({
+        data: {
+          userId,
+          invoiceId,
+          type: "DEBIT",
+          amount: balanceUsed,
+          balanceAfter: newBalance,
+          description: `Payment for invoice ${invoice.number}`,
+        },
+      });
+    }
 
     const updated = await tx.invoice.update({
       where: { id: invoiceId },
@@ -205,4 +229,16 @@ export async function getUserInvoicesFromEngine(
     prisma.invoice.count({ where }),
   ]);
   return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
+export async function getInvoiceForUser(invoiceId: string, userId: string) {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, userId },
+    include: {
+      items: { include: { service: { select: { id: true, label: true, type: true } } } },
+      transactions: { orderBy: { createdAt: "desc" }, take: 10 },
+    },
+  });
+  if (!invoice) throw new NotFoundError("Invoice not found");
+  return invoice;
 }

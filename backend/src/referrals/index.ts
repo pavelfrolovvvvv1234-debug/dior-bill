@@ -71,7 +71,7 @@ export async function getReferralDashboard(userId: string) {
 export async function processReferralCommission(
   payerUserId: string,
   paymentAmount: number,
-  invoiceId: string,
+  invoiceId?: string,
   tx?: Prisma.TransactionClient,
 ) {
   const db = tx ?? prisma;

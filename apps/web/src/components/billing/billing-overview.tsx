@@ -179,6 +179,7 @@ export function BillingOverview({ wallet, invoices, transactions }: BillingOverv
             invoices.map((inv) => (
               <InvoiceCard
                 key={inv.id}
+                id={inv.id}
                 number={inv.number}
                 createdAt={inv.createdAt}
                 status={inv.status}
@@ -201,7 +202,11 @@ export function BillingOverview({ wallet, invoices, transactions }: BillingOverv
               ) : (
                 invoices.map((inv) => (
                   <DataTableRow key={inv.id}>
-                    <DataTableTd mono>{inv.number}</DataTableTd>
+                    <DataTableTd mono>
+                      <FastLink href={`/billing/invoices/${inv.id}`} className="hover:text-primary">
+                        {inv.number}
+                      </FastLink>
+                    </DataTableTd>
                     <DataTableTd className="text-muted-foreground">{formatDate(inv.createdAt)}</DataTableTd>
                     <DataTableTd>
                       <InvoiceStatusBadge status={inv.status} />
