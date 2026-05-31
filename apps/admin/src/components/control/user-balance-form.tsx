@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { adjustBalanceAction } from "@/app/actions/control";
 import { Button } from "@/components/ui/button";
