@@ -33,6 +33,7 @@ export {
   getUserLedger,
   processExpiredTopUps,
   syncTopUpStatus,
+  syncPendingTopUps,
 } from "./payments";
 export * from "./infrastructure";
 export * from "./provisioning/state-machine";
