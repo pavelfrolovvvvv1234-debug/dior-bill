@@ -6,6 +6,7 @@ import type {
   ParsedWebhookPayload,
 } from "./types";
 import { assertProviderConfigured, isProductionRuntime, paymentConfig } from "../config";
+import { paymentWebhookUrl } from "../webhook-url";
 
 export const crystalpayProvider: PaymentProviderAdapter = {
   provider: "CRYSTALPAY",
@@ -41,7 +42,7 @@ export const crystalpayProvider: PaymentProviderAdapter = {
         lifetime: Number(process.env.TOPUP_EXPIRY_MINUTES ?? 60),
         description: `Balance top-up ${input.referenceCode}`,
         extra: input.referenceCode,
-        callback_url: `${process.env.API_URL}/webhooks/crystalpay`,
+        callback_url: paymentWebhookUrl("crystalpay"),
         redirect_url: input.returnUrl,
       }),
     });

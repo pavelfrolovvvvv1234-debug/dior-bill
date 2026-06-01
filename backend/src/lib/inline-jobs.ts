@@ -57,6 +57,12 @@ export async function dispatchInlineJob(
       await syncVpsBandwidth(payload.vpsId as string);
       break;
     }
+    case "payment.retry": {
+      const { syncTopUpStatus } = await import("../payments/topup");
+      const topUpId = payload.topUpId as string | undefined;
+      if (topUpId) await syncTopUpStatus(topUpId);
+      break;
+    }
     default:
       break;
   }

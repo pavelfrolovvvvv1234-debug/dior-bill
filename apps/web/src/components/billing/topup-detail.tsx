@@ -70,11 +70,12 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
           ...prev,
           status: updated?.status ?? prev.status,
           paidAt: updated?.paidAt ?? prev.paidAt,
+          netAmount: updated?.netAmount ?? prev.netAmount,
         }));
       } catch {
         /* ignore */
       }
-    }, 8000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [topUp.id, isPending, isPaid]);
 

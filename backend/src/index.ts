@@ -1,4 +1,5 @@
 export * from "./lib/redis";
+export { loadMonorepoEnv } from "./lib/load-env";
 export * from "./lib/crypto";
 export * from "./lib/session";
 export * from "./lib/rate-limit";

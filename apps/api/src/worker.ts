@@ -1,9 +1,13 @@
+import { loadMonorepoEnv } from "@dior/backend";
+loadMonorepoEnv();
+
 import {
   dequeueJob,
   completeJob,
   failJob,
   processExpiredTopUps,
   syncTopUpStatus,
+  syncPendingTopUps,
   runVpsProvisionPipeline,
   syncVpsBandwidth,
   rebootVpsOnProxmox,
@@ -52,6 +56,9 @@ const RECONCILE_INTERVAL_MS = 15 * 60 * 1000;
 let lastBillingScheduler = 0;
 const BILLING_SCHEDULER_INTERVAL_MS = 60 * 60 * 1000;
 
+let lastTopUpSync = 0;
+const TOPUP_SYNC_INTERVAL_MS = 90 * 1000;
+
 async function run() {
   console.log("Dior worker started (event-driven control plane)");
   runBillingScheduler().catch((e) => console.error("Initial billing scheduler:", e));
@@ -70,6 +77,11 @@ async function run() {
         runBillingScheduler().catch((e) =>
           console.error("Billing scheduler error:", e),
         );
+      }
+
+      if (Date.now() - lastTopUpSync > TOPUP_SYNC_INTERVAL_MS) {
+        lastTopUpSync = Date.now();
+        syncPendingTopUps().catch((e) => console.error("Top-up sync error:", e));
       }
 
       const job = await dequeueJob();

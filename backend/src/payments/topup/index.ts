@@ -344,6 +344,34 @@ export async function processExpiredTopUps() {
   return expired.length;
 }
 
+export async function syncPendingTopUps(limit = 50): Promise<number> {
+  const pending = await prisma.topUp.findMany({
+    where: {
+      status: { in: ["PENDING", "PROCESSING"] },
+      provider: { not: "MANUAL_TRANSFER" },
+      externalId: { not: null },
+    },
+    orderBy: { updatedAt: "asc" },
+    take: limit,
+  });
+
+  let credited = 0;
+  for (const row of pending) {
+    const before = row.status;
+    try {
+      await syncTopUpStatus(row.id);
+      const after = await prisma.topUp.findUnique({
+        where: { id: row.id },
+        select: { status: true },
+      });
+      if (before !== "PAID" && after?.status === "PAID") credited++;
+    } catch (err) {
+      console.warn(`[topup] pending sync ${row.id}:`, err);
+    }
+  }
+  return credited;
+}
+
 export async function syncTopUpStatus(topUpId: string, userId?: string) {
   const topUp = await prisma.topUp.findFirst({
     where: { id: topUpId, ...(userId && { userId }) },

@@ -1,6 +1,6 @@
 import { prisma } from "@dior/database";
 import { enqueueJob } from "../lib/queue";
-import { processExpiredTopUps } from "../payments/topup";
+import { processExpiredTopUps, syncPendingTopUps } from "../payments/topup";
 import { processOverdueInvoices } from "./index";
 
 const RENEWAL_BATCH = 50;
@@ -11,6 +11,7 @@ const RENEWAL_BATCH = 50;
  */
 export async function runBillingScheduler() {
   const expiredTopUps = await processExpiredTopUps();
+  const syncedTopUps = await syncPendingTopUps();
   const overdueCount = await processOverdueInvoices();
 
   const dueServices = await prisma.service.findMany({
@@ -31,6 +32,7 @@ export async function runBillingScheduler() {
 
   return {
     expiredTopUps,
+    syncedTopUps,
     overdueInvoices: overdueCount,
     renewalsQueued: dueServices.length,
   };

@@ -206,24 +206,29 @@ async function main() {
     });
   }
 
-  await prisma.domain.create({
-    data: {
-      service: {
-        create: {
-          userId: demo.id,
-          type: "DOMAIN",
-          status: "ACTIVE",
-          label: "dior-demo.net",
-          monthlyPrice: 1.5,
-          expiresAt: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000),
-        },
-      },
-      domainName: "dior-demo.net",
-      status: "ACTIVE",
-      expiresAt: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000),
-      nameservers: ["ns1.dior.cloud", "ns2.dior.cloud"],
-    },
+  const existingDemoDomain = await prisma.domain.findUnique({
+    where: { domainName: "dior-demo.net" },
   });
+  if (!existingDemoDomain) {
+    await prisma.domain.create({
+      data: {
+        service: {
+          create: {
+            userId: demo.id,
+            type: "DOMAIN",
+            status: "ACTIVE",
+            label: "dior-demo.net",
+            monthlyPrice: 1.5,
+            expiresAt: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000),
+          },
+        },
+        domainName: "dior-demo.net",
+        status: "ACTIVE",
+        expiresAt: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000),
+        nameservers: ["ns1.dior.cloud", "ns2.dior.cloud"],
+      },
+    });
+  }
 
   const cdnService = await prisma.service.create({
     data: {

@@ -1,3 +1,6 @@
+import { loadMonorepoEnv } from "@dior/backend";
+loadMonorepoEnv();
+
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";

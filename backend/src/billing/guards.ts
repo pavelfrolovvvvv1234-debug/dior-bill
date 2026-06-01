@@ -24,15 +24,23 @@ export async function assertTopUpAmountMatches(
   const topUp = await prisma.topUp.findUnique({ where: { id: topUpId } });
   if (!topUp) return { ok: false, reason: "Top-up not found" };
 
-  const expected = Number(topUp.netAmount);
-  const tolerance = Math.max(0.01, expected * 0.001);
+  const expectedGross = Number(topUp.amount);
+  const expectedNet = Number(topUp.netAmount);
+  const tolerance = Math.max(0.05, expectedNet * 0.05);
 
-  if (Math.abs(receivedAmount - expected) <= tolerance) {
+  if (Math.abs(receivedAmount - expectedNet) <= tolerance) {
+    return { ok: true };
+  }
+  if (Math.abs(receivedAmount - expectedGross) <= tolerance) {
+    return { ok: true };
+  }
+  // Paid slightly under invoice (network fees) but within 5%
+  if (receivedAmount >= expectedNet * 0.95 && receivedAmount <= expectedGross * 1.02) {
     return { ok: true };
   }
 
   return {
     ok: false,
-    reason: `Amount mismatch: expected $${expected.toFixed(2)}, received $${receivedAmount.toFixed(2)}`,
+    reason: `Amount mismatch: expected $${expectedNet.toFixed(2)}, received $${receivedAmount.toFixed(2)}`,
   };
 }

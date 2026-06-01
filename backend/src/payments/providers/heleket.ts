@@ -5,7 +5,8 @@ import type {
   ParsedWebhookPayload,
 } from "./types";
 import { assertProviderConfigured, isProductionRuntime, paymentConfig } from "../config";
-import { heleketApiRequest, verifyHeleketWebhook } from "./heleket-api";
+import { heleketApiRequest, verifyHeleketWebhook, signHeleketBody } from "./heleket-api";
+import { paymentWebhookUrl } from "../webhook-url";
 
 type HeleketPaymentResult = {
   uuid: string;
@@ -41,7 +42,7 @@ export const heleketProvider: PaymentProviderAdapter = {
       amount: String(input.amount),
       currency: input.currency.toUpperCase(),
       order_id: input.referenceCode,
-      url_callback: `${process.env.API_URL}/webhooks/heleket`,
+      url_callback: paymentWebhookUrl("heleket"),
       url_return: input.returnUrl,
       url_success: input.returnUrl,
       lifetime: lifetimeSec,
@@ -69,9 +70,14 @@ export const heleketProvider: PaymentProviderAdapter = {
     };
   },
 
-  verifyWebhook(_headers, body) {
+  verifyWebhook(_headers, body, rawBody) {
     const apiKey = paymentConfig.heleket.apiKey;
     if (!apiKey) return process.env.NODE_ENV === "development";
+    if (rawBody) {
+      const received = String((body as Record<string, unknown>).sign ?? "");
+      if (!received) return false;
+      return signHeleketBody(rawBody, apiKey) === received;
+    }
     return verifyHeleketWebhook(body, apiKey);
   },
 

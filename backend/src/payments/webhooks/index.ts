@@ -28,6 +28,7 @@ export async function handleProviderWebhook(
   const adapter = getProviderAdapter(provider);
 
   if (!adapter.verifyWebhook(headers, body, rawBody)) {
+    console.error(`[webhook:${provider}] signature verification failed`);
     throw new Error("Invalid webhook signature");
   }
 
