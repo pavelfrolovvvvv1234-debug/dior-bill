@@ -20,7 +20,7 @@ export default async function AnalyticsPage() {
 
   return (
     <>
-      <PageHeader title="Analytics" description="Revenue, retention, infrastructure utilization" />
+      <PageHeader title="Analytics" description="Revenue, retention, and growth" />
       <PageContainer>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="MRR" value={formatMoney(Number(a.revenue.mrr))} />

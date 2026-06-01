@@ -23,10 +23,10 @@ import {
 import {
   filterLocationsByCountryCodes,
   filterLocationsForBulletproofPlan,
-  getLocationCountryLabel,
-  getLocationRegionLabel,
+  getTranslatedLocationRegionLabel,
   STANDARD_VPS_LOCATION_DEFS,
 } from "@/lib/vps-plan-locations";
+import { useI18n } from "@/lib/i18n/store";
 
 interface Location {
   id: string;
@@ -69,6 +69,7 @@ export function VpsPlansTab({
   purchaseViaTicket?: boolean;
   ticketKind?: "turbovds" | "standard-vps";
 }) {
+  const { t } = useI18n();
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id ?? "");
   const [locationId, setLocationId] = useState("");
   const [os, setOs] = useState(DEFAULT_VPS_OS);
@@ -137,7 +138,7 @@ export function VpsPlansTab({
       setPurchaseSuccessOpen(true);
     } catch (err) {
       if (!handlePurchaseError(err)) {
-        setError(err instanceof Error ? err.message : "Deploy failed");
+        setError(err instanceof Error ? err.message : t("plans.deployFailed"));
       }
     } finally {
       setLoading(false);
@@ -173,7 +174,11 @@ export function VpsPlansTab({
       <div className="xl:col-span-4">
         <Panel
           title={panelTitle}
-          description={selected ? `${selected.name} — ${selected.cpuCores} vCPU` : undefined}
+          description={
+            selected
+              ? t("plans.spec.panelVcpu", { name: selected.name, cpu: selected.cpuCores })
+              : undefined
+          }
           className="xl:sticky xl:top-20"
           allowOverflow
         >
@@ -181,15 +186,15 @@ export function VpsPlansTab({
             <input type="hidden" name="planId" value={selectedPlan} />
             <div className="space-y-2">
               <label htmlFor="hostname" className="text-sm font-medium">
-                Hostname
+                {t("plans.form.hostname")}
               </label>
               <Input id="hostname" name="hostname" placeholder="srv-01" required />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Region</label>
+              <label className="text-sm font-medium">{t("plans.form.region")}</label>
               {availableLocations.length === 0 ? (
                 <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                  Regions are loading. Refresh the page or contact support.
+                  {t("plans.form.regionsLoading")}
                 </p>
               ) : (
                 <NativeSelect
@@ -203,7 +208,7 @@ export function VpsPlansTab({
                   {availableLocations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {filterLocationsByPlan || locationCountryLabels
-                        ? getLocationRegionLabel(loc)
+                        ? getTranslatedLocationRegionLabel(loc, t)
                         : loc.name}
                     </option>
                   ))}
@@ -211,7 +216,7 @@ export function VpsPlansTab({
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Operating system</label>
+              <label className="text-sm font-medium">{t("plans.form.os")}</label>
               <NativeSelect
                 id="os"
                 name="os"
@@ -228,7 +233,8 @@ export function VpsPlansTab({
             </div>
             <div className="space-y-2">
               <label htmlFor="promoCode" className="text-sm font-medium">
-                Promo code <span className="font-normal text-muted-foreground">(optional)</span>
+                {t("plans.form.promoCode")}{" "}
+                <span className="font-normal text-muted-foreground">({t("plans.form.optional")})</span>
               </label>
               <Input
                 id="promoCode"
@@ -242,8 +248,8 @@ export function VpsPlansTab({
             <Button type="submit" className="w-full" disabled={loading || !selectedPlan}>
               {loading
                 ? purchaseViaTicket
-                  ? "Processing…"
-                  : "Creating order…"
+                  ? t("plans.processing")
+                  : t("plans.creatingOrder")
                 : deployLabel}
             </Button>
           </form>

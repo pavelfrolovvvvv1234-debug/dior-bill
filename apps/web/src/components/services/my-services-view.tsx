@@ -18,47 +18,56 @@ import { ServiceQuickActions } from "./service-quick-actions";
 import {
   type ServiceFilter,
   type ServiceRow,
-  SERVICE_TYPE_LABELS,
   filterServices,
   groupServicesByType,
   sortServices,
-  statusLabel,
 } from "@/lib/service-catalog";
 import { formatDate } from "@/lib/utils";
 import { Plus, Server } from "lucide-react";
-import type { ServiceType } from "@dior/database";
-
-const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "provisioning", label: "Provisioning" },
-  { id: "inactive", label: "Suspended / expired" },
-];
+import type { ServiceType, ServiceStatus } from "@dior/database";
+import { useI18n } from "@/lib/i18n/store";
 
 export function MyServicesView({ rows }: { rows: ServiceRow[] }) {
+  const { t } = useI18n();
   const [filter, setFilter] = useState<ServiceFilter>("all");
 
-  const filtered = useMemo(() => {
-    return sortServices(filterServices(rows, filter));
-  }, [rows, filter]);
+  const filterOptions = useMemo(
+    () => [
+      { id: "all" as const, label: t("services.filterAll") },
+      { id: "active" as const, label: t("services.filterActive") },
+      { id: "provisioning" as const, label: t("services.filterProvisioning") },
+      { id: "inactive" as const, label: t("services.filterInactive") },
+    ],
+    [t],
+  );
 
+  const filtered = useMemo(() => sortServices(filterServices(rows, filter)), [rows, filter]);
   const grouped = useMemo(() => groupServicesByType(filtered), [filtered]);
-
   const activeCount = rows.filter((r) => r.status === "ACTIVE").length;
+
+  function serviceStatusLabel(status: ServiceStatus) {
+    const key = `services.status.${status}`;
+    const label = t(key);
+    return label !== key ? label : status;
+  }
+
+  function serviceTypeLabel(type: ServiceType) {
+    const key = `services.types.${type}`;
+    const label = t(key);
+    return label !== key ? label : type;
+  }
 
   if (rows.length === 0) {
     return (
       <Panel>
         <div className="flex flex-col items-center py-16 text-center">
           <Server className="mb-4 h-10 w-10 text-muted-foreground" strokeWidth={1.25} />
-          <p className="font-medium">No services yet</p>
-          <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Provision VPS, dedicated hardware, domains, or CDN from the unified marketplace.
-          </p>
+          <p className="font-medium">{t("services.empty")}</p>
+          <p className="mt-1 max-w-md text-sm text-muted-foreground">{t("services.emptyDesc")}</p>
           <Button className="mt-6 h-9" asChild>
             <FastLink href="/plans">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Select plan
+              {t("services.selectPlan")}
             </FastLink>
           </Button>
         </div>
@@ -70,53 +79,73 @@ export function MyServicesView({ rows }: { rows: ServiceRow[] }) {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{activeCount}</span> active ·{" "}
-          <span className="font-medium text-foreground">{rows.length}</span> total
+          {t("services.activeTotal", { active: activeCount, total: rows.length })}
         </p>
-        <SegmentedControl options={FILTER_OPTIONS} value={filter} onChange={setFilter} className="sm:max-w-xl" />
+        <SegmentedControl
+          options={filterOptions}
+          value={filter}
+          onChange={setFilter}
+          className="sm:max-w-xl"
+        />
       </div>
 
       {Array.from(grouped.entries()).map(([type, group]) => (
-        <ServiceTypeSection key={type} type={type} rows={group} />
+        <ServiceTypeSection
+          key={type}
+          type={type}
+          rows={group}
+          typeLabel={serviceTypeLabel(type)}
+          statusLabel={serviceStatusLabel}
+        />
       ))}
 
       {filtered.length === 0 && (
         <Panel>
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No services match this filter.
-          </p>
+          <p className="py-8 text-center text-sm text-muted-foreground">{t("services.noMatch")}</p>
         </Panel>
       )}
     </div>
   );
 }
 
-function ServiceTypeSection({ type, rows }: { type: ServiceType; rows: ServiceRow[] }) {
+function ServiceTypeSection({
+  type,
+  rows,
+  typeLabel,
+  statusLabel,
+}: {
+  type: ServiceType;
+  rows: ServiceRow[];
+  typeLabel: string;
+  statusLabel: (status: ServiceStatus) => string;
+}) {
+  const { t } = useI18n();
+
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          {SERVICE_TYPE_LABELS[type]}
+          {typeLabel}
         </h2>
         <span className="text-xs text-muted-foreground">{rows.length}</span>
       </div>
 
       <div className="grid gap-3 lg:hidden">
         {rows.map((row) => (
-          <ServiceCard key={row.id} row={row} />
+          <ServiceCard key={row.id} row={row} statusLabel={statusLabel} />
         ))}
       </div>
 
       <Panel className="hidden lg:block" noPadding>
         <DataTable>
           <DataTableHead>
-            <DataTableTh>Service</DataTableTh>
-            <DataTableTh>Status</DataTableTh>
-            <DataTableTh>Endpoint</DataTableTh>
-            <DataTableTh>Region</DataTableTh>
-            <DataTableTh>Plan</DataTableTh>
-            <DataTableTh>Renews</DataTableTh>
-            <DataTableTh align="right">Actions</DataTableTh>
+            <DataTableTh>{t("services.service")}</DataTableTh>
+            <DataTableTh>{t("common.status")}</DataTableTh>
+            <DataTableTh>{t("services.endpoint")}</DataTableTh>
+            <DataTableTh>{t("services.region")}</DataTableTh>
+            <DataTableTh>{t("services.plan")}</DataTableTh>
+            <DataTableTh>{t("services.renews")}</DataTableTh>
+            <DataTableTh align="right">{t("services.actions")}</DataTableTh>
           </DataTableHead>
           <DataTableBody>
             {rows.map((row) => (
@@ -127,7 +156,10 @@ function ServiceTypeSection({ type, rows }: { type: ServiceType; rows: ServiceRo
                   </FastLink>
                 </DataTableTd>
                 <DataTableTd>
-                  <StatusIndicator status={mapServiceStatus(row.status)} label={statusLabel(row.status)} />
+                  <StatusIndicator
+                    status={mapServiceStatus(row.status)}
+                    label={statusLabel(row.status)}
+                  />
                 </DataTableTd>
                 <DataTableTd mono className="text-muted-foreground">
                   {row.detail}
@@ -149,7 +181,13 @@ function ServiceTypeSection({ type, rows }: { type: ServiceType; rows: ServiceRo
   );
 }
 
-function ServiceCard({ row }: { row: ServiceRow }) {
+function ServiceCard({
+  row,
+  statusLabel,
+}: {
+  row: ServiceRow;
+  statusLabel: (status: ServiceStatus) => string;
+}) {
   return (
     <div className="rounded-lg border border-white/6 bg-white/[0.02] p-4 transition-premium hover:border-white/10">
       <div className="flex items-start justify-between gap-3">

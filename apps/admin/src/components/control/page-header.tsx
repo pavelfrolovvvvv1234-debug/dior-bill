@@ -12,7 +12,7 @@ export function PageHeader({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-            DIOR CONTROL
+            DiorHost Control
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{title}</h1>
           {description && (

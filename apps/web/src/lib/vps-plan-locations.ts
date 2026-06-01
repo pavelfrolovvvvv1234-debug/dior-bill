@@ -94,3 +94,25 @@ export function filterLocationsByCountryCodes<T extends { country: string }>(
   const allowed = new Set(countryCodes.map((c) => c.toUpperCase()));
   return locations.filter((loc) => allowed.has(loc.country?.toUpperCase() ?? ""));
 }
+
+type TranslateFn = (key: string, vars?: Record<string, string | number>) => string;
+
+/** Region line in order form with locale-aware country/city labels */
+export function getTranslatedLocationRegionLabel(
+  loc: VpsLocationRef,
+  t: TranslateFn,
+): string {
+  const cc = loc.country?.toUpperCase() ?? "";
+  const countryKey = `locations.countries.${cc}`;
+  const translatedCountry = t(countryKey);
+  const country = translatedCountry !== countryKey ? translatedCountry : getLocationCountryLabel(loc);
+
+  if (loc.city?.trim()) {
+    const citySlug = loc.city.trim().toLowerCase().replace(/\s+/g, "-");
+    const cityKey = `locations.cities.${citySlug}`;
+    const translatedCity = t(cityKey);
+    const city = translatedCity !== cityKey ? translatedCity : loc.city.trim();
+    return `${country} — ${city}`;
+  }
+  return country;
+}

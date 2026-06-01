@@ -16,7 +16,6 @@
     "payments": "Payments",
     "billing": "Billing",
     "support": "Tickets",
-    "infrastructure": "Infrastructure",
     "promo": "Promo codes",
     "referrals": "Referrals",
     "security": "Security",
@@ -24,7 +23,7 @@
     "analytics": "Analytics",
     "notifications": "Notifications",
     "statistics": "Statistics",
-    "openPanel": "Open DIOR CONTROL →"
+    "openPanel": "Open DiorHost Control →"
   },
   "common": {
     "cancel": "Cancel",
@@ -304,6 +303,55 @@
     "selectLocation": "Select location",
     "creatingOrder": "Creating order…",
     "deployFailed": "Deploy failed",
+    "processing": "Processing…",
+    "perMonth": "/mo",
+    "perYear": "/yr",
+    "unlimited": "Unlimited",
+    "popular": "Popular",
+    "order": "Order",
+    "spec": {
+      "cpu": "CPU",
+      "ram": "RAM",
+      "ramDdr5": "RAM (DDR5)",
+      "ssd": "SSD",
+      "nvme": "NVMe",
+      "network": "Network",
+      "port": "Port",
+      "pps": "PPS",
+      "bandwidth": "Bandwidth",
+      "storage": "Storage",
+      "cpuCore": "{count} core",
+      "cpuCores": "{count} cores",
+      "gb": "{value} GB",
+      "networkMbps": "{mbps} Mbps",
+      "vcpuSummary": "{cpu} vCPU · {ram} GB RAM · {disk} GB SSD",
+      "panelVcpu": "{name} — {cpu} vCPU"
+    },
+    "form": {
+      "hostname": "Hostname",
+      "region": "Region",
+      "os": "Operating system",
+      "promoCode": "Promo code",
+      "optional": "optional",
+      "regionsLoading": "Regions are loading. Refresh the page or contact support."
+    },
+    "turbovds": {
+      "title": "TurboVDS",
+      "desc": "High-frequency DDR5 + NVMe compute with 10 Gbps uplink and unlimited bandwidth.",
+      "deploy": "Purchase TurboVDS",
+      "panel": "Order configuration"
+    },
+    "dedicated": {
+      "order": "Order",
+      "inStock": "{count} in stock",
+      "noInventory": "No inventory available in your regions.",
+      "availableConfigs": "Available configurations",
+      "bareMetalTiers": "{count} bare-metal tiers",
+      "badgeBpPolicy": "Bulletproof policy",
+      "badgeDdos": "DDoS ready",
+      "badgeAbuse": "Abuse review",
+      "badgeSla": "99.9% SLA"
+    },
     "lines": {
       "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "DMCA-ignored offshore hosting" },
       "bulletproof-dedicated": { "label": "Bulletproof dedicated servers", "short": "BP Dedicated", "desc": "Bare metal with bulletproof policy" },
@@ -321,7 +369,53 @@
     "region": "Region",
     "plan": "Plan",
     "renews": "Renews",
-    "actions": "Actions"
+    "actions": "Actions",
+    "emptyDesc": "Provision VPS, dedicated hardware, domains, or CDN from the unified marketplace.",
+    "selectPlan": "Select plan",
+    "filterAll": "All",
+    "filterActive": "Active",
+    "filterProvisioning": "Provisioning",
+    "filterInactive": "Suspended / expired",
+    "noMatch": "No services match this filter.",
+    "activeTotal": "{active} active · {total} total",
+    "service": "Service",
+    "types": {
+      "VPS": "VPS / VDS",
+      "DEDICATED": "Dedicated servers",
+      "DOMAIN": "Domains",
+      "CDN": "CDN"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "PROVISIONING": "Provisioning",
+      "PENDING": "Pending",
+      "SUSPENDED": "Suspended",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled",
+      "FAILED": "Failed",
+      "DELETED": "Deleted"
+    }
+  },
+  "locations": {
+    "countries": {
+      "NL": "Netherlands",
+      "DE": "Germany",
+      "US": "USA",
+      "TR": "Turkey",
+      "FI": "Finland",
+      "RU": "Russia",
+      "BY": "Belarus",
+      "AB": "Abkhazia"
+    },
+    "cities": {
+      "amsterdam": "Amsterdam",
+      "frankfurt": "Frankfurt",
+      "new-york": "New York",
+      "istanbul": "Istanbul",
+      "moscow": "Moscow",
+      "minsk": "Minsk",
+      "sukhumi": "Sukhumi"
+    }
   },
   "domains": {
     "exactAvailableTitle": "{domain} is available",
@@ -335,7 +429,26 @@
     "registerFailed": "Registration failed",
     "insufficientBalance": "You need {required} on your balance (available: {available}). Top up billing first.",
     "addFunds": "Add funds",
-    "balanceHint": "Your spendable balance: {balance}. Domain registration is charged instantly from billing."
+    "balanceHint": "Your spendable balance: {balance}. Domain registration is charged instantly from billing.",
+    "findTitle": "Find your domain",
+    "findDesc": "Enter a name with or without an extension",
+    "searchPlaceholder": "Enter a domain name, e.g. mybrand.com",
+    "search": "Search",
+    "searching": "Searching…",
+    "searchHint": "Type mybrand to check popular extensions, or mybrand.io for a specific TLD.",
+    "available": "Available",
+    "taken": "Taken",
+    "yearRegistration": "1 year registration",
+    "premium": "premium",
+    "notInCatalog": "not in catalog",
+    "resultsFor": "Results for {name}",
+    "availableExtensions": "{count} available extension(s) in our catalog",
+    "noAvailableExtensions": "No available extensions in our catalog",
+    "allExtensions": "All supported extensions",
+    "annualPricing": "Annual pricing per TLD",
+    "invalidDomain": "Enter a valid domain name — letters, numbers, and hyphens only.",
+    "noExtensions": "No supported extensions found for this name.",
+    "checkFailed": "Could not check availability"
   },
   "support": {
     "yourTickets": "Your tickets",

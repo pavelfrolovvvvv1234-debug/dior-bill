@@ -16,7 +16,6 @@
     "payments": "Платежи",
     "billing": "Биллинг",
     "support": "Тикеты",
-    "infrastructure": "Инфраструктура",
     "promo": "Промокоды",
     "referrals": "Рефералы",
     "security": "Безопасность",
@@ -24,7 +23,7 @@
     "analytics": "Аналитика",
     "notifications": "Рассылки",
     "statistics": "Статистика",
-    "openPanel": "Открыть DIOR CONTROL →"
+    "openPanel": "Открыть DiorHost Control →"
   },
   "common": {
     "cancel": "Отмена",
@@ -304,6 +303,55 @@
     "selectLocation": "Выберите локацию",
     "creatingOrder": "Создание заказа…",
     "deployFailed": "Ошибка развёртывания",
+    "processing": "Обработка…",
+    "perMonth": "/мес",
+    "perYear": "/год",
+    "unlimited": "Безлимит",
+    "popular": "Популярный",
+    "order": "Заказать",
+    "spec": {
+      "cpu": "CPU",
+      "ram": "RAM",
+      "ramDdr5": "RAM (DDR5)",
+      "ssd": "SSD",
+      "nvme": "NVMe",
+      "network": "Сеть",
+      "port": "Порт",
+      "pps": "PPS",
+      "bandwidth": "Трафик",
+      "storage": "Диск",
+      "cpuCore": "{count} ядро",
+      "cpuCores": "{count} ядер",
+      "gb": "{value} ГБ",
+      "networkMbps": "{mbps} Мбит/с",
+      "vcpuSummary": "{cpu} vCPU · {ram} ГБ RAM · {disk} ГБ SSD",
+      "panelVcpu": "{name} — {cpu} vCPU"
+    },
+    "form": {
+      "hostname": "Имя хоста",
+      "region": "Регион",
+      "os": "Операционная система",
+      "promoCode": "Промокод",
+      "optional": "необязательно",
+      "regionsLoading": "Регионы загружаются. Обновите страницу или обратитесь в поддержку."
+    },
+    "turbovds": {
+      "title": "TurboVDS",
+      "desc": "Высокочастотные DDR5 + NVMe с uplink 10 Gbps и безлимитным трафиком.",
+      "deploy": "Купить TurboVDS",
+      "panel": "Конфигурация заказа"
+    },
+    "dedicated": {
+      "order": "Заказать",
+      "inStock": "{count} в наличии",
+      "noInventory": "Нет доступного инвентаря в ваших регионах.",
+      "availableConfigs": "Доступные конфигурации",
+      "bareMetalTiers": "{count} bare-metal тарифов",
+      "badgeBpPolicy": "Bulletproof policy",
+      "badgeDdos": "DDoS ready",
+      "badgeAbuse": "Abuse review",
+      "badgeSla": "SLA 99.9%"
+    },
     "lines": {
       "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "Офшорный DMCA-ignored хостинг" },
       "bulletproof-dedicated": { "label": "Bulletproof dedicated", "short": "BP Dedicated", "desc": "Bare metal с bulletproof политикой" },
@@ -321,7 +369,53 @@
     "region": "Регион",
     "plan": "Тариф",
     "renews": "Продление",
-    "actions": "Действия"
+    "actions": "Действия",
+    "emptyDesc": "Закажите VPS, dedicated, домены или CDN в едином маркетплейсе.",
+    "selectPlan": "Выбрать тариф",
+    "filterAll": "Все",
+    "filterActive": "Активные",
+    "filterProvisioning": "Выдаются",
+    "filterInactive": "Приостановлены / истекли",
+    "noMatch": "Нет услуг по этому фильтру.",
+    "activeTotal": "{active} активных · {total} всего",
+    "service": "Услуга",
+    "types": {
+      "VPS": "VPS / VDS",
+      "DEDICATED": "Dedicated серверы",
+      "DOMAIN": "Домены",
+      "CDN": "CDN"
+    },
+    "status": {
+      "ACTIVE": "Активна",
+      "PROVISIONING": "Выдаётся",
+      "PENDING": "Ожидание",
+      "SUSPENDED": "Приостановлена",
+      "EXPIRED": "Истекла",
+      "CANCELLED": "Отменена",
+      "FAILED": "Ошибка",
+      "DELETED": "Удалена"
+    }
+  },
+  "locations": {
+    "countries": {
+      "NL": "Нидерланды",
+      "DE": "Германия",
+      "US": "США",
+      "TR": "Турция",
+      "FI": "Финляндия",
+      "RU": "Россия",
+      "BY": "Беларусь",
+      "AB": "Абхазия"
+    },
+    "cities": {
+      "amsterdam": "Амстердам",
+      "frankfurt": "Франкфурт",
+      "new-york": "Нью-Йорк",
+      "istanbul": "Стамбул",
+      "moscow": "Москва",
+      "minsk": "Минск",
+      "sukhumi": "Сухум"
+    }
   },
   "domains": {
     "exactAvailableTitle": "{domain} — свободен",
@@ -335,7 +429,26 @@
     "registerFailed": "Не удалось зарегистрировать",
     "insufficientBalance": "Нужно {required} на балансе (доступно: {available}). Сначала пополните биллинг.",
     "addFunds": "Пополнить",
-    "balanceHint": "Доступно на балансе: {balance}. Регистрация списывается с биллинга сразу."
+    "balanceHint": "Доступно на балансе: {balance}. Регистрация списывается с биллинга сразу.",
+    "findTitle": "Найти домен",
+    "findDesc": "Введите имя с зоной или без",
+    "searchPlaceholder": "Введите домен, например mybrand.com",
+    "search": "Поиск",
+    "searching": "Поиск…",
+    "searchHint": "Введите mybrand для проверки популярных зон или mybrand.io для конкретной TLD.",
+    "available": "Свободен",
+    "taken": "Занят",
+    "yearRegistration": "Регистрация на 1 год",
+    "premium": "премиум",
+    "notInCatalog": "нет в каталоге",
+    "resultsFor": "Результаты для {name}",
+    "availableExtensions": "{count} доступных зон в каталоге",
+    "noAvailableExtensions": "Нет доступных зон в каталоге",
+    "allExtensions": "Все поддерживаемые зоны",
+    "annualPricing": "Годовая цена по TLD",
+    "invalidDomain": "Введите корректное имя — только буквы, цифры и дефис.",
+    "noExtensions": "Для этого имени нет поддерживаемых зон.",
+    "checkFailed": "Не удалось проверить доступность"
   },
   "support": {
     "yourTickets": "Ваши тикеты",

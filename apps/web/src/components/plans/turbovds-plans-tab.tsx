@@ -2,6 +2,7 @@
 
 import { VpsPlansTab } from "./vps-plans-tab";
 import type { VpsPlan } from "@/lib/vps-plans";
+import { useI18n } from "@/lib/i18n/store";
 
 interface Location {
   id: string;
@@ -18,14 +19,16 @@ export function TurbovdsPlansTab({
   locations: Location[];
   plans: readonly VpsPlan[];
 }) {
+  const { t } = useI18n();
+
   return (
     <VpsPlansTab
       locations={locations}
       plans={plans}
-      title="TurboVDS"
-      description="High-frequency DDR5 + NVMe compute with 10 Gbps uplink and unlimited bandwidth."
-      deployLabel="Purchase TurboVDS"
-      panelTitle="Order configuration"
+      title={t("plans.turbovds.title")}
+      description={t("plans.turbovds.desc")}
+      deployLabel={t("plans.turbovds.deploy")}
+      panelTitle={t("plans.turbovds.panel")}
       detailedCatalog
       purchaseViaTicket
     />

@@ -23,10 +23,9 @@ export function ControlSidebar({ userRole }: ControlSidebarProps) {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-white/6 bg-[#070b14]">
       <div className="flex h-14 items-center gap-2 border-b border-white/6 px-4">
-        <Link href="/control" className="flex items-center gap-2">
-          <img src="/logo-icon.png" alt="" width={28} height={28} className="shrink-0" />
+        <Link href="/control" className="flex items-center">
           <div>
-            <p className="text-sm font-semibold leading-tight">DIOR</p>
+            <p className="text-sm font-semibold leading-tight">DiorHost</p>
             <p className="text-[10px] font-medium uppercase tracking-widest text-primary">Control</p>
           </div>
         </Link>

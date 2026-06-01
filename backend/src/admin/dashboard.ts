@@ -4,37 +4,38 @@ import { requirePermission } from "./rbac";
 
 export type ControlDashboard = {
   kpis: {
-    mrr: number;
     revenueMonth: number;
+    topUpsPaidMonth: number;
+    topUpsPaidMonthAmount: number;
+    topUpsAwaiting: number;
+    failedTopUps: number;
     totalUsers: number;
     activeUsers30d: number;
     activeServices: number;
-    vpsDeployed: number;
-    dedicatedActive: number;
-    domainsActive: number;
-    cdnZones: number;
-    pendingInvoices: number;
-    failedPayments: number;
-    referralPayoutsPending: number;
-    referralEarningsMonth: number;
     openTickets: number;
-    provisioningQueue: number;
-    avgNodeLoad: number;
   };
-  nodes: Array<{
+  recentTopUps: Array<{
     id: string;
-    name: string;
+    referenceCode: string;
+    amount: number;
     status: string;
-    loadPercent: number;
-    activeVps: number;
-    capacityPercent: number;
+    provider: string;
+    createdAt: Date;
+    user: { email: string | null; telegramUsername: string | null };
   }>;
   recentUsers: Array<{
     id: string;
     email: string | null;
     status: string;
-    role: string;
     createdAt: Date;
+  }>;
+  recentServices: Array<{
+    id: string;
+    type: string;
+    label: string;
+    status: string;
+    createdAt: Date;
+    user: { email: string | null };
   }>;
   recentTickets: Array<{
     id: string;
@@ -43,141 +44,112 @@ export type ControlDashboard = {
     status: string;
     updatedAt: Date;
   }>;
-  health: { status: "healthy" | "degraded"; avgLoad: number };
 };
 
 export async function getControlDashboard(actorId: string): Promise<ControlDashboard> {
   await requirePermission(actorId, "analytics.read");
 
-  const cacheKey = "control:dashboard:v1";
+  const cacheKey = "control:dashboard:v2";
   const cached = await cacheGet<ControlDashboard>(cacheKey);
   if (cached) return cached;
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const activeSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [
     totalUsers,
     activeUsers30d,
     activeServices,
-    vpsCount,
-    dedicatedCount,
-    domainCount,
-    cdnCount,
-    mrrAgg,
     revenueMonth,
-    pendingInvoices,
+    topUpsPaidMonth,
+    topUpsPaidMonthAmount,
+    topUpsAwaiting,
     failedTopUps,
     openTickets,
-    referralPending,
-    nodes,
-    provisioningQueue,
-    systemHealth,
+    recentTopUps,
+    recentUsers,
+    recentServices,
+    recentTickets,
   ] = await Promise.all([
     prisma.user.count(),
-    prisma.user.count({
-      where: { lastLoginAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
-    }),
+    prisma.user.count({ where: { lastLoginAt: { gte: activeSince } } }),
     prisma.service.count({ where: { status: "ACTIVE" } }),
-    prisma.service.count({ where: { type: "VPS", status: "ACTIVE" } }),
-    prisma.service.count({ where: { type: "DEDICATED", status: "ACTIVE" } }),
-    prisma.service.count({ where: { type: "DOMAIN", status: "ACTIVE" } }),
-    prisma.service.count({ where: { type: "CDN", status: "ACTIVE" } }),
-    prisma.service.aggregate({
-      where: { status: "ACTIVE" },
-      _sum: { monthlyPrice: true },
-    }),
     prisma.transaction.aggregate({
       where: { type: "PAYMENT", createdAt: { gte: monthStart } },
       _sum: { amount: true },
     }),
-    prisma.invoice.count({ where: { status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } } }),
+    prisma.topUp.count({
+      where: { status: "PAID", paidAt: { gte: monthStart } },
+    }),
+    prisma.topUp.aggregate({
+      where: { status: "PAID", paidAt: { gte: monthStart } },
+      _sum: { amount: true },
+    }),
+    prisma.topUp.count({
+      where: { status: { in: ["PENDING", "PROCESSING", "MANUAL_REVIEW"] } },
+    }),
     prisma.topUp.count({ where: { status: "FAILED" } }),
     prisma.ticket.count({ where: { status: { in: ["OPEN", "AWAITING_STAFF"] } } }),
-    prisma.payoutRequest.count({ where: { status: "PENDING" } }),
-    prisma.node.findMany({
+    prisma.topUp.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
       select: {
         id: true,
-        name: true,
+        referenceCode: true,
+        amount: true,
         status: true,
-        loadPercent: true,
-        activeVps: true,
-        capacityPercent: true,
+        provider: true,
+        createdAt: true,
+        user: { select: { email: true, telegramUsername: true } },
       },
-      orderBy: { loadPercent: "desc" },
-      take: 8,
     }),
-    prisma.provisioningJob.count({
-      where: { status: { in: ["queued", "running", "failed", "retry"] } },
+    prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: { id: true, email: true, status: true, createdAt: true },
     }),
-    prisma.node.aggregate({
-      _avg: { loadPercent: true },
-      where: { status: "online" },
+    prisma.service.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      select: {
+        id: true,
+        type: true,
+        label: true,
+        status: true,
+        createdAt: true,
+        user: { select: { email: true } },
+      },
+    }),
+    prisma.ticket.findMany({
+      where: { status: { in: ["OPEN", "AWAITING_STAFF"] } },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+      select: { id: true, subject: true, priority: true, status: true, updatedAt: true },
     }),
   ]);
 
-  const referralPaid = await prisma.referralEarning.aggregate({
-    _sum: { amount: true },
-    where: { createdAt: { gte: monthStart } },
-  });
-
-  const recentUsers = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 6,
-    select: {
-      id: true,
-      email: true,
-      status: true,
-      role: true,
-      createdAt: true,
-    },
-  });
-
-  const recentTickets = await prisma.ticket.findMany({
-    where: { status: { in: ["OPEN", "AWAITING_STAFF"] } },
-    orderBy: { updatedAt: "desc" },
-    take: 6,
-    select: {
-      id: true,
-      subject: true,
-      priority: true,
-      status: true,
-      updatedAt: true,
-    },
-  });
-
   const dashboard: ControlDashboard = {
     kpis: {
-      mrr: Number(mrrAgg._sum.monthlyPrice ?? 0),
       revenueMonth: Number(revenueMonth._sum.amount ?? 0),
+      topUpsPaidMonth,
+      topUpsPaidMonthAmount: Number(topUpsPaidMonthAmount._sum.amount ?? 0),
+      topUpsAwaiting,
+      failedTopUps,
       totalUsers,
       activeUsers30d,
       activeServices,
-      vpsDeployed: vpsCount,
-      dedicatedActive: dedicatedCount,
-      domainsActive: domainCount,
-      cdnZones: cdnCount,
-      pendingInvoices,
-      failedPayments: failedTopUps,
-      referralPayoutsPending: referralPending,
-      referralEarningsMonth: Number(referralPaid._sum.amount ?? 0),
       openTickets,
-      provisioningQueue,
-      avgNodeLoad: Number(systemHealth._avg.loadPercent ?? 0),
     },
-    nodes,
+    recentTopUps: recentTopUps.map((t) => ({
+      ...t,
+      amount: Number(t.amount),
+    })),
     recentUsers,
+    recentServices,
     recentTickets,
-    health: {
-      status: avgNodeLoadSafe(systemHealth._avg.loadPercent) ? "healthy" : "degraded",
-      avgLoad: Number(systemHealth._avg.loadPercent ?? 0),
-    },
   };
 
   await cacheSet(cacheKey, dashboard, 120);
   return dashboard;
-}
-
-function avgNodeLoadSafe(load: number | null): boolean {
-  return (load ?? 0) < 85;
 }

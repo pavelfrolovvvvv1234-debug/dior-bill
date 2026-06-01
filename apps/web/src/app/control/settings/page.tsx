@@ -14,7 +14,6 @@ export default async function SettingsPage() {
     "services.write",
     "billing.write",
     "payments.write",
-    "infrastructure.write",
     "security.write",
     "notifications.write",
     "audit.read",

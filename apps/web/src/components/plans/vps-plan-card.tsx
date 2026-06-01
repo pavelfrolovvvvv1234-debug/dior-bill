@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/utils";
 import type { VpsPlan } from "@/lib/vps-plans";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/store";
 
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
@@ -25,7 +26,13 @@ export function VpsPlanCard({
   onSelect: () => void;
   detailed?: boolean;
 }) {
+  const { t } = useI18n();
   const isTurbovds = plan.display === "turbovds";
+  const bandwidth = plan.bandwidthLabel === "Unlimited" ? t("plans.unlimited") : plan.bandwidthLabel;
+  const perMonth = t("plans.perMonth");
+  const cpuLabel = t(plan.cpuCores > 1 ? "plans.spec.cpuCores" : "plans.spec.cpuCore", {
+    count: plan.cpuCores,
+  });
 
   return (
     <button
@@ -40,36 +47,49 @@ export function VpsPlanCard({
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-semibold">{plan.name}</span>
-        {plan.popular && <Badge variant="muted">Popular</Badge>}
+        {plan.popular && <Badge variant="muted">{t("plans.popular")}</Badge>}
       </div>
 
       {detailed && isTurbovds ? (
         <div className="mt-3 flex flex-1 flex-col gap-1.5">
-          <SpecRow label="CPU" value={`${plan.cpuCores} cores`} />
-          <SpecRow label="RAM (DDR5)" value={plan.ramDisplay ?? `${plan.ramMb / 1024} GB`} />
-          <SpecRow label="NVMe" value={plan.diskDisplay ?? `${plan.diskGb} GB`} />
-          <SpecRow label="Network" value={plan.networkDisplay ?? `${plan.networkMbps} Mbps`} />
-          <SpecRow label="Port" value={plan.portDisplay ?? "—"} />
-          <SpecRow label="PPS" value={plan.ppsDisplay ?? "—"} />
-          <SpecRow label="Bandwidth" value={plan.bandwidthLabel} />
+          <SpecRow label={t("plans.spec.cpu")} value={cpuLabel} />
+          <SpecRow
+            label={t("plans.spec.ramDdr5")}
+            value={plan.ramDisplay ?? t("plans.spec.gb", { value: plan.ramMb / 1024 })}
+          />
+          <SpecRow
+            label={t("plans.spec.nvme")}
+            value={plan.diskDisplay ?? t("plans.spec.gb", { value: plan.diskGb })}
+          />
+          <SpecRow
+            label={t("plans.spec.network")}
+            value={plan.networkDisplay ?? t("plans.spec.networkMbps", { mbps: plan.networkMbps })}
+          />
+          <SpecRow label={t("plans.spec.port")} value={plan.portDisplay ?? "—"} />
+          <SpecRow label={t("plans.spec.pps")} value={plan.ppsDisplay ?? "—"} />
+          <SpecRow label={t("plans.spec.bandwidth")} value={bandwidth} />
         </div>
       ) : detailed ? (
         <div className="mt-3 flex flex-1 flex-col gap-1.5">
-          <SpecRow label="CPU" value={`${plan.cpuCores} core${plan.cpuCores > 1 ? "s" : ""}`} />
-          <SpecRow label="RAM" value={`${plan.ramMb / 1024} GB`} />
-          <SpecRow label="SSD" value={`${plan.diskGb} GB`} />
-          <SpecRow label="Network" value={`${plan.networkMbps} Mbps`} />
-          <SpecRow label="Bandwidth" value={plan.bandwidthLabel} />
+          <SpecRow label={t("plans.spec.cpu")} value={cpuLabel} />
+          <SpecRow label={t("plans.spec.ram")} value={t("plans.spec.gb", { value: plan.ramMb / 1024 })} />
+          <SpecRow label={t("plans.spec.ssd")} value={t("plans.spec.gb", { value: plan.diskGb })} />
+          <SpecRow label={t("plans.spec.network")} value={t("plans.spec.networkMbps", { mbps: plan.networkMbps })} />
+          <SpecRow label={t("plans.spec.bandwidth")} value={bandwidth} />
         </div>
       ) : (
         <p className="mt-2 text-xs text-muted-foreground">
-          {plan.cpuCores} vCPU · {plan.ramMb / 1024} GB RAM · {plan.diskGb} GB SSD
+          {t("plans.spec.vcpuSummary", {
+            cpu: plan.cpuCores,
+            ram: plan.ramMb / 1024,
+            disk: plan.diskGb,
+          })}
         </p>
       )}
 
       <p className={cn("font-semibold tabular-nums", detailed ? "mt-4 text-xl" : "mt-3 text-lg")}>
         {formatMoney(plan.price)}
-        <span className="text-xs font-normal text-muted-foreground">/mo</span>
+        <span className="text-xs font-normal text-muted-foreground">{perMonth}</span>
       </p>
     </button>
   );

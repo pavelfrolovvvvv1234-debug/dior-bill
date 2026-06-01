@@ -22,10 +22,9 @@ export function ControlSidebar({ userRole }: ControlSidebarProps) {
 
   return (
     <aside className="pointer-events-auto fixed inset-y-0 left-0 z-50 hidden w-60 flex-col border-r border-white/6 bg-[#070b14]/95 backdrop-blur-xl lg:flex">
-      <div className="flex h-14 items-center gap-2 border-b border-white/6 px-4">
-        <img src="/logo-icon.png" alt="" width={28} height={28} className="shrink-0" />
+      <div className="flex h-14 items-center border-b border-white/6 px-4">
         <div>
-          <p className="text-sm font-semibold leading-tight">DIOR</p>
+          <p className="text-sm font-semibold leading-tight">DiorHost</p>
           <p className="text-[10px] font-medium uppercase tracking-widest text-primary">Control</p>
         </div>
       </div>

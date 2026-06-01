@@ -16,7 +16,6 @@
     "payments": "付款",
     "billing": "账单",
     "support": "工单",
-    "infrastructure": "基础设施",
     "promo": "优惠码",
     "referrals": "推荐",
     "security": "安全",
@@ -24,7 +23,7 @@
     "analytics": "分析",
     "notifications": "通知",
     "statistics": "统计",
-    "openPanel": "打开 DIOR CONTROL →"
+    "openPanel": "打开 DiorHost Control →"
   },
   "common": {
     "cancel": "取消",
@@ -294,6 +293,55 @@
     "selectLocation": "选择位置",
     "creatingOrder": "创建订单中…",
     "deployFailed": "部署失败",
+    "processing": "处理中…",
+    "perMonth": "/月",
+    "perYear": "/年",
+    "unlimited": "不限流量",
+    "popular": "热门",
+    "order": "订购",
+    "spec": {
+      "cpu": "CPU",
+      "ram": "内存",
+      "ramDdr5": "内存 (DDR5)",
+      "ssd": "SSD",
+      "nvme": "NVMe",
+      "network": "网络",
+      "port": "端口",
+      "pps": "PPS",
+      "bandwidth": "带宽",
+      "storage": "存储",
+      "cpuCore": "{count} 核",
+      "cpuCores": "{count} 核",
+      "gb": "{value} GB",
+      "networkMbps": "{mbps} Mbps",
+      "vcpuSummary": "{cpu} vCPU · {ram} GB 内存 · {disk} GB SSD",
+      "panelVcpu": "{name} — {cpu} vCPU"
+    },
+    "form": {
+      "hostname": "主机名",
+      "region": "区域",
+      "os": "操作系统",
+      "promoCode": "优惠码",
+      "optional": "可选",
+      "regionsLoading": "区域加载中，请刷新页面或联系客服。"
+    },
+    "turbovds": {
+      "title": "TurboVDS",
+      "desc": "高频 DDR5 + NVMe，10 Gbps 上联，不限带宽。",
+      "deploy": "购买 TurboVDS",
+      "panel": "订单配置"
+    },
+    "dedicated": {
+      "order": "订购",
+      "inStock": "库存 {count}",
+      "noInventory": "您所在区域暂无可用库存。",
+      "availableConfigs": "可用配置",
+      "bareMetalTiers": "{count} 个裸金属套餐",
+      "badgeBpPolicy": "Bulletproof 策略",
+      "badgeDdos": "DDoS 防护",
+      "badgeAbuse": "Abuse 审核",
+      "badgeSla": "99.9% SLA"
+    },
     "lines": {
       "bulletproof-vps": {
         "label": "Bulletproof VPS/VDS",
@@ -335,7 +383,86 @@
     "region": "区域",
     "plan": "套餐",
     "renews": "续费",
-    "actions": "操作"
+    "actions": "操作",
+    "emptyDesc": "在统一市场中订购 VPS、独服、域名或 CDN。",
+    "selectPlan": "选择套餐",
+    "filterAll": "全部",
+    "filterActive": "活跃",
+    "filterProvisioning": "开通中",
+    "filterInactive": "已暂停 / 已过期",
+    "noMatch": "没有符合此筛选的服务。",
+    "activeTotal": "{active} 活跃 · 共 {total}",
+    "service": "服务",
+    "types": {
+      "VPS": "VPS / VDS",
+      "DEDICATED": "独服",
+      "DOMAIN": "域名",
+      "CDN": "CDN"
+    },
+    "status": {
+      "ACTIVE": "活跃",
+      "PROVISIONING": "开通中",
+      "PENDING": "待处理",
+      "SUSPENDED": "已暂停",
+      "EXPIRED": "已过期",
+      "CANCELLED": "已取消",
+      "FAILED": "失败",
+      "DELETED": "已删除"
+    }
+  },
+  "locations": {
+    "countries": {
+      "NL": "荷兰",
+      "DE": "德国",
+      "US": "美国",
+      "TR": "土耳其",
+      "FI": "芬兰",
+      "RU": "俄罗斯",
+      "BY": "白俄罗斯",
+      "AB": "阿布哈兹"
+    },
+    "cities": {
+      "amsterdam": "阿姆斯特丹",
+      "frankfurt": "法兰克福",
+      "new-york": "纽约",
+      "istanbul": "伊斯坦布尔",
+      "moscow": "莫斯科",
+      "minsk": "明斯克",
+      "sukhumi": "苏呼米"
+    }
+  },
+  "domains": {
+    "exactAvailableTitle": "{domain} 可注册",
+    "exactAvailableDesc": "该域名可用，可立即注册。",
+    "exactTakenTitle": "{domain} 已被注册",
+    "exactTakenDesc": "该后缀已被占用，请查看下方其他后缀。",
+    "registerNow": "立即注册",
+    "otherExtensions": "其他后缀",
+    "registerSuccessTitle": "域名已注册",
+    "registerSuccessDesc": "{domain} 已添加到您的账户。",
+    "registerFailed": "注册失败",
+    "insufficientBalance": "余额需要 {required}（可用：{available}）。请先充值。",
+    "addFunds": "充值",
+    "balanceHint": "可用余额：{balance}。域名注册将从账单即时扣款。",
+    "findTitle": "查找域名",
+    "findDesc": "输入带或不带后缀的域名",
+    "searchPlaceholder": "输入域名，例如 mybrand.com",
+    "search": "搜索",
+    "searching": "搜索中…",
+    "searchHint": "输入 mybrand 检查热门后缀，或 mybrand.io 查询特定 TLD。",
+    "available": "可用",
+    "taken": "已占用",
+    "yearRegistration": "1 年注册",
+    "premium": "溢价",
+    "notInCatalog": "不在目录中",
+    "resultsFor": "{name} 的搜索结果",
+    "availableExtensions": "目录中有 {count} 个可用后缀",
+    "noAvailableExtensions": "目录中没有可用后缀",
+    "allExtensions": "所有支持的后缀",
+    "annualPricing": "各 TLD 年费",
+    "invalidDomain": "请输入有效域名——仅字母、数字和连字符。",
+    "noExtensions": "未找到该名称的支持后缀。",
+    "checkFailed": "无法检查可用性"
   },
   "support": {
     "yourTickets": "您的工单",

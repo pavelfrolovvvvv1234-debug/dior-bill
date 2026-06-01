@@ -16,7 +16,6 @@
     "payments": "Pagos",
     "billing": "Facturación",
     "support": "Tickets",
-    "infrastructure": "Infraestructura",
     "promo": "Códigos promo",
     "referrals": "Referidos",
     "security": "Seguridad",
@@ -24,7 +23,7 @@
     "analytics": "Analítica",
     "notifications": "Notificaciones",
     "statistics": "Estadísticas",
-    "openPanel": "Abrir DIOR CONTROL →"
+    "openPanel": "Abrir DiorHost Control →"
   },
   "common": {
     "cancel": "Cancelar",
@@ -294,6 +293,55 @@
     "selectLocation": "Seleccionar ubicación",
     "creatingOrder": "Creando pedido…",
     "deployFailed": "Error al desplegar",
+    "processing": "Procesando…",
+    "perMonth": "/mes",
+    "perYear": "/año",
+    "unlimited": "Ilimitado",
+    "popular": "Popular",
+    "order": "Pedir",
+    "spec": {
+      "cpu": "CPU",
+      "ram": "RAM",
+      "ramDdr5": "RAM (DDR5)",
+      "ssd": "SSD",
+      "nvme": "NVMe",
+      "network": "Red",
+      "port": "Puerto",
+      "pps": "PPS",
+      "bandwidth": "Ancho de banda",
+      "storage": "Almacenamiento",
+      "cpuCore": "{count} núcleo",
+      "cpuCores": "{count} núcleos",
+      "gb": "{value} GB",
+      "networkMbps": "{mbps} Mbps",
+      "vcpuSummary": "{cpu} vCPU · {ram} GB RAM · {disk} GB SSD",
+      "panelVcpu": "{name} — {cpu} vCPU"
+    },
+    "form": {
+      "hostname": "Nombre de host",
+      "region": "Región",
+      "os": "Sistema operativo",
+      "promoCode": "Código promo",
+      "optional": "opcional",
+      "regionsLoading": "Cargando regiones. Actualice la página o contacte soporte."
+    },
+    "turbovds": {
+      "title": "TurboVDS",
+      "desc": "Compute DDR5 + NVMe de alta frecuencia con uplink 10 Gbps y ancho de banda ilimitado.",
+      "deploy": "Comprar TurboVDS",
+      "panel": "Configuración del pedido"
+    },
+    "dedicated": {
+      "order": "Pedir",
+      "inStock": "{count} en stock",
+      "noInventory": "No hay inventario disponible en sus regiones.",
+      "availableConfigs": "Configuraciones disponibles",
+      "bareMetalTiers": "{count} niveles bare-metal",
+      "badgeBpPolicy": "Política bulletproof",
+      "badgeDdos": "Anti-DDoS",
+      "badgeAbuse": "Revisión de abuso",
+      "badgeSla": "SLA 99.9%"
+    },
     "lines": {
       "bulletproof-vps": {
         "label": "Bulletproof VPS/VDS",
@@ -335,7 +383,53 @@
     "region": "Región",
     "plan": "Plan",
     "renews": "Renueva",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "emptyDesc": "Contrata VPS, dedicados, dominios o CDN desde el marketplace unificado.",
+    "selectPlan": "Elegir plan",
+    "filterAll": "Todos",
+    "filterActive": "Activos",
+    "filterProvisioning": "Aprovisionando",
+    "filterInactive": "Suspendidos / expirados",
+    "noMatch": "Ningún servicio coincide con este filtro.",
+    "activeTotal": "{active} activos · {total} en total",
+    "service": "Servicio",
+    "types": {
+      "VPS": "VPS / VDS",
+      "DEDICATED": "Servidores dedicados",
+      "DOMAIN": "Dominios",
+      "CDN": "CDN"
+    },
+    "status": {
+      "ACTIVE": "Activo",
+      "PROVISIONING": "Aprovisionando",
+      "PENDING": "Pendiente",
+      "SUSPENDED": "Suspendido",
+      "EXPIRED": "Expirado",
+      "CANCELLED": "Cancelado",
+      "FAILED": "Fallido",
+      "DELETED": "Eliminado"
+    }
+  },
+  "locations": {
+    "countries": {
+      "NL": "Países Bajos",
+      "DE": "Alemania",
+      "US": "EE.UU.",
+      "TR": "Turquía",
+      "FI": "Finlandia",
+      "RU": "Rusia",
+      "BY": "Bielorrusia",
+      "AB": "Abjasia"
+    },
+    "cities": {
+      "amsterdam": "Ámsterdam",
+      "frankfurt": "Frankfurt",
+      "new-york": "Nueva York",
+      "istanbul": "Estambul",
+      "moscow": "Moscú",
+      "minsk": "Minsk",
+      "sukhumi": "Sujumi"
+    }
   },
   "support": {
     "yourTickets": "Tus tickets",

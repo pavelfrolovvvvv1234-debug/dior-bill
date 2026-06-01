@@ -74,7 +74,7 @@ export function Sidebar({ userRole = "USER" }: SidebarProps) {
               collapsed ? "mx-auto text-xs" : "px-1 text-sm",
             )}
           >
-            {collapsed ? "DC" : APP_NAME}
+            {collapsed ? "DH" : APP_NAME}
           </a>
           <button
             type="button"

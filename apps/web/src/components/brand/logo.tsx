@@ -22,7 +22,7 @@ export function Logo({ variant = "mark", size = 32, className, priority }: LogoP
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
-      alt="DIOR"
+      alt="DiorHost"
       width={size}
       height={size}
       loading={priority ? "eager" : "lazy"}
@@ -40,7 +40,7 @@ interface LogoWordmarkProps {
   className?: string;
 }
 
-/** Sidebar wordmark: brand mark + DIOR Control */
+/** Sidebar wordmark: brand mark + DiorHost Control */
 export function LogoWordmark({ collapsed = false, className }: LogoWordmarkProps) {
   if (collapsed) {
     return <Logo variant="icon" size={32} className={className} priority />;
@@ -50,7 +50,7 @@ export function LogoWordmark({ collapsed = false, className }: LogoWordmarkProps
     <div className={cn("flex items-center gap-2.5", className)}>
       <Logo variant="icon" size={32} className="rounded-md" priority />
       <span className="flex flex-col leading-none">
-        <span className="text-sm font-semibold tracking-tight text-foreground">DIOR</span>
+        <span className="text-sm font-semibold tracking-tight text-foreground">DiorHost</span>
         <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
           Control
         </span>

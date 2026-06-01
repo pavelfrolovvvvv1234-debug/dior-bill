@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         });
         await sendTelegramMessage(
           from.id,
-          "✅ Telegram linked to your DIOR Cloud account. You will receive billing and support alerts here.",
+          "✅ Telegram linked to your DiorHost account. You will receive billing and support alerts here.",
         );
       } catch {
         await sendTelegramMessage(
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     [
       `👋 Hello, <b>${name}</b>!`,
       "",
-      "<b>DIOR Cloud</b> — bulletproof hosting & billing.",
+      "<b>DiorHost</b> — bulletproof hosting & billing.",
       "",
       `🔐 Sign in on the site (Telegram button): ${loginUrl}`,
       refCode ? `📝 Register with your referral: ${registerUrl}` : `📝 New here: ${registerUrl}`,

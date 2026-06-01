@@ -52,7 +52,7 @@ export function DomainsPlansTab({
 
     const parsed = parseDomainSearchInput(query);
     if (!parsed) {
-      setError("Enter a valid domain name — letters, numbers, and hyphens only.");
+      setError(t("domains.invalidDomain"));
       setResults([]);
       setSearchedLabel(null);
       setPrimaryDomain(null);
@@ -66,13 +66,13 @@ export function DomainsPlansTab({
         setPrimaryDomain(data.primaryDomain);
         setResults(data.results);
         if (data.results.length === 0) {
-          setError("No supported extensions found for this name.");
+          setError(t("domains.noExtensions"));
         }
       } catch (err) {
         setResults([]);
         setSearchedLabel(null);
         setPrimaryDomain(null);
-        setError(err instanceof Error ? err.message : "Could not check availability");
+        setError(err instanceof Error ? err.message : t("domains.checkFailed"));
       }
     });
   }
@@ -180,21 +180,21 @@ export function DomainsPlansTab({
         <div className="min-w-0">
           <p className="font-mono text-sm font-medium">{row.domain}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            1 year registration
-            {row.premium ? " · premium" : ""}
-            {!row.inCatalog ? " · not in catalog" : ""}
+            {t("domains.yearRegistration")}
+            {row.premium ? ` · ${t("domains.premium")}` : ""}
+            {!row.inCatalog ? ` · ${t("domains.notInCatalog")}` : ""}
           </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <Badge variant={row.available ? "success" : "warning"} className="shrink-0 capitalize">
-            {row.available ? "Available" : "Taken"}
+            {row.available ? t("domains.available") : t("domains.taken")}
           </Badge>
 
           {row.inCatalog ? (
             <p className="min-w-[5.5rem] text-right font-semibold tabular-nums">
               {formatMoney(price)}
-              <span className="text-xs font-normal text-muted-foreground">/yr</span>
+              <span className="text-xs font-normal text-muted-foreground">{t("plans.perYear")}</span>
             </p>
           ) : null}
 
@@ -217,14 +217,14 @@ export function DomainsPlansTab({
         </div>
       )}
 
-      <Panel title="Find your domain" description="Enter a name with or without an extension">
+      <Panel title={t("domains.findTitle")} description={t("domains.findDesc")}>
         <form onSubmit={runSearch} className="flex flex-col gap-3 sm:flex-row">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter a domain name, e.g. mybrand.com"
+              placeholder={t("domains.searchPlaceholder")}
               className="h-11 pl-9 text-base"
               autoComplete="off"
               spellCheck={false}
@@ -234,17 +234,14 @@ export function DomainsPlansTab({
             {searching ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Searching…
+                {t("domains.searching")}
               </>
             ) : (
-              "Search"
+              t("domains.search")
             )}
           </Button>
         </form>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Type <span className="font-mono">mybrand</span> to check popular extensions, or{" "}
-          <span className="font-mono">mybrand.io</span> for a specific TLD.
-        </p>
+        <p className="mt-3 text-xs text-muted-foreground">{t("domains.searchHint")}</p>
       </Panel>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -294,7 +291,7 @@ export function DomainsPlansTab({
               <div className="flex shrink-0 items-center gap-4">
                 <p className="text-xl font-semibold tabular-nums">
                   {formatMoney(primaryResult.catalogPrice ?? 0)}
-                  <span className="text-sm font-normal text-muted-foreground">/yr</span>
+                  <span className="text-sm font-normal text-muted-foreground">{t("plans.perYear")}</span>
                 </p>
                 {renderRegisterButton(
                   primaryDomain,
@@ -309,11 +306,11 @@ export function DomainsPlansTab({
 
       {searchedLabel && otherResults.length > 0 ? (
         <Panel
-          title={primaryResult ? t("domains.otherExtensions") : `Results for ${searchedLabel}`}
+          title={primaryResult ? t("domains.otherExtensions") : t("domains.resultsFor", { name: searchedLabel })}
           description={
             availableCount > 0
-              ? `${availableCount} available extension${availableCount === 1 ? "" : "s"} in our catalog`
-              : "No available extensions in our catalog"
+              ? t("domains.availableExtensions", { count: availableCount })
+              : t("domains.noAvailableExtensions")
           }
           noPadding
         >
@@ -324,7 +321,7 @@ export function DomainsPlansTab({
       ) : null}
 
       {showCatalog ? (
-        <Panel title="All supported extensions" description="Annual pricing per TLD">
+        <Panel title={t("domains.allExtensions")} description={t("domains.annualPricing")}>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {zones.map((zone) => (
               <button
@@ -341,7 +338,7 @@ export function DomainsPlansTab({
               >
                 <span className="font-mono text-sm font-medium">.{zone.tld}</span>
                 <span className="mt-0.5 block text-xs tabular-nums text-muted-foreground">
-                  {formatMoney(zone.priceYear)}/yr
+                  {formatMoney(zone.priceYear)}{t("plans.perYear")}
                 </span>
               </button>
             ))}

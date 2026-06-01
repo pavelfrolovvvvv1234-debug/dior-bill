@@ -1,3 +1,5 @@
+"use client";
+
 import { purchaseDedicatedViaTicketAction, purchaseInventoryDedicatedViaTicketAction } from "@/app/actions/ticket-purchase";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +9,7 @@ import type { DedicatedCatalogPlan } from "@/lib/dedicated-plans";
 import { isDedicatedPlanDetailed } from "@/lib/dedicated-plans";
 import { DedicatedPlanCard } from "@/components/plans/dedicated-plan-card";
 import type { TicketOrderProductLine } from "@/lib/ticket-order-copy";
+import { useI18n } from "@/lib/i18n/store";
 
 type InventoryItem = {
   id: string;
@@ -24,6 +27,7 @@ function DedicatedCatalogRow({
   plan: DedicatedCatalogPlan;
   productLine: Extract<TicketOrderProductLine, "bulletproof-dedicated" | "dedicated">;
 }) {
+  const { t } = useI18n();
   const spec = plan.storage
     ? `${plan.cpu} • ${plan.ram} • ${plan.storage}`
     : `${plan.cpu} • ${plan.ram}`;
@@ -34,7 +38,7 @@ function DedicatedCatalogRow({
       <div className="flex shrink-0 items-center gap-4">
         <span className="text-lg font-semibold tabular-nums">
           {formatMoney(plan.price)}
-          <span className="text-xs font-normal text-muted-foreground">/mo</span>
+          <span className="text-xs font-normal text-muted-foreground">{t("plans.perMonth")}</span>
         </span>
         <OrderButton
           amount={plan.price}
@@ -43,7 +47,7 @@ function DedicatedCatalogRow({
             purchaseDedicatedViaTicketAction({ planId: plan.id, productLine })
           }
         >
-          Order
+          {t("plans.dedicated.order")}
         </OrderButton>
       </div>
     </div>
@@ -65,6 +69,7 @@ export function DedicatedPlansTab({
   catalog?: readonly DedicatedCatalogPlan[];
   detailedCatalog?: boolean;
 }) {
+  const { t } = useI18n();
   const showCatalog = catalog && catalog.length > 0;
   const useDetailedCards =
     detailedCatalog && catalog?.some((plan) => isDedicatedPlanDetailed(plan));
@@ -79,14 +84,14 @@ export function DedicatedPlansTab({
           <p className="text-sm text-muted-foreground">{description}</p>
           {bulletproof ? (
             <>
-              <Badge variant="muted">Bulletproof policy</Badge>
-              <Badge variant="muted">DDoS ready</Badge>
-              <Badge variant="muted">Abuse review</Badge>
+              <Badge variant="muted">{t("plans.dedicated.badgeBpPolicy")}</Badge>
+              <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
+              <Badge variant="muted">{t("plans.dedicated.badgeAbuse")}</Badge>
             </>
           ) : (
             <>
-              <Badge variant="muted">99.9% SLA</Badge>
-              <Badge variant="muted">DDoS ready</Badge>
+              <Badge variant="muted">{t("plans.dedicated.badgeSla")}</Badge>
+              <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
             </>
           )}
         </div>
@@ -97,7 +102,10 @@ export function DedicatedPlansTab({
             ))}
           </div>
         ) : (
-          <Panel title="Available configurations" description={`${catalog.length} bare-metal tiers`}>
+          <Panel
+            title={t("plans.dedicated.availableConfigs")}
+            description={t("plans.dedicated.bareMetalTiers", { count: catalog.length })}
+          >
             <div className="space-y-2">
               {catalog.map((plan) => (
                 <DedicatedCatalogRow key={plan.id} plan={plan} productLine={productLine} />
@@ -114,7 +122,7 @@ export function DedicatedPlansTab({
       {title && <h3 className="text-base font-semibold tracking-tight">{title}</h3>}
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm text-muted-foreground">{description}</p>
-        {bulletproof && <Badge variant="muted">Bulletproof policy</Badge>}
+        {bulletproof && <Badge variant="muted">{t("plans.dedicated.badgeBpPolicy")}</Badge>}
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {inventory.map((item) => (
@@ -125,24 +133,24 @@ export function DedicatedPlansTab({
             <div className="flex items-start justify-between gap-2">
               <p className="font-semibold">{item.name}</p>
               <Badge variant={item.stockAvail <= item.lowStockAt ? "warning" : "success"}>
-                {item.stockAvail} in stock
+                {t("plans.dedicated.inStock", { count: item.stockAvail })}
               </Badge>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{item.cpu}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge variant="muted">99.9% SLA</Badge>
+              <Badge variant="muted">{t("plans.dedicated.badgeSla")}</Badge>
               {bulletproof ? (
                 <>
-                  <Badge variant="muted">Abuse review</Badge>
-                  <Badge variant="muted">DDoS ready</Badge>
+                  <Badge variant="muted">{t("plans.dedicated.badgeAbuse")}</Badge>
+                  <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
                 </>
               ) : (
-                <Badge variant="muted">DDoS ready</Badge>
+                <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
               )}
             </div>
             <p className="mt-4 text-lg font-semibold tabular-nums">
               {formatMoney(Number(item.monthlyPrice))}
-              <span className="text-xs font-normal text-muted-foreground">/mo</span>
+              <span className="text-xs font-normal text-muted-foreground">{t("plans.perMonth")}</span>
             </p>
             <OrderButton
               amount={Number(item.monthlyPrice)}
@@ -159,7 +167,7 @@ export function DedicatedPlansTab({
                 })
               }
             >
-              Order
+              {t("plans.dedicated.order")}
             </OrderButton>
           </div>
         ))}
@@ -167,7 +175,7 @@ export function DedicatedPlansTab({
       {inventory.length === 0 && (
         <Panel>
           <p className="py-8 text-center text-sm text-muted-foreground">
-            No inventory available in your regions.
+            {t("plans.dedicated.noInventory")}
           </p>
         </Panel>
       )}

@@ -34,7 +34,7 @@ export const cryptobotProvider: PaymentProviderAdapter = {
         currency_type: "fiat",
         fiat: input.currency,
         amount: String(input.amount),
-        description: `Dior Cloud balance top-up ${input.referenceCode}`,
+        description: `DiorHost balance top-up ${input.referenceCode}`,
         payload: JSON.stringify({ top_up_id: input.topUpId, user_id: input.userId }),
         paid_btn_name: "openBot",
         paid_btn_url: input.returnUrl,

@@ -1,4 +1,4 @@
-export const APP_NAME = "Dior Cloud";
+export const APP_NAME = "DiorHost";
 export const APP_TAGLINE = "Bulletproof infrastructure";
 /** Favicon served from the main marketing site */
 export const BRAND_FAVICON_URL = "https://dior.host/favicon.ico";
