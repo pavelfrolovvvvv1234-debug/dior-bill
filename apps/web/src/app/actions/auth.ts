@@ -9,7 +9,7 @@ import { AppError } from "@dior/shared";
 export type LoginActionResult =
   | {
       ok: true;
-      user: { id: string; email: string; role: string; avatarUrl: string | null };
+      user: { id: string; email: string | null; role: string; avatarUrl: string | null };
     }
   | { ok: false; error: string };
 
