@@ -4,27 +4,44 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { login, register, loginWithTelegram, logout } from "@dior/backend";
 import { COOKIE_NAME, SESSION_TTL, verifySessionToken } from "@dior/backend";
+import { AppError } from "@dior/shared";
 
-export async function loginAction(formData: FormData) {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const { token, user } = await login({ email, password });
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: SESSION_TTL,
-    path: "/",
-  });
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
-    },
-  };
+export type LoginActionResult =
+  | {
+      ok: true;
+      user: { id: string; email: string; role: string; avatarUrl: string | null };
+    }
+  | { ok: false; error: string };
+
+export async function loginAction(formData: FormData): Promise<LoginActionResult> {
+  try {
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const { token, user } = await login({ email, password });
+    const cookieStore = await cookies();
+    cookieStore.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: SESSION_TTL,
+      path: "/",
+    });
+    return {
+      ok: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  } catch (err) {
+    if (err instanceof AppError) {
+      return { ok: false, error: err.message };
+    }
+    console.error("[loginAction]", err);
+    return { ok: false, error: "Login failed. Please try again." };
+  }
 }
 
 export async function registerAction(formData: FormData) {

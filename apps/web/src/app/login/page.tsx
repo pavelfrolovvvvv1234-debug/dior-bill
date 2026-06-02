@@ -26,6 +26,10 @@ export default function LoginPage() {
     try {
       const formData = new FormData(e.currentTarget);
       const result = await loginAction(formData);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setUser(result.user);
       router.push(isStaffRole(result.user.role) ? "/control" : "/dashboard");
       router.refresh();
