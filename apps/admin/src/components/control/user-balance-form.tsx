@@ -11,9 +11,11 @@ import { formatMoney } from "@/lib/utils";
 export function UserBalanceForm({
   userId,
   currentBalance,
+  balanceLocked = 0,
 }: {
   userId: string;
   currentBalance: number;
+  balanceLocked?: number;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -22,6 +24,8 @@ export function UserBalanceForm({
   const [success, setSuccess] = useState<string | null>(null);
   const [type, setType] = useState<"credit" | "debit">("credit");
   const balance = Number.isFinite(currentBalance) ? currentBalance : 0;
+  const locked = Number.isFinite(balanceLocked) ? balanceLocked : 0;
+  const available = Math.max(0, balance - locked);
 
   return (
     <form

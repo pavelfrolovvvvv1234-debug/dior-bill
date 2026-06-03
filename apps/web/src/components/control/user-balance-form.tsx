@@ -11,9 +11,11 @@ import { formatMoney } from "@/lib/utils";
 export function UserBalanceForm({
   userId,
   currentBalance,
+  balanceLocked = 0,
 }: {
   userId: string;
   currentBalance: number;
+  balanceLocked?: number;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -22,6 +24,8 @@ export function UserBalanceForm({
   const [success, setSuccess] = useState<string | null>(null);
   const [type, setType] = useState<"credit" | "debit">("credit");
   const balance = Number.isFinite(currentBalance) ? currentBalance : 0;
+  const locked = Number.isFinite(balanceLocked) ? balanceLocked : 0;
+  const available = Math.max(0, balance - locked);
 
   return (
     <form
@@ -62,10 +66,19 @@ export function UserBalanceForm({
         });
       }}
     >
-      <p className="text-sm text-[var(--muted-foreground)]">
-        Current balance:{" "}
-        <span className="font-medium text-foreground">{formatMoney(balance)}</span>
-      </p>
+      <div className="space-y-1 text-sm text-[var(--muted-foreground)]">
+        <p>
+          Total balance:{" "}
+          <span className="font-medium text-foreground">{formatMoney(balance)}</span>
+        </p>
+        <p>
+          Available to user:{" "}
+          <span className="font-medium text-foreground">{formatMoney(available)}</span>
+          {locked > 0 && (
+            <span className="ml-1 text-xs">({formatMoney(locked)} locked)</span>
+          )}
+        </p>
+      </div>
 
       <div className="flex flex-wrap gap-3">
         <label className="text-xs">

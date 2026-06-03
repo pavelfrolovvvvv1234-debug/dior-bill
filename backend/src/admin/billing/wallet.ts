@@ -1,6 +1,7 @@
 import { prisma } from "@dior/database";
 import { NotFoundError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
+import { invalidateUserDashboardCache } from "../../users";
 import { requirePermission } from "../rbac";
 import { toMoney } from "./serialize";
 
@@ -32,6 +33,8 @@ export async function adminSetBalanceLock(
     entityId: userId,
     metadata: { locked, reason: params.reason, balance },
   });
+
+  await invalidateUserDashboardCache(userId);
 
   return {
     balance: toMoney(updated.balance),
@@ -67,6 +70,8 @@ export async function adminGrantCredits(
     entityId: userId,
     metadata: { amount: params.amount, reason: params.reason, after: afterCredits },
   });
+
+  await invalidateUserDashboardCache(userId);
 
   return { credits: toMoney(updated.credits) };
 }

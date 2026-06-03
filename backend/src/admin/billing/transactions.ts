@@ -2,6 +2,7 @@ import { prisma } from "@dior/database";
 import type { Prisma, TransactionType } from "@dior/database";
 import { NotFoundError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
+import { invalidateUserDashboardCache } from "../../users";
 import { requirePermission } from "../rbac";
 import { toIso, toMoney } from "./serialize";
 
@@ -124,6 +125,8 @@ export async function adminRefundToBalance(
     entityId: userId,
     metadata: { amount: params.amount, reason: params.reason, invoiceId: params.invoiceId },
   });
+
+  await invalidateUserDashboardCache(userId);
 
   return { balance: toMoney(updated.balance) };
 }

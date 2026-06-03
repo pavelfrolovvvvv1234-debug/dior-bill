@@ -2,6 +2,7 @@ import { prisma, type Prisma } from "@dior/database";
 import { NotFoundError, ValidationError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
 import { toJsonValue } from "../../lib/json";
+import { invalidateUserDashboardCache } from "../../users";
 
 export interface WalletSnapshot {
   balance: number;
@@ -75,6 +76,7 @@ export async function creditWallet(params: {
       entityId: result.ledgerId,
       metadata: { amount: params.amount, description: params.description },
     });
+    await invalidateUserDashboardCache(params.userId);
   }
 
   return result;

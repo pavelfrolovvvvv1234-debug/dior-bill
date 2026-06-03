@@ -2,6 +2,7 @@ import { prisma } from "@dior/database";
 import type { Prisma, UserRole, UserStatus } from "@dior/database";
 import { NotFoundError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
+import { invalidateUserDashboardCache } from "../../users";
 import { requirePermission } from "../rbac";
 
 export type AdminUserDetail = {
@@ -248,6 +249,8 @@ export async function adjustUserBalance(
     metadata: { before, after, delta, reason: params.reason },
     ipAddress,
   });
+
+  await invalidateUserDashboardCache(userId);
 
   return updated;
 }

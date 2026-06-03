@@ -12,6 +12,10 @@ export async function getUserById(id: string) {
   return user;
 }
 
+export async function invalidateUserDashboardCache(userId: string): Promise<void> {
+  await cacheDel(`dashboard:${userId}`);
+}
+
 export async function getDashboardStats(userId: string): Promise<DashboardStats> {
   const cacheKey = `dashboard:${userId}`;
   const cached = await cacheGet<DashboardStats>(cacheKey);
@@ -21,7 +25,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { balance: true, credits: true },
+        select: { balance: true, balanceLocked: true, credits: true },
       }),
       prisma.service.count({
         where: { userId, status: "ACTIVE" },
@@ -36,8 +40,12 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
       prisma.notification.count({ where: { userId, read: false } }),
     ]);
 
+  const totalBalance = Number(user?.balance ?? 0);
+  const locked = Number(user?.balanceLocked ?? 0);
+
   const stats: DashboardStats = {
-    balance: Number(user?.balance ?? 0),
+    // Dashboard UI labels this as "available balance" — match billing page.
+    balance: totalBalance - locked,
     credits: Number(user?.credits ?? 0),
     activeServices,
     pendingInvoices,
@@ -54,7 +62,7 @@ export async function updateUserProfile(
   data: { displayName?: string; locale?: string; timezone?: string; theme?: string },
 ) {
   const user = await prisma.user.update({ where: { id: userId }, data });
-  await cacheDel(`dashboard:${userId}`);
+  await invalidateUserDashboardCache(userId);
   return user;
 }
 

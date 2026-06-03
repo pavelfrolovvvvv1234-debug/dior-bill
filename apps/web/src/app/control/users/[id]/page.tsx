@@ -60,7 +60,11 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel title="Balance adjustment">
-            <UserBalanceForm userId={user.id} currentBalance={user.balance} />
+            <UserBalanceForm
+              userId={user.id}
+              currentBalance={financials.wallet.balance}
+              balanceLocked={financials.wallet.balanceLocked}
+            />
           </Panel>
           <Panel title="Wallet controls" description="Lock funds, grant credits, issue refunds">
             <WalletControlsForm
