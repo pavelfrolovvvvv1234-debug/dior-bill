@@ -275,22 +275,72 @@ export async function completeTelegramLink(
     throw new ValidationError("Link expired or invalid");
   }
 
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: row.userId },
+  const targetId = row.userId;
+  const orphan = await prisma.user.findUnique({ where: { telegramId: telegram.id } });
+
+  await prisma.$transaction(async (tx) => {
+    if (orphan && orphan.id !== targetId) {
+      const target = await tx.user.findUnique({ where: { id: targetId } });
+      if (!target) throw new ValidationError("User not found");
+
+      const orphanBalance = Number(orphan.balance);
+      const orphanCredits = Number(orphan.credits);
+      if (orphanBalance > 0 || orphanCredits > 0) {
+        const mergedBalance = Number(target.balance) + orphanBalance;
+        await tx.user.update({
+          where: { id: targetId },
+          data: {
+            balance: mergedBalance,
+            credits: Number(target.credits) + orphanCredits,
+          },
+        });
+        if (orphanBalance > 0) {
+          await tx.transaction.create({
+            data: {
+              userId: targetId,
+              type: "CREDIT",
+              amount: orphanBalance,
+              balanceAfter: mergedBalance,
+              description: "Balance merged from linked Telegram account",
+              metadata: { mergedFromUserId: orphan.id },
+            },
+          });
+        }
+      }
+
+      await tx.user.update({
+        where: { id: orphan.id },
+        data: {
+          telegramId: null,
+          telegramUsername: null,
+          balance: 0,
+          credits: 0,
+          balanceLocked: 0,
+        },
+      });
+    }
+
+    await tx.user.update({
+      where: { id: targetId },
       data: {
         telegramId: telegram.id,
         telegramUsername: telegram.username,
         avatarUrl: telegram.photoUrl ?? undefined,
       },
-    }),
-    prisma.telegramLinkToken.update({
+    });
+    await tx.telegramLinkToken.update({
       where: { id: row.id },
       data: { usedAt: new Date() },
-    }),
-  ]);
+    });
+  });
 
-  return { userId: row.userId };
+  const { refreshUserDashboardCache } = await import("../users");
+  await refreshUserDashboardCache(targetId);
+  if (orphan && orphan.id !== targetId) {
+    await refreshUserDashboardCache(orphan.id);
+  }
+
+  return { userId: targetId };
 }
 
 export async function unlinkTelegram(userId: string, currentPassword: string) {

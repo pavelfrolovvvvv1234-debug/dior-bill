@@ -17,7 +17,12 @@ export async function adjustBalanceAction(
   if (!reason.trim()) {
     throw new Error("Reason is required");
   }
-  await adjustUserBalance(actor.id, userId, { amount, type, reason: reason.trim() });
+  const wallet = await adjustUserBalance(actor.id, userId, {
+    amount,
+    type,
+    reason: reason.trim(),
+  });
   revalidatePath(`/users/${userId}`);
   revalidatePath("/users");
+  return wallet;
 }

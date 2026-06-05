@@ -12,6 +12,8 @@ const PROMO_ERROR_KEYS: Record<string, string> = {
     "promo.balanceOnly",
   PROMO_DB_NOT_READY: "promo.dbNotReady",
   Unauthorized: "promo.unauthorized",
+  "Deploy failed": "plans.deployFailed",
+  "Order failed": "plans.deployFailed",
 };
 
 export function getPromoErrorMessage(message: string, t: (key: string) => string): string {

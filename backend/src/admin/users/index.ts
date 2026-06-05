@@ -2,7 +2,8 @@ import { prisma } from "@dior/database";
 import type { Prisma, UserRole, UserStatus } from "@dior/database";
 import { NotFoundError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
-import { invalidateUserDashboardCache } from "../../users";
+import { refreshUserDashboardCache } from "../../users";
+import { creditWallet, debitWallet } from "../../payments/wallet";
 import { requirePermission } from "../rbac";
 
 export type AdminUserDetail = {
@@ -214,45 +215,59 @@ export async function adjustUserBalance(
   params: { amount: number; type: "credit" | "debit"; reason: string },
   ipAddress?: string,
 ) {
-  await requirePermission(actorId, "users.write");
+  await requirePermission(actorId, "billing.write");
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new NotFoundError();
 
-  const delta = params.type === "credit" ? params.amount : -params.amount;
-  const before = Number(user.balance);
-  const after = before + delta;
-  if (after < 0) throw new Error("Balance cannot be negative");
+  const before = toMoney(user.balance);
+  const description = `Admin adjustment: ${params.reason}`;
 
-  const [updated] = await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: { balance: after },
-    }),
-    prisma.transaction.create({
-      data: {
-        userId,
-        type: params.type === "credit" ? "CREDIT" : "ADJUSTMENT",
-        amount: Math.abs(params.amount),
-        balanceAfter: after,
-        description: `Admin adjustment: ${params.reason}`,
-        metadata: { actorId, reason: params.reason },
-      },
-    }),
-  ]);
+  let after: number;
+  if (params.type === "credit") {
+    const result = await creditWallet({
+      userId,
+      amount: params.amount,
+      description,
+      metadata: { actorId, reason: params.reason, source: "admin_adjustment" },
+      actorId,
+    });
+    after = result.newBalance;
+  } else {
+    const result = await debitWallet({
+      userId,
+      amount: params.amount,
+      description,
+      metadata: { actorId, reason: params.reason, source: "admin_adjustment" },
+      actorId,
+    });
+    after = result.newBalance;
+  }
 
   await createAuditLog({
     actorId,
     action: "user.balance.adjust",
     entityType: "user",
     entityId: userId,
-    metadata: { before, after, delta, reason: params.reason },
+    metadata: { before, after, delta: after - before, reason: params.reason },
     ipAddress,
   });
 
-  await invalidateUserDashboardCache(userId);
+  await refreshUserDashboardCache(userId);
 
-  return updated;
+  const updated = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { balance: true, balanceLocked: true },
+  });
+  if (!updated) throw new NotFoundError();
+
+  const balance = toMoney(updated.balance);
+  const balanceLocked = toMoney(updated.balanceLocked);
+  return {
+    balance,
+    balanceLocked,
+    available: balance - balanceLocked,
+  };
 }
 
 export async function updateAdminUserStatus(

@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { formatMoney } from "@/lib/utils";
 import { DEFAULT_VPS_OS, STANDARD_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
+import { getPromoErrorMessage } from "@/lib/promo-errors";
+import { useI18n } from "@/lib/i18n/store";
 
 interface Location {
   id: string;
@@ -41,6 +43,7 @@ export function VpsDeployForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
+  const { t } = useI18n();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,7 +68,8 @@ export function VpsDeployForm({
       setPurchaseSuccessOpen(true);
     } catch (err) {
       if (!handlePurchaseError(err)) {
-        setError(err instanceof Error ? err.message : "Deploy failed");
+        const message = err instanceof Error ? err.message : "";
+        setError(message ? getPromoErrorMessage(message, t) : t("plans.deployFailed"));
       }
     } finally {
       setLoading(false);

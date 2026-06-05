@@ -16,6 +16,7 @@ import {
   buildTurbovdsTicketCopy,
   type TicketOrderProductLine,
 } from "@/lib/ticket-order-copy";
+import { rethrowServerActionError } from "@/lib/server-action-error";
 
 function parsePromoCode(raw?: string): string | undefined {
   const code = raw?.trim();
@@ -27,12 +28,16 @@ async function assertBalanceForOrder(
   amount: number,
   promoCode?: string,
 ): Promise<void> {
-  let required = amount;
-  if (promoCode) {
-    const quote = await quoteOrderPromo(userId, promoCode, amount);
-    required = quote.finalAmount;
+  try {
+    let required = amount;
+    if (promoCode) {
+      const quote = await quoteOrderPromo(userId, promoCode, amount);
+      required = quote.finalAmount;
+    }
+    await assertSufficientBalance(required);
+  } catch (err) {
+    rethrowServerActionError(err, "Order failed");
   }
-  await assertSufficientBalance(required);
 }
 
 export async function purchaseDedicatedViaTicketAction(input: {

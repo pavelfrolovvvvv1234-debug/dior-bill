@@ -27,6 +27,7 @@ import {
   STANDARD_VPS_LOCATION_DEFS,
 } from "@/lib/vps-plan-locations";
 import { useI18n } from "@/lib/i18n/store";
+import { getPromoErrorMessage } from "@/lib/promo-errors";
 
 interface Location {
   id: string;
@@ -138,7 +139,8 @@ export function VpsPlansTab({
       setPurchaseSuccessOpen(true);
     } catch (err) {
       if (!handlePurchaseError(err)) {
-        setError(err instanceof Error ? err.message : t("plans.deployFailed"));
+        const message = err instanceof Error ? err.message : "";
+        setError(message ? getPromoErrorMessage(message, t) : t("plans.deployFailed"));
       }
     } finally {
       setLoading(false);

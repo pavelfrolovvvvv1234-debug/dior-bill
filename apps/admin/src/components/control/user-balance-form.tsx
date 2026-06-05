@@ -23,8 +23,11 @@ export function UserBalanceForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [type, setType] = useState<"credit" | "debit">("credit");
-  const balance = Number.isFinite(currentBalance) ? currentBalance : 0;
-  const locked = Number.isFinite(balanceLocked) ? balanceLocked : 0;
+  const [displayBalance, setDisplayBalance] = useState(currentBalance);
+  const [displayLocked, setDisplayLocked] = useState(balanceLocked);
+
+  const balance = Number.isFinite(displayBalance) ? displayBalance : 0;
+  const locked = Number.isFinite(displayLocked) ? displayLocked : 0;
   const available = Math.max(0, balance - locked);
 
   return (
@@ -51,11 +54,13 @@ export function UserBalanceForm({
 
         start(async () => {
           try {
-            await adjustBalanceAction(userId, amount, actionType, reason);
+            const wallet = await adjustBalanceAction(userId, amount, actionType, reason);
+            setDisplayBalance(wallet.balance);
+            setDisplayLocked(wallet.balanceLocked);
             setSuccess(
               actionType === "credit"
-                ? `${formatMoney(amount)} credited to balance`
-                : `${formatMoney(amount)} debited from balance`,
+                ? `${formatMoney(amount)} credited — new balance ${formatMoney(wallet.balance)}`
+                : `${formatMoney(amount)} debited — new balance ${formatMoney(wallet.balance)}`,
             );
             formRef.current?.reset();
             setType("credit");
@@ -66,10 +71,19 @@ export function UserBalanceForm({
         });
       }}
     >
-      <p className="text-sm text-[var(--muted-foreground)]">
-        Current balance:{" "}
-        <span className="font-medium text-foreground">{formatMoney(balance)}</span>
-      </p>
+      <div className="space-y-1 text-sm text-[var(--muted-foreground)]">
+        <p>
+          Total balance:{" "}
+          <span className="font-medium text-foreground">{formatMoney(balance)}</span>
+        </p>
+        <p>
+          Available to user:{" "}
+          <span className="font-medium text-foreground">{formatMoney(available)}</span>
+          {locked > 0 && (
+            <span className="ml-1 text-xs">({formatMoney(locked)} locked)</span>
+          )}
+        </p>
+      </div>
 
       <div className="flex flex-wrap gap-3">
         <label className="text-xs">

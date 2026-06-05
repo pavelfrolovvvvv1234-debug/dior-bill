@@ -16,6 +16,12 @@ export async function invalidateUserDashboardCache(userId: string): Promise<void
   await cacheDel(`dashboard:${userId}`);
 }
 
+/** Drop stale dashboard cache and preload fresh stats (balance changes). */
+export async function refreshUserDashboardCache(userId: string): Promise<void> {
+  await invalidateUserDashboardCache(userId);
+  await getDashboardStats(userId);
+}
+
 export async function getDashboardStats(userId: string): Promise<DashboardStats> {
   const cacheKey = `dashboard:${userId}`;
   const cached = await cacheGet<DashboardStats>(cacheKey);
