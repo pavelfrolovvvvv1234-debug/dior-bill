@@ -146,26 +146,20 @@ export function Sidebar({ userRole = "USER" }: SidebarProps) {
               })}
         </nav>
 
-        <div className="border-t border-border p-3">
-          {!collapsed && (
-            <p className="px-1 text-xs text-muted-foreground">
-              {staff ? t("sidebar.controlPlane") : t("sidebar.status")}
-            </p>
-          )}
-          <div className={cn("mt-2", collapsed && "flex justify-center")}>
-            {staff ? (
-              !collapsed && (
-                <p className="px-1 text-xs text-muted-foreground">{t("sidebar.controlPlane")}</p>
-              )
-            ) : (
+        {!staff && (
+          <div className="border-t border-border p-3">
+            {!collapsed && (
+              <p className="px-1 text-xs text-muted-foreground">{t("sidebar.status")}</p>
+            )}
+            <div className={cn("mt-2", collapsed && "flex justify-center")}>
               <StatusIndicator
                 status="operational"
                 label={t("sidebar.allSystemsOperational")}
                 showLabel={!collapsed}
               />
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );
