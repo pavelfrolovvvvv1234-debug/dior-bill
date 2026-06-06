@@ -169,9 +169,13 @@
 
 .transition-premium,
 .transition-enterprise {
-  transition-property: color, background-color, border-color, opacity;
-  transition-duration: 120ms;
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: 140ms;
   transition-timing-function: var(--ease-out);
+}
+
+.transition-enterprise {
+  transition-duration: 160ms;
 }
 
 @layer utilities {
@@ -291,79 +295,138 @@
     scrollbar-gutter: stable;
   }
 
-  @keyframes provision-orbit {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+  .motion-overlay-in {
+    animation: motion-overlay-in 180ms var(--ease-out) both;
   }
 
-  @keyframes provision-pulse-ring {
-    0%,
-    100% {
-      opacity: 0.35;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.85;
-      transform: scale(1.04);
-    }
+  .motion-overlay-out {
+    animation: motion-overlay-out 140ms var(--ease-out) both;
   }
 
-  @keyframes provision-shimmer {
-    from {
-      transform: translateX(-120%);
-    }
-    to {
-      transform: translateX(220%);
-    }
+  .motion-dialog-in {
+    animation: motion-dialog-in 200ms var(--ease-out) both;
   }
 
-  @keyframes provision-step-in {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .motion-dialog-out {
+    animation: motion-dialog-out 160ms var(--ease-out) both;
   }
 
-  @keyframes provision-success-pop {
-    0% {
-      opacity: 0;
-      transform: scale(0.82);
-    }
-    60% {
-      transform: scale(1.04);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
+  .motion-dropdown-in {
+    animation: motion-dropdown-in 160ms var(--ease-out) both;
   }
 
-  .provision-orbit {
-    animation: provision-orbit 3.2s linear infinite;
+  .motion-dropdown-out {
+    animation: motion-dropdown-out 120ms var(--ease-out) both;
   }
 
-  .provision-pulse-ring {
-    animation: provision-pulse-ring 2.4s ease-in-out infinite;
+  .motion-toast-enter {
+    animation: motion-toast-in 200ms var(--ease-out) both;
   }
 
-  .provision-shimmer {
-    animation: provision-shimmer 1.8s ease-in-out infinite;
+  .motion-toast-exit {
+    animation: motion-toast-out 160ms var(--ease-out) forwards;
   }
 
-  .provision-step-in {
-    animation: provision-step-in 320ms var(--ease-out) both;
+  .motion-toast {
+    transition:
+      transform 180ms var(--ease-out),
+      margin 180ms var(--ease-out);
   }
 
-  .provision-success-pop {
-    animation: provision-success-pop 480ms var(--ease-out) both;
+  .card-interactive {
+    transition:
+      border-color 150ms var(--ease-out),
+      box-shadow 180ms var(--ease-out),
+      background-color 140ms var(--ease-out);
+  }
+
+  .card-interactive:hover {
+    border-color: color-mix(in srgb, var(--border) 70%, var(--foreground) 30%);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+}
+
+@keyframes motion-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes motion-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes motion-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 5px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes motion-dialog-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 3px));
+  }
+}
+
+@keyframes motion-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motion-dropdown-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes motion-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motion-toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(10px);
   }
 }
 
@@ -384,69 +447,8 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-@keyframes auth-meter-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes auth-rule-in {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes auth-check-pop {
-  0% {
-    transform: scale(0.6);
-  }
-  70% {
-    transform: scale(1.08);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes auth-field-error-in {
-  from {
-    opacity: 0;
-    transform: translateY(-2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.auth-password-meter-in {
-  animation: auth-meter-in 420ms var(--ease-out, ease-out) both;
-}
-
-.auth-password-rule {
-  animation: auth-rule-in 360ms var(--ease-out, ease-out) both;
-}
-
-.auth-password-check {
-  animation: auth-check-pop 320ms var(--ease-out, ease-out) both;
-}
-
-.auth-password-bar {
-  box-shadow: 0 0 12px color-mix(in srgb, currentColor 25%, transparent);
-}
-
 .auth-field-error-in {
-  animation: auth-field-error-in 280ms var(--ease-out, ease-out) both;
+  animation: motion-toast-in 180ms var(--ease-out) both;
 }
 
 .shell-bg {
@@ -488,5 +490,16 @@
   }
   100% {
     transform: translateX(400%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

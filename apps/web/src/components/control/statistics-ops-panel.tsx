@@ -75,7 +75,7 @@ export function StatisticsOpsPanel({ stats }: { stats: PurchasePeriodStats }) {
               key={item.labelKey}
               href={item.href}
               className={cn(
-                "group flex items-center gap-4 rounded-xl border px-4 py-3.5 transition-all",
+                "group card-interactive flex items-center gap-4 rounded-xl border px-4 py-3.5",
                 active ? toneStyles[item.tone] : "border-border bg-muted/20 opacity-60 hover:opacity-100",
                 "hover:border-border/80 hover:shadow-sm",
               )}

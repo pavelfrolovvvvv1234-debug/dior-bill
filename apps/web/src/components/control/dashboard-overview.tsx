@@ -35,8 +35,7 @@ function StatCard({
   const inner = (
     <div
       className={cn(
-        "panel group relative overflow-hidden p-5 transition-all duration-200",
-        href && "hover:border-border/80",
+        "panel card-interactive group relative overflow-hidden p-5",
       )}
     >
       <div className="flex items-start justify-between gap-3">

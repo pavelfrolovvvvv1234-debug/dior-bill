@@ -28,17 +28,10 @@ const SUCCESS_DELAY_MS = 420;
 
 type Phase = "provisioning" | "success";
 
-function ProvisioningOrb() {
+function ProvisioningIndicator() {
   return (
-    <div className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center">
-      <div className="absolute inset-0 rounded-full bg-primary/10 provision-pulse-ring" />
-      <div
-        className="absolute inset-1 rounded-full border border-primary/20 provision-orbit"
-        style={{ borderTopColor: "color-mix(in srgb, var(--primary) 70%, transparent)" }}
-      />
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-primary/35 bg-primary/12 shadow-[0_0_24px_color-mix(in_srgb,var(--primary)_22%,transparent)]">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" strokeWidth={2} />
-      </div>
+    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-primary/25 bg-primary/5">
+      <Loader2 className="h-5 w-5 animate-spin text-primary" strokeWidth={2} />
     </div>
   );
 }
@@ -57,19 +50,17 @@ function ProvisioningSteps({ activeStep }: { activeStep: number }) {
           <li
             key={key}
             className={cn(
-              "flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-all duration-300",
+              "flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-150",
               done && "border-primary/20 bg-primary/[0.06]",
-              current && "border-primary/35 bg-primary/[0.08] shadow-[0_0_0_1px_color-mix(in_srgb,var(--primary)_12%,transparent)]",
-              pending && "border-border/60 bg-transparent opacity-55",
-              (done || current) && "provision-step-in",
+              current && "border-primary/30 bg-primary/[0.07]",
+              pending && "border-border/60 bg-transparent opacity-60",
             )}
-            style={{ animationDelay: `${index * 40}ms` }}
           >
             <span
               className={cn(
-                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold tabular-nums",
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold tabular-nums transition-colors duration-150",
                 done && "border-primary/40 bg-primary/15 text-primary",
-                current && "border-primary/50 bg-primary/20 text-primary",
+                current && "border-primary/45 bg-primary/18 text-primary",
                 pending && "border-border text-muted-foreground",
               )}
             >
@@ -83,7 +74,7 @@ function ProvisioningSteps({ activeStep }: { activeStep: number }) {
             </span>
             <span
               className={cn(
-                "text-sm leading-snug",
+                "text-sm leading-snug transition-colors duration-150",
                 done && "text-foreground/90",
                 current && "font-medium text-foreground",
                 pending && "text-muted-foreground",
@@ -174,7 +165,7 @@ export function PurchaseSuccessDialog({
             </DialogHeader>
 
             <DialogBody className="space-y-5 pt-2">
-              <ProvisioningOrb />
+              <ProvisioningIndicator />
               <ProvisioningSteps activeStep={activeStep} />
 
               <div className="space-y-2 pt-1">
@@ -182,12 +173,11 @@ export function PurchaseSuccessDialog({
                   <span>{t("purchase.provisionProgress")}</span>
                   <span className="tabular-nums">{progress}%</span>
                 </div>
-                <div className="relative h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-500 ease-out"
+                    className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
                     style={{ width: `${progress}%` }}
                   />
-                  <div className="provision-shimmer absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
                 </div>
               </div>
             </DialogBody>
@@ -210,7 +200,7 @@ export function PurchaseSuccessDialog({
             </DialogHeader>
 
             <DialogBody className="text-center">
-              <div className="provision-success-pop mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_32px_color-mix(in_srgb,var(--primary)_18%,transparent)]">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
                 <Check className="h-7 w-7 text-primary" strokeWidth={2.5} />
               </div>
             </DialogBody>

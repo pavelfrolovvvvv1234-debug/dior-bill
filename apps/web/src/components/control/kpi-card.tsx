@@ -18,7 +18,7 @@ export function KpiCard({
   trend?: "up" | "down" | "neutral";
 }) {
   const inner = (
-    <div className="panel p-5 transition-colors hover:border-border/80">
+    <div className="panel card-interactive p-5">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
           {label}

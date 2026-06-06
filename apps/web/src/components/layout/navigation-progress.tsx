@@ -41,7 +41,7 @@ export function NavigationProgress() {
       role="progressbar"
       aria-hidden
     >
-      <div className="h-full w-1/3 animate-[nav-progress_0.8s_ease-in-out_infinite] bg-primary" />
+      <div className="h-full w-1/3 animate-[nav-progress_1.1s_ease-in-out_infinite] bg-primary" />
     </div>
   );
 }

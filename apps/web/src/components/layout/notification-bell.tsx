@@ -101,9 +101,7 @@ export function NotificationBell() {
           sideOffset={8}
           className={cn(
             "z-50 w-80 origin-top-right rounded-lg border border-border bg-card text-card-foreground shadow-float",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "data-[state=open]:motion-dropdown-in data-[state=closed]:motion-dropdown-out",
           )}
         >
           <div className="flex h-10 items-center justify-between gap-2 border-b border-border px-3">

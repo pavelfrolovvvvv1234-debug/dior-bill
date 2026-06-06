@@ -63,7 +63,7 @@ export function PasswordStrengthField({
 
       <div
         className={cn(
-          "grid transition-[grid-template-rows,opacity] duration-500 ease-out",
+          "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
           showMeter ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
         )}
       >
@@ -71,8 +71,7 @@ export function PasswordStrengthField({
           <div
             id={`${id}-strength`}
             className={cn(
-              "auth-password-meter space-y-3 rounded-lg border border-border/80 bg-muted/30 p-3",
-              showMeter && "auth-password-meter-in",
+              "space-y-3 rounded-lg border border-border/80 bg-muted/30 p-3",
             )}
           >
             <div className="space-y-1.5">
@@ -80,7 +79,7 @@ export function PasswordStrengthField({
                 <span className="text-muted-foreground">{strengthTitle}</span>
                 <span
                   className={cn(
-                    "font-medium capitalize transition-colors duration-300",
+                    "font-medium capitalize transition-colors duration-150",
                     strengthLevel === "weak" && "text-red-400",
                     strengthLevel === "fair" && "text-amber-400",
                     strengthLevel === "good" && "text-sky-400",
@@ -93,7 +92,7 @@ export function PasswordStrengthField({
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
-                    "auth-password-bar h-full rounded-full transition-all duration-500 ease-out",
+                    "h-full rounded-full transition-[width,background-color] duration-200 ease-out",
                     STRENGTH_COLORS[strengthLevel],
                   )}
                   style={{ width: `${Math.max(analysis.score, showMeter ? 8 : 0)}%` }}
@@ -102,29 +101,28 @@ export function PasswordStrengthField({
             </div>
 
             <ul className="space-y-1.5">
-              {RULE_ORDER.map((ruleId, index) => {
+              {RULE_ORDER.map((ruleId) => {
                 const rule = analysis.rules.find((r) => r.id === ruleId);
                 const met = rule?.met ?? false;
                 return (
                   <li
                     key={ruleId}
                     className={cn(
-                      "auth-password-rule flex items-center gap-2 text-xs transition-colors duration-300",
+                      "flex items-center gap-2 text-xs transition-colors duration-150",
                       met ? "text-foreground" : "text-muted-foreground",
                     )}
-                    style={{ animationDelay: `${index * 60}ms` }}
                   >
                     <span
                       className={cn(
-                        "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-300",
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-150",
                         met
-                          ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-400 auth-password-check"
+                          ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-400"
                           : "border-border bg-background/60",
                       )}
                     >
                       {met ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : null}
                     </span>
-                    <span className={cn("transition-opacity duration-300", met && "opacity-90")}>
+                    <span className={cn("transition-opacity duration-150", met && "opacity-90")}>
                       {ruleLabels[ruleId]}
                     </span>
                   </li>
