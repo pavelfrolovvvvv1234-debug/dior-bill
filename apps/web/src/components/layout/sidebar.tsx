@@ -155,11 +155,7 @@ export function Sidebar({ userRole = "USER" }: SidebarProps) {
           <div className={cn("mt-2", collapsed && "flex justify-center")}>
             {staff ? (
               !collapsed && (
-                <p className="px-1 text-xs text-muted-foreground">
-                  <FastLink href="/control" className="text-primary hover:underline">
-                    {t("controlNav.openPanel")}
-                  </FastLink>
-                </p>
+                <p className="px-1 text-xs text-muted-foreground">{t("sidebar.controlPlane")}</p>
               )
             ) : (
               <StatusIndicator

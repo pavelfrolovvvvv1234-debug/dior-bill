@@ -35,8 +35,8 @@ function StatCard({
   const inner = (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent p-5 transition-all duration-200",
-        href && "hover:border-white/10 hover:from-white/[0.06]",
+        "panel group relative overflow-hidden p-5 transition-all duration-200",
+        href && "hover:border-border/80",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -51,14 +51,14 @@ function StatCard({
           <Icon className="h-4 w-4" strokeWidth={1.5} />
         </div>
         {href && (
-          <ArrowUpRight className="h-4 w-4 text-[var(--muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
+          <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
         )}
       </div>
-      <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+      <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-      {sub && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{sub}</p>}
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 
@@ -82,11 +82,11 @@ function FeedPanel({
   empty?: boolean;
 }) {
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0f18]/60">
-      <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+    <section className="panel flex flex-col overflow-hidden">
+      <div className="panel-header !flex-row !items-start">
         <div>
-          <h2 className="text-sm font-medium">{title}</h2>
-          <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{description}</p>
+          <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
         <Link
           href={href}
@@ -104,11 +104,11 @@ function FeedPanel({
 function EmptyFeed({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.02]">
-        <AlertCircle className="h-4 w-4 text-[var(--muted-foreground)]" strokeWidth={1.5} />
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-muted/30">
+        <AlertCircle className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
-      <p className="text-sm text-[var(--muted-foreground)]">Nothing here yet</p>
-      <p className="mt-1 max-w-[220px] text-xs text-[var(--muted-foreground)]/70">{label}</p>
+      <p className="text-sm text-muted-foreground">Nothing here yet</p>
+      <p className="mt-1 max-w-[220px] text-xs text-muted-foreground/70">{label}</p>
     </div>
   );
 }
@@ -129,16 +129,16 @@ function FeedRow({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 border-b border-white/[0.04] px-5 py-3.5 text-sm transition-colors last:border-0 hover:bg-white/[0.02]"
+      className="flex items-center gap-3 border-b border-border px-5 py-3.5 text-sm transition-colors last:border-0 hover:bg-muted/20"
     >
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{primary}</p>
         {secondary && (
-          <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">{secondary}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{secondary}</p>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        {meta && <span className="text-xs tabular-nums text-[var(--muted-foreground)]">{meta}</span>}
+        {meta && <span className="text-xs tabular-nums text-muted-foreground">{meta}</span>}
         {badge}
       </div>
     </Link>

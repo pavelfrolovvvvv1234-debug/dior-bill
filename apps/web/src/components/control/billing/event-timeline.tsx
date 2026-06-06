@@ -12,7 +12,7 @@ export function EventTimeline({
   return (
     <Timeline
       lineClassName="bg-white/10"
-      markerClassName="ring-[#09090b]"
+      markerClassName="ring-background"
       items={events.map((event) => ({
         id: event.id,
         title: event.event,

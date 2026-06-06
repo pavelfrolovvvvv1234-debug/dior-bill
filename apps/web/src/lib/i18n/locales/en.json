@@ -23,6 +23,7 @@
     "analytics": "Analytics",
     "notifications": "Notifications",
     "statistics": "Statistics",
+    "settings": "Settings",
     "openPanel": "Open DiorHost Control →"
   },
   "common": {
@@ -475,7 +476,24 @@
     "creating": "Creating account…",
     "registerFailed": "Registration failed",
     "hasAccount": "Already have an account?",
-    "signInLink": "Sign in"
+    "signInLink": "Sign in",
+    "emailRequired": "Enter your email address",
+    "emailInvalid": "Enter a valid email with a real domain (e.g. name@company.com)",
+    "passwordTooWeak": "Choose a stronger password — at least 8 characters with uppercase, lowercase, and a number",
+    "passwordStrengthTitle": "Password strength",
+    "passwordStrength": {
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    },
+    "passwordRule": {
+      "length": "At least 8 characters",
+      "lower": "Lowercase letter",
+      "upper": "Uppercase letter",
+      "number": "Number",
+      "special": "Special character (recommended)"
+    }
   },
   "promo": {
     "title": "Promo code",

@@ -1,30 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  analyzePassword,
+  APP_NAME,
+  isValidRegistrationEmail,
+  normalizeRegistrationEmail,
+} from "@dior/shared";
 import { registerAction } from "@/app/actions/auth";
+import { PasswordStrengthField } from "@/components/auth/password-strength-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { APP_NAME } from "@dior/shared";
 import { useAuthStore } from "@/stores/auth-store";
 import { useI18n } from "@/lib/i18n/store";
+import { cn } from "@/lib/utils";
 
 export function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { t } = useI18n();
   const setUser = useAuthStore((s) => s.setUser);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const emailError = useMemo(() => {
+    if (!emailTouched) return null;
+    const normalized = normalizeRegistrationEmail(email);
+    if (!normalized) return t("auth.emailRequired");
+    if (!isValidRegistrationEmail(normalized)) return t("auth.emailInvalid");
+    return null;
+  }, [email, emailTouched, t]);
+
+  const passwordAnalysis = useMemo(() => analyzePassword(password), [password]);
+
+  const ruleLabels = useMemo(
+    () => ({
+      length: t("auth.passwordRule.length"),
+      lower: t("auth.passwordRule.lower"),
+      upper: t("auth.passwordRule.upper"),
+      number: t("auth.passwordRule.number"),
+      special: t("auth.passwordRule.special"),
+    }),
+    [t],
+  );
+
+  const strengthLabels = useMemo(
+    () => ({
+      weak: t("auth.passwordStrength.weak"),
+      fair: t("auth.passwordStrength.fair"),
+      good: t("auth.passwordStrength.good"),
+      strong: t("auth.passwordStrength.strong"),
+    }),
+    [t],
+  );
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
+    setEmailTouched(true);
     setError(null);
+
+    const normalized = normalizeRegistrationEmail(email);
+    if (!normalized || !isValidRegistrationEmail(normalized)) {
+      setError(t("auth.emailInvalid"));
+      return;
+    }
+    if (!passwordAnalysis.strongEnough) {
+      setError(t("auth.passwordTooWeak"));
+      return;
+    }
+
+    setLoading(true);
     try {
       const formData = new FormData(e.currentTarget);
+      formData.set("email", normalized);
       const result = await registerAction(formData);
       setUser(result.user);
       router.push("/dashboard");
@@ -35,6 +89,11 @@ export function RegisterForm() {
       setLoading(false);
     }
   }
+
+  const canSubmit =
+    !loading &&
+    isValidRegistrationEmail(normalizeRegistrationEmail(email)) &&
+    passwordAnalysis.strongEnough;
 
   return (
     <div className="auth-page flex min-h-screen flex-col items-center justify-center p-6">
@@ -50,22 +109,50 @@ export function RegisterForm() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input name="email" type="email" placeholder={t("auth.email")} autoComplete="email" required />
-              <Input
-                name="password"
-                type="password"
-                placeholder={t("auth.password")}
-                autoComplete="new-password"
-                required
-                minLength={8}
-              />
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-sm font-medium">
+                  {t("auth.email")}
+                </label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setEmailTouched(true)}
+                  required
+                  className={cn(emailError && "border-destructive focus-visible:ring-destructive/30")}
+                  aria-invalid={emailError ? true : undefined}
+                />
+                {emailError && (
+                  <p className="text-xs text-destructive auth-field-error-in">{emailError}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="text-sm font-medium">
+                  {t("auth.password")}
+                </label>
+                <PasswordStrengthField
+                  value={password}
+                  onChange={setPassword}
+                  placeholder={t("auth.password")}
+                  ruleLabels={ruleLabels}
+                  strengthLabels={strengthLabels}
+                  strengthTitle={t("auth.passwordStrengthTitle")}
+                />
+              </div>
+
               <Input
                 name="referralCode"
                 placeholder="Referral code (optional)"
                 defaultValue={params.get("ref") ?? ""}
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={!canSubmit}>
                 {loading ? t("auth.creating") : t("auth.createAccount")}
               </Button>
             </form>

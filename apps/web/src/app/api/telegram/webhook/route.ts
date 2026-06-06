@@ -26,7 +26,26 @@ export async function POST(req: NextRequest) {
 
   const text = update.message?.text?.trim();
   const from = update.message?.from;
-  if (!text?.startsWith("/start") || !from?.id) {
+  if (!text || !from?.id) {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (text === "/chatid" || text.startsWith("/chatid@")) {
+    await sendTelegramMessage(
+      from.id,
+      [
+        "🆔 <b>Your Telegram chat ID</b>",
+        "",
+        `<code>${from.id}</code>`,
+        "",
+        "Add it to <code>TELEGRAM_ADMIN_CHAT_IDS</code> in server env to receive billing & support alerts.",
+      ].join("\n"),
+      { parse_mode: "HTML" },
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  if (!text.startsWith("/start")) {
     return NextResponse.json({ ok: true });
   }
 

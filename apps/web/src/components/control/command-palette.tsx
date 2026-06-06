@@ -6,6 +6,10 @@ import { Search } from "lucide-react";
 import { CONTROL_NAV } from "@/lib/control-nav";
 import { cn } from "@/lib/utils";
 
+export function openCommandPalette() {
+  window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+}
+
 export function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -36,11 +40,11 @@ export function CommandPalette() {
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-lg overflow-hidden rounded-xl border border-white/10 bg-[#0b1224] shadow-2xl"
+        className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-white/6 px-4">
-          <Search className="h-4 w-4 text-[var(--muted-foreground)]" />
+        <div className="flex items-center gap-2 border-b border-border px-4">
+          <Search className="h-4 w-4 text-muted-foreground" />
           <input
             autoFocus
             value={q}
@@ -48,7 +52,7 @@ export function CommandPalette() {
             placeholder="Search modules…"
             className="h-12 flex-1 bg-transparent text-sm outline-none"
           />
-          <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+          <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
             ESC
           </kbd>
         </div>
@@ -57,7 +61,7 @@ export function CommandPalette() {
             <li key={item.href}>
               <button
                 type="button"
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-white/5"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-muted/40"
                 onClick={() => {
                   router.push(item.href);
                   setOpen(false);
@@ -70,12 +74,31 @@ export function CommandPalette() {
             </li>
           ))}
           {filtered.length === 0 && (
-            <li className="px-4 py-6 text-center text-sm text-[var(--muted-foreground)]">
+            <li className="px-4 py-6 text-center text-sm text-muted-foreground">
               No results
             </li>
           )}
         </ul>
       </div>
     </div>
+  );
+}
+
+export function CommandPaletteTrigger({ className }: { className?: string }) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-premium hover:bg-accent hover:text-foreground",
+        className,
+      )}
+      onClick={() => openCommandPalette()}
+    >
+      <Search className="h-3.5 w-3.5" />
+      <span className="hidden sm:inline">Search…</span>
+      <kbd className="ml-1 hidden rounded border border-border px-1.5 py-0.5 text-[10px] sm:inline">
+        Ctrl K
+      </kbd>
+    </button>
   );
 }

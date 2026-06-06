@@ -88,9 +88,9 @@ export default async function StatisticsPage() {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-xl border border-white/6 bg-white/[0.02] px-4 py-4"
+                className="panel px-4 py-4"
               >
-                <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <item.icon className="h-3.5 w-3.5" strokeWidth={1.75} />
                   {item.label}
                 </div>
@@ -100,7 +100,7 @@ export default async function StatisticsPage() {
           </div>
         </Panel>
 
-        <p className="text-center text-xs text-[var(--muted-foreground)]">
+        <p className="text-center text-xs text-muted-foreground">
           Updated {formatDate(new Date(stats.generatedAt))}
         </p>
       </PageContainer>

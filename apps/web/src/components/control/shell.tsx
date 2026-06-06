@@ -1,5 +1,4 @@
-import { ControlSidebar } from "./sidebar";
-import { ControlTopbar } from "./topbar";
+import { AppShell } from "@/components/layout/app-shell";
 import { CommandPalette } from "./command-palette";
 import type { ControlUser } from "@/lib/control-auth";
 
@@ -11,13 +10,9 @@ export function ControlShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-[#09090b]">
+    <AppShell user={{ email: user.email, role: user.role }}>
       <CommandPalette />
-      <ControlSidebar userRole={user.role} />
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <ControlTopbar user={user} />
-        <main className="flex-1">{children}</main>
-      </div>
-    </div>
+      {children}
+    </AppShell>
   );
 }

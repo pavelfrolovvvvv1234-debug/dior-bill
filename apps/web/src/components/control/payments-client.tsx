@@ -70,7 +70,7 @@ export function AdminPaymentsClient({ initial }: Props) {
       </div>
       <div className="panel overflow-hidden">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/6 bg-white/[0.02]">
+          <thead className="border-b border-border bg-muted/30">
             <tr>
               <th className="p-3 font-medium">Reference</th>
               <th className="p-3 font-medium">User</th>
@@ -80,7 +80,7 @@ export function AdminPaymentsClient({ initial }: Props) {
               <th className="p-3 font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/6">
+          <tbody className="divide-y divide-border">
             {items.map((t) => (
               <tr key={t.id} className="data-row-hover">
                 <td className="p-3 font-mono text-xs">{t.referenceCode}</td>
@@ -90,7 +90,7 @@ export function AdminPaymentsClient({ initial }: Props) {
                 <td className="p-3">{t.provider}</td>
                 <td className="p-3">${Number(t.amount).toFixed(2)}</td>
                 <td className="p-3">
-                  <span className="rounded-md bg-white/10 px-2 py-0.5 text-xs">{t.status}</span>
+                  <span className="rounded-md bg-muted px-2 py-0.5 text-xs">{t.status}</span>
                 </td>
                 <td className="p-3">
                   {t.status === "MANUAL_REVIEW" && (

@@ -24,7 +24,7 @@ export function BillingSubNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-wrap gap-1 rounded-xl border border-white/8 bg-white/[0.02] p-1">
+    <nav className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1">
       {TABS.map((tab) => {
         const active = tab.exact
           ? pathname === tab.href
@@ -34,10 +34,10 @@ export function BillingSubNav() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+              "inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-premium",
               active
-                ? "bg-primary/15 text-primary shadow-sm"
-                : "text-[var(--muted-foreground)] hover:bg-white/5 hover:text-foreground",
+                ? "nav-item-active"
+                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
             )}
           >
             <tab.icon className="h-3.5 w-3.5" strokeWidth={1.75} />

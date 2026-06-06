@@ -18,21 +18,21 @@ export function KpiCard({
   trend?: "up" | "down" | "neutral";
 }) {
   const inner = (
-    <div className="panel p-5 transition-colors hover:border-white/10">
+    <div className="panel p-5 transition-colors hover:border-border/80">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
+        <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
           {label}
         </p>
         {Icon && <Icon className="h-4 w-4 text-primary/70" strokeWidth={1.5} />}
       </div>
       <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-      {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
       {trend && (
         <p
           className={cn(
             "mt-2 text-xs",
-            trend === "up" && "text-[var(--success)]",
-            trend === "down" && "text-[var(--destructive)]",
+            trend === "up" && "text-success",
+            trend === "down" && "text-destructive",
           )}
         >
           {trend === "up" ? "↑" : trend === "down" ? "↓" : "—"} vs last period

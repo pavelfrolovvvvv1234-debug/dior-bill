@@ -16,8 +16,9 @@ import { checkRateLimit } from "../../lib/rate-limit";
 import { enqueueJob } from "../../lib/queue";
 import { createNotification } from "../../notifications";
 import {
-  notifyAdminsManualTopUpPending,
+  notifyAdminsTopUpCreated,
   notifyAdminsTopUpPaid,
+  resolveAdminNotifyUserIds,
 } from "../../telegram";
 import { NOTIFICATION_TYPES } from "@dior/shared";
 import { createHash } from "crypto";
@@ -85,13 +86,15 @@ export async function createTopUp(input: CreateTopUpInput) {
       body: `Reference ${referenceCode} — awaiting support confirmation`,
       link: `/billing/topup/${topUp.id}`,
     });
-    await notifyAdminsManualTopUpPending({
+    await notifyAdminsTopUpCreated({
       topUpId: topUp.id,
       userId: input.userId,
       amount: input.amount,
+      provider: input.provider,
       referenceCode,
-    });
-    await notifyAdminsManualRequest(topUp.id, input.userId, input.amount, referenceCode);
+      status: topUp.status,
+    }).catch((err) => console.warn("[telegram] admin top-up notify:", err));
+    await notifyAdminsInAppTopUp(topUp.id, input.amount, referenceCode, "Manual transfer pending");
     return topUp;
   }
 
@@ -130,6 +133,15 @@ export async function createTopUp(input: CreateTopUpInput) {
       body: `$${input.amount.toFixed(2)} — complete payment to credit your balance`,
       link: `/billing/topup/${topUp.id}`,
     });
+
+    await notifyAdminsTopUpCreated({
+      topUpId: topUp.id,
+      userId: input.userId,
+      amount: input.amount,
+      provider: input.provider,
+      referenceCode,
+      status: updated.status,
+    }).catch((err) => console.warn("[telegram] admin top-up notify:", err));
 
     await enqueueJob("payment.retry", { topUpId: topUp.id, action: "sync" });
 
@@ -420,24 +432,21 @@ async function assertAdmin(userId: string) {
   }
 }
 
-async function notifyAdminsManualRequest(
+async function notifyAdminsInAppTopUp(
   topUpId: string,
-  userId: string,
   amount: number,
   referenceCode: string,
+  title: string,
 ) {
-  const admins = await prisma.user.findMany({
-    where: { role: { in: ["ADMIN", "SUPER_ADMIN", "OPERATOR", "SUPPORT"] } },
-    select: { id: true },
-  });
-  for (const admin of admins) {
+  const adminIds = await resolveAdminNotifyUserIds();
+  for (const adminId of adminIds) {
     await createNotification({
-      userId: admin.id,
+      userId: adminId,
       type: NOTIFICATION_TYPES.BILLING,
-      title: "Manual transfer pending",
+      title,
       body: `$${amount.toFixed(2)} — ref ${referenceCode}`,
-      link: `/payments?topup=${topUpId}`,
-      channels: ["in_app", "telegram"],
+      link: `/billing/top-ups/${topUpId}`,
+      channels: ["in_app"],
     });
   }
 }

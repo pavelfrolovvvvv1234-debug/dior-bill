@@ -11,7 +11,7 @@ export function DataTable({ children, className }: { children: React.ReactNode; 
 export function DataTableHead({ children }: { children: React.ReactNode }) {
   return (
     <thead>
-      <tr className="border-b border-white/6 bg-white/[0.02] text-left text-[11px] font-medium uppercase tracking-widest text-[var(--muted-foreground)]">
+      <tr className="border-b border-border bg-muted/30 text-left text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
         {children}
       </tr>
     </thead>
@@ -31,11 +31,11 @@ export function DataTableTh({
 }
 
 export function DataTableBody({ children }: { children: React.ReactNode }) {
-  return <tbody className="divide-y divide-white/6">{children}</tbody>;
+  return <tbody className="divide-y divide-border">{children}</tbody>;
 }
 
 export function DataTableRow({ children }: { children: React.ReactNode }) {
-  return <tr className="transition-colors hover:bg-white/[0.03]">{children}</tr>;
+  return <tr className="transition-colors hover:bg-muted/20">{children}</tr>;
 }
 
 export function DataTableTd({
@@ -66,7 +66,7 @@ export function DataTableTd({
 export function DataTableEmpty({ message, colSpan }: { message: string; colSpan: number }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="px-4 py-12 text-center text-sm text-[var(--muted-foreground)]">
+      <td colSpan={colSpan} className="px-4 py-12 text-center text-sm text-muted-foreground">
         {message}
       </td>
     </tr>

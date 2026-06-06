@@ -8,11 +8,13 @@ function panelUrl(path: string): string {
     process.env.NEXT_PUBLIC_APP_URL
   )?.replace(/\/$/, "");
   if (!base) return path;
-  const controlPath = path.startsWith("/control") ? path : `/control${path.startsWith("/") ? path : `/${path}`}`;
+  const controlPath = path.startsWith("/control")
+    ? path
+    : `/control${path.startsWith("/") ? path : `/${path}`}`;
   return `${base}${controlPath}`;
 }
 
-function parseChatIdList(...sources: (string | undefined)[]): string[] {
+function parseIdList(...sources: (string | undefined)[]): string[] {
   const ids: string[] = [];
   for (const source of sources) {
     if (!source?.trim()) continue;
@@ -24,27 +26,102 @@ function parseChatIdList(...sources: (string | undefined)[]): string[] {
   return [...new Set(ids)];
 }
 
-/** Telegram chat IDs for general admin alerts. */
-function getAdminNotifyChatIds(): string[] {
-  return parseChatIdList(
+/** Explicit Telegram chat IDs from env (primary admin notify list). */
+function getConfiguredAdminChatIds(): string[] {
+  return parseIdList(
     process.env.TELEGRAM_ADMIN_CHAT_ID,
     process.env.TELEGRAM_ADMIN_CHAT_IDS,
   );
 }
 
-/** Telegram chat IDs for payment alerts — PAYMENT_NOTIFY_TELEGRAM_IDS overrides admin list. */
+/** User IDs whose linked Telegram accounts receive admin alerts. */
+function getConfiguredAdminUserIds(): string[] {
+  return parseIdList(process.env.TELEGRAM_ADMIN_USER_IDS);
+}
+
+/** Payment-only chat IDs — when set, overrides the general admin list for top-ups. */
 function getPaymentNotifyChatIds(): string[] {
-  const dedicated = parseChatIdList(process.env.PAYMENT_NOTIFY_TELEGRAM_IDS);
+  const dedicated = parseIdList(process.env.PAYMENT_NOTIFY_TELEGRAM_IDS);
   if (dedicated.length > 0) return dedicated;
-  return getAdminNotifyChatIds();
+  return getConfiguredAdminChatIds();
 }
 
 function getDiscordWebhookUrls(): string[] {
-  return parseChatIdList(
+  return parseIdList(
     process.env.DISCORD_WEBHOOK_URL,
     process.env.DISCORD_PAYMENT_WEBHOOK_URL,
     process.env.DISCORD_ADMIN_WEBHOOK_URL,
   );
+}
+
+async function resolveTelegramIdsFromUserIds(userIds: string[]): Promise<string[]> {
+  if (userIds.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds }, telegramId: { not: null } },
+    select: { telegramId: true },
+  });
+
+  return users
+    .map((u) => u.telegramId?.toString())
+    .filter((id): id is string => Boolean(id));
+}
+
+/** Resolve Telegram chat IDs for admin alerts (explicit list only, with optional fallback). */
+export async function resolveAdminNotifyChatIds(scope: "all" | "payment" = "all"): Promise<string[]> {
+  const explicitChatIds = scope === "payment" ? getPaymentNotifyChatIds() : getConfiguredAdminChatIds();
+  const fromUsers = await resolveTelegramIdsFromUserIds(getConfiguredAdminUserIds());
+
+  const combined = [...new Set([...explicitChatIds, ...fromUsers])];
+  if (combined.length > 0) return combined;
+
+  if (process.env.TELEGRAM_ADMIN_NOTIFY_FALLBACK === "false") {
+    console.warn("[telegram] admin notify skipped — no TELEGRAM_ADMIN_CHAT_IDS configured");
+    return [];
+  }
+
+  const admins = await prisma.user.findMany({
+    where: {
+      role: { in: [...ADMIN_ROLES] },
+      telegramId: { not: null },
+    },
+    select: { telegramId: true },
+  });
+
+  return admins
+    .map((a) => a.telegramId?.toString())
+    .filter((id): id is string => Boolean(id));
+}
+
+/** Panel user IDs that receive in-app admin alerts (matches Telegram admin list when possible). */
+export async function resolveAdminNotifyUserIds(): Promise<string[]> {
+  const configured = getConfiguredAdminUserIds();
+  if (configured.length > 0) return configured;
+
+  const explicitChatIds = new Set(getConfiguredAdminChatIds());
+  if (explicitChatIds.size > 0) {
+    const admins = await prisma.user.findMany({
+      where: {
+        role: { in: [...ADMIN_ROLES] },
+        telegramId: { not: null },
+      },
+      select: { id: true, telegramId: true },
+    });
+    const matched = admins
+      .filter((a) => a.telegramId && explicitChatIds.has(a.telegramId.toString()))
+      .map((a) => a.id);
+    if (matched.length > 0) return matched;
+  }
+
+  if (process.env.TELEGRAM_ADMIN_NOTIFY_FALLBACK === "false") {
+    return [];
+  }
+
+  const admins = await prisma.user.findMany({
+    where: { role: { in: [...ADMIN_ROLES] } },
+    select: { id: true },
+  });
+  return admins.map((a) => a.id);
 }
 
 async function getUserLabel(userId: string): Promise<string> {
@@ -58,32 +135,23 @@ async function getUserLabel(userId: string): Promise<string> {
   return userId.slice(0, 8);
 }
 
-async function sendTelegramToChatIds(chatIds: string[], html: string): Promise<void> {
-  if (!process.env.TELEGRAM_BOT_TOKEN?.trim()) return;
-
-  const sent = new Set<string>();
-  for (const chatId of chatIds) {
-    const result = await sendTelegramMessage(chatId, html, { parse_mode: "HTML" });
-    if (result.ok) sent.add(chatId);
-    else console.warn("[telegram] notify failed:", chatId, result.reason);
+async function sendTelegramToAdminList(
+  html: string,
+  scope: "all" | "payment" = "all",
+): Promise<void> {
+  if (!process.env.TELEGRAM_BOT_TOKEN?.trim()) {
+    console.warn("[telegram] admin notify skipped — TELEGRAM_BOT_TOKEN not set");
+    return;
   }
 
-  if (chatIds.length > 0) return;
+  const chatIds = await resolveAdminNotifyChatIds(scope);
+  if (chatIds.length === 0) return;
 
-  const admins = await prisma.user.findMany({
-    where: {
-      role: { in: [...ADMIN_ROLES] },
-      telegramId: { not: null },
-    },
-    select: { telegramId: true },
-  });
-
-  for (const admin of admins) {
-    if (!admin.telegramId) continue;
-    const chatId = admin.telegramId.toString();
-    if (sent.has(chatId)) continue;
+  for (const chatId of chatIds) {
     const result = await sendTelegramMessage(chatId, html, { parse_mode: "HTML" });
-    if (result.ok) sent.add(chatId);
+    if (!result.ok) {
+      console.warn("[telegram] admin notify failed:", chatId, result.reason);
+    }
   }
 }
 
@@ -108,7 +176,7 @@ async function sendDiscordToWebhooks(
 }
 
 export async function notifyHostingAdmins(html: string): Promise<void> {
-  await sendTelegramToChatIds(getAdminNotifyChatIds(), html);
+  await sendTelegramToAdminList(html, "all");
 }
 
 export async function notifyPaymentAdmins(params: {
@@ -125,7 +193,7 @@ export async function notifyPaymentAdmins(params: {
     `${whoLines}\n` +
     (link ? `<a href="${link}">${escapeTelegramHtml(params.linkLabel ?? "Open in panel")}</a>` : "");
 
-  await sendTelegramToChatIds(getPaymentNotifyChatIds(), tgHtml);
+  await sendTelegramToAdminList(tgHtml, "payment");
 
   const discordLines = params.lines.join("\n");
   const discordContent = `**${params.title}**\n${discordLines}`;
@@ -139,6 +207,34 @@ export async function notifyPaymentAdmins(params: {
   });
 }
 
+export async function notifyAdminsTopUpCreated(params: {
+  topUpId: string;
+  userId: string;
+  amount: number;
+  provider: string;
+  referenceCode: string;
+  status: string;
+}) {
+  const who = await getUserLabel(params.userId);
+  const title =
+    params.status === "MANUAL_REVIEW"
+      ? "🏦 New manual top-up request"
+      : "💳 New balance top-up";
+
+  await notifyPaymentAdmins({
+    title,
+    lines: [
+      `Amount: $${params.amount.toFixed(2)}`,
+      `Provider: ${params.provider}`,
+      `Status: ${params.status}`,
+      `Ref: ${params.referenceCode}`,
+      `User: ${who}`,
+    ],
+    link: `/billing/top-ups/${params.topUpId}`,
+    linkLabel: params.status === "MANUAL_REVIEW" ? "Review top-up" : "View top-up",
+  });
+}
+
 export async function notifyAdminsTopUpPaid(params: {
   topUpId: string;
   userId: string;
@@ -148,7 +244,7 @@ export async function notifyAdminsTopUpPaid(params: {
 }) {
   const who = await getUserLabel(params.userId);
   await notifyPaymentAdmins({
-    title: "💰 Balance top-up completed",
+    title: "✅ Balance top-up completed",
     lines: [
       `Amount: $${params.amount.toFixed(2)}`,
       `Provider: ${params.provider}`,

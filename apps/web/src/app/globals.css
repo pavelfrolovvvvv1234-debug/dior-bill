@@ -384,6 +384,71 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
+@keyframes auth-meter-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-rule-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes auth-check-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes auth-field-error-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-password-meter-in {
+  animation: auth-meter-in 420ms var(--ease-out, ease-out) both;
+}
+
+.auth-password-rule {
+  animation: auth-rule-in 360ms var(--ease-out, ease-out) both;
+}
+
+.auth-password-check {
+  animation: auth-check-pop 320ms var(--ease-out, ease-out) both;
+}
+
+.auth-password-bar {
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.auth-field-error-in {
+  animation: auth-field-error-in 280ms var(--ease-out, ease-out) both;
+}
+
 .shell-bg {
   background-color: var(--background);
 }
@@ -397,7 +462,7 @@
   isolation: isolate;
 }
 
-/* DIOR CONTROL (/control) */
+/* DIOR CONTROL (/control) — same tokens as customer shell */
 .control-panel {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
@@ -405,7 +470,7 @@
 }
 
 .control-shell-bg {
-  background: #09090b;
+  background-color: var(--background);
 }
 
 /* Legacy alias — keep pages working */

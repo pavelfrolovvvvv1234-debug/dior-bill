@@ -13,6 +13,7 @@ import {
   BarChart3,
   Megaphone,
   PieChart,
+  Settings,
 } from "lucide-react";
 import { hasPermission, type ControlPermission, type UserRole } from "@dior/shared";
 
@@ -50,6 +51,7 @@ export const CONTROL_NAV_ITEMS: ControlNavItem[] = [
     icon: PieChart,
     permission: "analytics.read",
   },
+  { path: "/settings", labelKey: "controlNav.settings", icon: Settings },
 ];
 
 export function getControlNavForRole(role: string): ControlNavItem[] {

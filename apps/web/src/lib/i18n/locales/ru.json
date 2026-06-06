@@ -23,6 +23,7 @@
     "analytics": "Аналитика",
     "notifications": "Рассылки",
     "statistics": "Статистика",
+    "settings": "Настройки",
     "openPanel": "Открыть DiorHost Control →"
   },
   "common": {
@@ -475,7 +476,24 @@
     "creating": "Создание…",
     "registerFailed": "Ошибка регистрации",
     "hasAccount": "Уже есть аккаунт?",
-    "signInLink": "Войти"
+    "signInLink": "Войти",
+    "emailRequired": "Введите email",
+    "emailInvalid": "Укажите корректный email с доменом (например name@company.com)",
+    "passwordTooWeak": "Пароль слабый — минимум 8 символов, заглавные, строчные буквы и цифра",
+    "passwordStrengthTitle": "Надёжность пароля",
+    "passwordStrength": {
+      "weak": "Слабый",
+      "fair": "Средний",
+      "good": "Хороший",
+      "strong": "Надёжный"
+    },
+    "passwordRule": {
+      "length": "Минимум 8 символов",
+      "lower": "Строчная буква",
+      "upper": "Заглавная буква",
+      "number": "Цифра",
+      "special": "Спецсимвол (рекомендуется)"
+    }
   },
   "promo": {
     "title": "Промокод",

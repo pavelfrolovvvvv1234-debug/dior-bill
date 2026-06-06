@@ -6,6 +6,8 @@ import {
   ValidationError,
   generateReferralCode,
   RATE_LIMITS,
+  validateRegistrationEmail,
+  validateRegistrationPassword,
 } from "@dior/shared";
 import { createAuditLog } from "../audit";
 import { hashToken } from "../lib/crypto";
@@ -117,7 +119,10 @@ export async function register(input: RegisterInput) {
   );
   if (!allowed) throw new ValidationError("Too many registration attempts");
 
-  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  const email = validateRegistrationEmail(input.email);
+  validateRegistrationPassword(input.password);
+
+  const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new ConflictError("Email already registered");
 
   let referredById: string | undefined;
@@ -136,7 +141,7 @@ export async function register(input: RegisterInput) {
   const passwordHash = await bcrypt.hash(input.password, 12);
   const user = await prisma.user.create({
     data: {
-      email: input.email,
+      email,
       passwordHash,
       referralCode,
       referredById,

@@ -1,6 +1,7 @@
 import { prisma, type TicketPriority } from "@dior/database";
 import { toJsonValue } from "../lib/json";
-import { notifyAdminsNewTicket } from "../telegram";
+import { createNotification } from "../notifications";
+import { notifyAdminsNewTicket, resolveAdminNotifyUserIds } from "../telegram";
 
 export async function createTicketRecord(params: {
   userId: string;
@@ -32,6 +33,18 @@ export async function createTicketRecord(params: {
     subject: params.subject,
     body: firstMessage,
   }).catch((err) => console.warn("[telegram] new ticket notify:", err));
+
+  const adminIds = await resolveAdminNotifyUserIds();
+  for (const adminId of adminIds) {
+    await createNotification({
+      userId: adminId,
+      type: "support",
+      title: "New support ticket",
+      body: params.subject,
+      link: `/control/support/${ticket.id}`,
+      channels: ["in_app"],
+    }).catch((err) => console.warn("[ticket] admin in-app notify:", err));
+  }
 
   return ticket;
 }
