@@ -147,24 +147,24 @@ function FeedRow({
 
 export function DashboardOverview({ data }: Props) {
   const { kpis } = data;
-  const attentionCount = kpis.topUpsAwaiting + kpis.failedTopUps + kpis.openTickets;
+  const openTickets = kpis.openTickets;
 
   return (
     <div className="space-y-6">
-      {attentionCount > 0 && (
+      {openTickets > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-3.5">
           <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" strokeWidth={1.5} />
           <p className="text-sm text-amber-100/90">
-            <span className="font-medium">{attentionCount} items</span> need your attention
-            {kpis.topUpsAwaiting > 0 && ` · ${kpis.topUpsAwaiting} top-ups pending`}
-            {kpis.failedTopUps > 0 && ` · ${kpis.failedTopUps} failed payments`}
-            {kpis.openTickets > 0 && ` · ${kpis.openTickets} open tickets`}
+            <span className="font-medium">
+              {openTickets} open ticket{openTickets === 1 ? "" : "s"}
+            </span>{" "}
+            need your attention
           </p>
           <Link
-            href={controlPath("/billing/top-ups?status=MANUAL_REVIEW")}
+            href={controlPath("/support")}
             className="ml-auto text-xs font-medium text-amber-300 hover:text-amber-200"
           >
-            Review queue →
+            Open inbox →
           </Link>
         </div>
       )}
