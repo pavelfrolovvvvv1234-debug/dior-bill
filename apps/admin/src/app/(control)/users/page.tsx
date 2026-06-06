@@ -55,7 +55,6 @@ export default async function UsersPage({
                       <Link href={`/users/${u.id}`} className="font-medium hover:text-primary">
                         {u.email ?? u.telegramUsername ?? u.id.slice(0, 10)}
                       </Link>
-                      <p className="text-xs text-[var(--muted-foreground)]">{u.id}</p>
                     </DataTableTd>
                     <DataTableTd>{u.role}</DataTableTd>
                     <DataTableTd mono>{formatMoney(Number(u.balance))}</DataTableTd>

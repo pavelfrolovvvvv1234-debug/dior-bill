@@ -58,7 +58,6 @@ export default async function UsersPage({
                       <p className="font-medium">
                         {u.email ?? u.telegramUsername ?? u.id.slice(0, 10)}
                       </p>
-                      <p className="text-xs text-[var(--muted-foreground)]">{u.id}</p>
                     </DataTableTd>
                     <DataTableTd>{u.role}</DataTableTd>
                     <DataTableTd mono>{formatMoney(Number(u.balance))}</DataTableTd>
