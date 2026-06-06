@@ -3,7 +3,7 @@ import {
   AlertCircle,
   ArrowUpRight,
   Layers,
-  TrendingUp,
+  LifeBuoy,
   Users,
   Wallet,
 } from "lucide-react";
@@ -178,12 +178,12 @@ export function DashboardOverview({ data }: Props) {
           icon={Wallet}
         />
         <StatCard
-          label="Awaiting payment"
-          value={String(kpis.topUpsAwaiting)}
-          sub={kpis.failedTopUps > 0 ? `${kpis.failedTopUps} failed` : "Pending & review"}
-          href={controlPath("/billing/top-ups?status=MANUAL_REVIEW")}
-          icon={TrendingUp}
-          accent={kpis.topUpsAwaiting > 0 ? "warning" : "default"}
+          label="New tickets"
+          value={String(kpis.openTickets)}
+          sub="Awaiting staff"
+          href={controlPath("/support")}
+          icon={LifeBuoy}
+          accent={kpis.openTickets > 0 ? "warning" : "default"}
         />
         <StatCard
           label="Users"
@@ -195,7 +195,7 @@ export function DashboardOverview({ data }: Props) {
         <StatCard
           label="Active services"
           value={String(kpis.activeServices)}
-          sub={`${kpis.openTickets} open tickets`}
+          sub="Live on platform"
           href={controlPath("/services")}
           icon={Layers}
         />
