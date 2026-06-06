@@ -43,14 +43,17 @@ export function DataTableTd({
   align = "left",
   mono,
   className,
+  title,
 }: {
   children: React.ReactNode;
   align?: "left" | "right";
   mono?: boolean;
   className?: string;
+  title?: string;
 }) {
   return (
     <td
+      title={title}
       className={cn(
         "px-4 py-3",
         align === "right" && "text-right",
