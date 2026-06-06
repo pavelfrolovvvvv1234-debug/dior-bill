@@ -1,6 +1,7 @@
 import { ADMIN_ROLES } from "@dior/shared";
 
-export function isStaffRole(role: string): boolean {
+export function isStaffRole(role: string | null | undefined): boolean {
+  if (!role) return false;
   return (ADMIN_ROLES as readonly string[]).includes(role);
 }
 
