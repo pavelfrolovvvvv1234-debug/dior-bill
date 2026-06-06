@@ -10,6 +10,7 @@
     "migrate": "dotenv -e ../../.env -- prisma migrate dev",
     "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "sql:last-online": "dotenv -e ../../.env -- prisma db execute --schema prisma/schema.prisma --file ../../deploy/sql/add_last_online_at.sql",
     "build": "prisma generate"
   },
   "dependencies": {

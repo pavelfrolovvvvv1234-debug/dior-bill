@@ -9,7 +9,7 @@
     "db:push": "pnpm --filter @dior/database push",
     "db:migrate": "pnpm --filter @dior/database migrate",
     "db:seed": "pnpm --filter @dior/database seed",
-    "db:sql:last-online": "pnpm --filter @dior/database exec dotenv -e ../../.env -- prisma db execute --file ../../deploy/sql/add_last_online_at.sql",
+    "db:sql:last-online": "pnpm --filter @dior/database sql:last-online",
     "worker": "pnpm --filter @dior/api worker",
     "brand:assets": "node scripts/generate-brand-assets.mjs"
   },
