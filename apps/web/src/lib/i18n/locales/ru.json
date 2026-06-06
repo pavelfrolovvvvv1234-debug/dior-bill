@@ -26,6 +26,62 @@
     "settings": "Настройки",
     "openPanel": "Открыть DiorHost Control →"
   },
+  "controlStatistics": {
+    "title": "Статистика",
+    "description": "Главные цифры по биллингу, росту и поддержке",
+    "kpi": {
+      "revenue30": "Выручка за 30 дней",
+      "revenue7Hint": "{amount} за 7 дней",
+      "netCredited30": "Зачислено за 30 дней",
+      "paidTopUpsHint": "{count} оплаченных пополнений",
+      "newUsers30": "Новые пользователи за 30 дней",
+      "newUsersWeekHint": "{count} за неделю",
+      "newServices30": "Новые услуги за 30 дней",
+      "activeServicesHint": "{count} в работе"
+    },
+    "comparison": {
+      "title": "Сравнение периодов",
+      "description": "Ключевые показатели по срокам",
+      "metric": "Показатель",
+      "period24h": "За 24 часа",
+      "period7d": "За 7 дней",
+      "period30d": "За 30 дней",
+      "periodAll": "Всего",
+      "period24hShort": "24ч",
+      "period7dShort": "7д",
+      "period30dShort": "30д",
+      "periodAllShort": "Всё",
+      "topUps": "Пополнения",
+      "topUpsPaid": "оплачено",
+      "grossVolume": "Оборот",
+      "netCredited": "Зачислено",
+      "newUsers": "Новые пользователи",
+      "newServices": "Новые услуги",
+      "invoicesPaid": "Оплаченные счета",
+      "invoiceVolume": "Сумма по счетам",
+      "tickets": "Тикеты",
+      "ticketsOpened": "открыто"
+    },
+    "attention": {
+      "title": "Требует внимания",
+      "description": "За 30 дней — нажми, чтобы открыть",
+      "empty": "За последние 30 дней всё спокойно.",
+      "manualReview": "Ручная проверка",
+      "pendingTopUps": "Ждут оплаты",
+      "failedPayments": "Сбойные платежи",
+      "ticketsOpened": "Новые тикеты",
+      "view": "Открыть →"
+    },
+    "allTime": {
+      "title": "За всё время",
+      "description": "Пополнения и рост платформы с запуска",
+      "totalTopUps": "Всего пополнений",
+      "grossVolume": "Оборот",
+      "usersRegistered": "Пользователей",
+      "servicesCreated": "Услуг создано"
+    },
+    "updated": "Обновлено {date}"
+  },
   "common": {
     "cancel": "Отмена",
     "confirm": "Подтвердить",
@@ -477,6 +533,9 @@
     "registerFailed": "Ошибка регистрации",
     "hasAccount": "Уже есть аккаунт?",
     "signInLink": "Войти",
+    "or": "или",
+    "referralInvite": "Вы перешли по реферальной ссылке — рефовод закрепится автоматически",
+    "referralCodeOptional": "Реферальный код (необязательно)",
     "emailRequired": "Введите email",
     "emailInvalid": "Укажите корректный email с доменом (например name@company.com)",
     "passwordTooWeak": "Пароль слабый — минимум 8 символов, заглавные, строчные буквы и цифра",

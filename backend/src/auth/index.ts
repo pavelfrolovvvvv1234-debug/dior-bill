@@ -10,6 +10,7 @@ import {
   validateRegistrationPassword,
 } from "@dior/shared";
 import { createAuditLog } from "../audit";
+import { resolveReferrerId } from "../referrals/resolve-referrer";
 import { hashToken } from "../lib/crypto";
 import { checkRateLimit } from "../lib/rate-limit";
 import { createSessionToken } from "../lib/session";
@@ -125,13 +126,7 @@ export async function register(input: RegisterInput) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new ConflictError("Email already registered");
 
-  let referredById: string | undefined;
-  if (input.referralCode) {
-    const referrer = await prisma.user.findUnique({
-      where: { referralCode: input.referralCode },
-    });
-    if (referrer) referredById = referrer.id;
-  }
+  const referral = await resolveReferrerId(input.referralCode);
 
   let referralCode = generateReferralCode();
   while (await prisma.user.findUnique({ where: { referralCode } })) {
@@ -144,7 +139,7 @@ export async function register(input: RegisterInput) {
       email,
       passwordHash,
       referralCode,
-      referredById,
+      referredById: referral.referredById,
       lastOnlineAt: new Date(),
     },
   });
@@ -164,6 +159,13 @@ export async function register(input: RegisterInput) {
     entityType: "user",
     entityId: user.id,
     ipAddress: input.ipAddress,
+    metadata: referral.normalizedCode
+      ? {
+          referralCode: referral.normalizedCode,
+          referralAttributed: referral.attributed,
+          referrerId: referral.referredById ?? null,
+        }
+      : undefined,
   });
 
   return { user, token };
@@ -234,13 +236,7 @@ export async function loginWithTelegram(input: TelegramAuthInput) {
   const isNewUser = !user;
 
   if (!user) {
-    let referredById: string | undefined;
-    if (input.referralCode) {
-      const referrer = await prisma.user.findUnique({
-        where: { referralCode: input.referralCode },
-      });
-      if (referrer) referredById = referrer.id;
-    }
+    const referral = await resolveReferrerId(input.referralCode);
 
     let referralCode = generateReferralCode();
     while (await prisma.user.findUnique({ where: { referralCode } })) {
@@ -256,7 +252,7 @@ export async function loginWithTelegram(input: TelegramAuthInput) {
         displayName,
         avatarUrl: input.photo_url,
         referralCode,
-        referredById,
+        referredById: referral.referredById,
         lastOnlineAt: new Date(),
       },
     });
@@ -268,7 +264,16 @@ export async function loginWithTelegram(input: TelegramAuthInput) {
       entityType: "user",
       entityId: user.id,
       ipAddress: input.ipAddress,
-      metadata: { telegramId: input.id.toString() },
+      metadata: {
+        telegramId: input.id.toString(),
+        ...(referral.normalizedCode
+          ? {
+              referralCode: referral.normalizedCode,
+              referralAttributed: referral.attributed,
+              referrerId: referral.referredById ?? null,
+            }
+          : {}),
+      },
     });
   } else {
     if (user.status !== "ACTIVE") {

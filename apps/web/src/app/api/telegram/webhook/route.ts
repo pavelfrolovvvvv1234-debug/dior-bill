@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { completeTelegramLink, sendTelegramMessage, escapeTelegramHtml } from "@dior/backend";
+import { buildReferralCaptureUrl, buildReferralLink } from "@dior/shared";
 
 type TelegramUpdate = {
   message?: {
@@ -75,7 +76,8 @@ export async function POST(req: NextRequest) {
   const payload = text.replace(/^\/start\s*/, "").trim();
   const refCode = payload.startsWith("ref_") ? payload.slice(4) : "";
   const loginUrl = `${appUrl}/login`;
-  const registerUrl = refCode ? `${appUrl}/register?ref=${encodeURIComponent(refCode)}` : `${appUrl}/register`;
+  const registerUrl = refCode ? buildReferralCaptureUrl(refCode, appUrl) : `${appUrl}/register`;
+  const shareUrl = refCode ? buildReferralLink(refCode) : undefined;
   const name = escapeTelegramHtml(from.first_name ?? "there");
 
   await sendTelegramMessage(
@@ -86,7 +88,9 @@ export async function POST(req: NextRequest) {
       "<b>DiorHost</b> — bulletproof hosting & billing.",
       "",
       `🔐 Sign in on the site (Telegram button): ${loginUrl}`,
-      refCode ? `📝 Register with your referral: ${registerUrl}` : `📝 New here: ${registerUrl}`,
+      refCode
+        ? `📝 Register with your referral: ${registerUrl}${shareUrl ? `\n🔗 Share link: ${shareUrl}` : ""}`
+        : `📝 New here: ${registerUrl}`,
       "",
       "The same account works on the website and in this bot.",
     ].join("\n"),

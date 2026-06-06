@@ -2,7 +2,7 @@
 
 import { FastLink } from "@/components/ui/fast-link";
 import { useI18n } from "@/lib/i18n/store";
-import { Plus, ArrowRight, History, FileText, Wallet } from "lucide-react";
+import { Plus, History, FileText, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { KpiCard } from "@/components/ui/enterprise/kpi-card";
@@ -93,12 +93,6 @@ export function BillingOverview({ wallet, invoices, transactions }: BillingOverv
               <FastLink href="/billing/transactions">
                 <History className="mr-1.5 h-3.5 w-3.5" />
                 {t("billing.wallet.transactions")}
-              </FastLink>
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 gap-1" asChild>
-              <FastLink href="/billing/topup">
-                {t("billing.wallet.paymentCenter")}
-                <ArrowRight className="h-3.5 w-3.5" />
               </FastLink>
             </Button>
           </div>

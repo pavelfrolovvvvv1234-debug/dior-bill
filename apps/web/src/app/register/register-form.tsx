@@ -8,17 +8,24 @@ import {
   APP_NAME,
   isValidRegistrationEmail,
   normalizeRegistrationEmail,
+  normalizeReferralCode,
 } from "@dior/shared";
 import { registerAction } from "@/app/actions/auth";
 import { PasswordStrengthField } from "@/components/auth/password-strength-field";
+import { TelegramLoginButton } from "@/components/auth/telegram-login-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/stores/auth-store";
 import { useI18n } from "@/lib/i18n/store";
+import { readReferralCookieClient } from "@/lib/referral-client";
 import { cn } from "@/lib/utils";
 
-export function RegisterForm() {
+type RegisterFormProps = {
+  initialReferralCode?: string;
+};
+
+export function RegisterForm({ initialReferralCode }: RegisterFormProps) {
   const router = useRouter();
   const params = useSearchParams();
   const { t } = useI18n();
@@ -28,6 +35,20 @@ export function RegisterForm() {
   const [emailTouched, setEmailTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const referralCode = useMemo(() => {
+    const fromUrl = normalizeReferralCode(params.get("ref"));
+    const fromServer = normalizeReferralCode(initialReferralCode);
+    const fromCookie = readReferralCookieClient();
+    return fromUrl ?? fromServer ?? fromCookie ?? "";
+  }, [params, initialReferralCode]);
+
+  const autoReferral = useMemo(() => {
+    const fromUrl = normalizeReferralCode(params.get("ref"));
+    const fromServer = normalizeReferralCode(initialReferralCode);
+    const fromCookie = readReferralCookieClient();
+    return !!(fromUrl ?? fromServer ?? fromCookie);
+  }, [params, initialReferralCode]);
 
   const emailError = useMemo(() => {
     if (!emailTouched) return null;
@@ -60,6 +81,8 @@ export function RegisterForm() {
     [t],
   );
 
+  const loginHref = referralCode ? `/login?ref=${encodeURIComponent(referralCode)}` : "/login";
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setEmailTouched(true);
@@ -79,6 +102,7 @@ export function RegisterForm() {
     try {
       const formData = new FormData(e.currentTarget);
       formData.set("email", normalized);
+      if (referralCode) formData.set("referralCode", referralCode);
       const result = await registerAction(formData);
       setUser(result.user);
       router.push("/dashboard");
@@ -108,6 +132,12 @@ export function RegisterForm() {
             <CardDescription>{t("auth.registerDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
+            {autoReferral && (
+              <p className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary">
+                {t("auth.referralInvite")}
+              </p>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <label htmlFor="email" className="text-sm font-medium">
@@ -146,20 +176,35 @@ export function RegisterForm() {
                 />
               </div>
 
-              <Input
-                name="referralCode"
-                placeholder="Referral code (optional)"
-                defaultValue={params.get("ref") ?? ""}
-              />
+              {referralCode ? (
+                <input type="hidden" name="referralCode" value={referralCode} />
+              ) : (
+                <Input
+                  name="referralCode"
+                  placeholder={t("auth.referralCodeOptional")}
+                />
+              )}
+
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={!canSubmit}>
                 {loading ? t("auth.creating") : t("auth.createAccount")}
               </Button>
             </form>
 
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">{t("auth.or")}</span>
+              </div>
+            </div>
+
+            <TelegramLoginButton referralCode={referralCode || undefined} />
+
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {t("auth.hasAccount")}{" "}
-              <Link href="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+              <Link href={loginHref} className="font-medium text-foreground underline-offset-4 hover:underline">
                 {t("auth.signInLink")}
               </Link>
             </p>

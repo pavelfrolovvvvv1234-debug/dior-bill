@@ -26,6 +26,62 @@
     "settings": "Settings",
     "openPanel": "Open DiorHost Control →"
   },
+  "controlStatistics": {
+    "title": "Statistics",
+    "description": "Key numbers from billing, growth, and support",
+    "kpi": {
+      "revenue30": "Revenue · 30 days",
+      "revenue7Hint": "{amount} in the last 7 days",
+      "netCredited30": "Net credited · 30 days",
+      "paidTopUpsHint": "{count} paid top-ups",
+      "newUsers30": "New users · 30 days",
+      "newUsersWeekHint": "{count} this week",
+      "newServices30": "New services · 30 days",
+      "activeServicesHint": "{count} active"
+    },
+    "comparison": {
+      "title": "Period comparison",
+      "description": "Core metrics across time ranges",
+      "metric": "Metric",
+      "period24h": "Last 24 hours",
+      "period7d": "Last 7 days",
+      "period30d": "Last 30 days",
+      "periodAll": "All time",
+      "period24hShort": "24h",
+      "period7dShort": "7d",
+      "period30dShort": "30d",
+      "periodAllShort": "All",
+      "topUps": "Top-ups",
+      "topUpsPaid": "paid",
+      "grossVolume": "Gross volume",
+      "netCredited": "Net credited",
+      "newUsers": "New users",
+      "newServices": "New services",
+      "invoicesPaid": "Invoices paid",
+      "invoiceVolume": "Invoice volume",
+      "tickets": "Tickets",
+      "ticketsOpened": "opened"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "description": "Last 30 days — click to open",
+      "empty": "Nothing needs attention in the last 30 days.",
+      "manualReview": "Manual review",
+      "pendingTopUps": "Pending top-ups",
+      "failedPayments": "Failed payments",
+      "ticketsOpened": "Tickets opened",
+      "view": "View →"
+    },
+    "allTime": {
+      "title": "All-time snapshot",
+      "description": "Top-ups and platform growth since launch",
+      "totalTopUps": "Total top-ups",
+      "grossVolume": "Gross volume",
+      "usersRegistered": "Users registered",
+      "servicesCreated": "Services created"
+    },
+    "updated": "Updated {date}"
+  },
   "common": {
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -477,6 +533,9 @@
     "registerFailed": "Registration failed",
     "hasAccount": "Already have an account?",
     "signInLink": "Sign in",
+    "or": "or",
+    "referralInvite": "You came from a referral link — your referrer will be linked automatically",
+    "referralCodeOptional": "Referral code (optional)",
     "emailRequired": "Enter your email address",
     "emailInvalid": "Enter a valid email with a real domain (e.g. name@company.com)",
     "passwordTooWeak": "Choose a stronger password — at least 8 characters with uppercase, lowercase, and a number",

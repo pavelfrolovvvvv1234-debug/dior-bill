@@ -4,14 +4,6 @@ import { AffiliateDashboard } from "@/components/referrals/affiliate-dashboard";
 import { requireSession } from "@/lib/auth";
 import { getAffiliateTiers, getReferralDashboard } from "@dior/backend";
 
-function resolveReferralLink(code: string, backendLink: string) {
-  if (backendLink.startsWith("http://") || backendLink.startsWith("https://")) {
-    return backendLink;
-  }
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  return `${base}/register?ref=${code}`;
-}
-
 export default async function ReferralsPage() {
   const session = await requireSession();
   const [data, tiers] = await Promise.all([
@@ -19,7 +11,7 @@ export default async function ReferralsPage() {
     getAffiliateTiers(),
   ]);
 
-  const referralLink = resolveReferralLink(data.referralCode, data.referralLink);
+  const referralLink = data.referralLink;
 
   return (
     <>

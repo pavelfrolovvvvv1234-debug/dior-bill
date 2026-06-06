@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { login, register, loginWithTelegram, logout } from "@dior/backend";
 import { COOKIE_NAME, SESSION_TTL, verifySessionToken } from "@dior/backend";
 import { AppError } from "@dior/shared";
+import { clearReferralCookie, resolveRegistrationReferralCode } from "@/lib/referral";
 
 export type LoginActionResult =
   | {
@@ -47,11 +48,13 @@ export async function loginAction(formData: FormData): Promise<LoginActionResult
 export async function registerAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const referralCode = formData.get("referralCode") as string | undefined;
+  const referralCode = await resolveRegistrationReferralCode(
+    formData.get("referralCode") as string | undefined,
+  );
   const { token, user } = await register({
     email,
     password,
-    referralCode: referralCode || undefined,
+    referralCode,
   });
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
@@ -61,6 +64,7 @@ export async function registerAction(formData: FormData) {
     maxAge: SESSION_TTL,
     path: "/",
   });
+  await clearReferralCookie();
   return {
     user: {
       id: user.id,
@@ -89,9 +93,10 @@ export async function telegramLoginAction(
     h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? undefined;
   const userAgent = h.get("user-agent") ?? undefined;
 
+  const resolvedReferral = await resolveRegistrationReferralCode(referralCode);
   const { token, user } = await loginWithTelegram({
     ...data,
-    referralCode: referralCode?.trim() || undefined,
+    referralCode: resolvedReferral,
     ipAddress,
     userAgent,
   });
@@ -103,6 +108,7 @@ export async function telegramLoginAction(
     maxAge: SESSION_TTL,
     path: "/",
   });
+  await clearReferralCookie();
   return {
     user: {
       id: user.id,

@@ -1,6 +1,13 @@
 import { prisma, type Prisma } from "@dior/database";
 import { toJsonValue } from "../lib/json";
-import { DEFAULT_REFERRAL_PERCENT, NotFoundError, ValidationError } from "@dior/shared";
+import {
+  buildReferralLink,
+  DEFAULT_REFERRAL_PERCENT,
+  NotFoundError,
+  ValidationError,
+} from "@dior/shared";
+
+export { resolveReferrerId, type ReferrerResolution } from "./resolve-referrer";
 
 export async function getReferralDashboard(userId: string) {
   const user = await prisma.user.findUnique({
@@ -57,7 +64,7 @@ export async function getReferralDashboard(userId: string) {
 
   return {
     referralCode: user.referralCode,
-    referralLink: `${(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "")}/register?ref=${user.referralCode}`,
+    referralLink: buildReferralLink(user.referralCode),
     tier: user.affiliateTier,
     percent,
     totalEarnings: Number(earnings._sum.amount ?? 0),
