@@ -3,7 +3,6 @@ import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { BillingOverviewSection } from "@/components/billing/billing-overview-section";
 import { BillingOverviewSkeleton } from "@/components/billing/billing-skeletons";
-import { AddFundsHeaderAction } from "@/components/billing/add-funds-header-action";
 
 export default function BillingPage() {
   return (
@@ -15,7 +14,6 @@ export default function BillingPage() {
           { labelKey: "breadcrumbs.overview", href: "/dashboard" },
           { labelKey: "breadcrumbs.billing" },
         ]}
-        actions={<AddFundsHeaderAction />}
       />
       <PageContainer>
         <Suspense fallback={<BillingOverviewSkeleton />}>
