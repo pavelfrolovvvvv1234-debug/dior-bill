@@ -93,7 +93,7 @@ export function StatisticsOpsPanel({ stats }: { stats: PurchasePeriodStats }) {
                 <p className="text-xs text-muted-foreground">{t(item.labelKey)}</p>
                 <p className="text-xl font-semibold tabular-nums tracking-tight">{item.count}</p>
               </div>
-              <span className="text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+              <span className="reveal-muted text-xs text-muted-foreground">
                 {t("controlStatistics.attention.view")}
               </span>
             </Link>

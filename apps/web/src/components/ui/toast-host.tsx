@@ -33,7 +33,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: str
   return (
     <div
       className={cn(
-        "pointer-events-auto glass shadow-float rounded-lg border p-4 motion-toast",
+        "pointer-events-auto rounded-lg border border-border bg-card p-4 motion-toast",
         exiting ? "motion-toast-exit" : "motion-toast-enter",
         STYLES[toast.variant],
       )}

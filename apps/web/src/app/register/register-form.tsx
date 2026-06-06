@@ -157,7 +157,7 @@ export function RegisterForm({ initialReferralCode }: RegisterFormProps) {
                   aria-invalid={emailError ? true : undefined}
                 />
                 {emailError && (
-                  <p className="text-xs text-destructive auth-field-error-in">{emailError}</p>
+                  <p className="text-xs text-destructive">{emailError}</p>
                 )}
               </div>
 

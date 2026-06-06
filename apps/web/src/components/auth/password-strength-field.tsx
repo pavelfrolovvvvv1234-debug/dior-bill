@@ -63,8 +63,8 @@ export function PasswordStrengthField({
 
       <div
         className={cn(
-          "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
-          showMeter ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          "grid transition-[grid-template-rows] duration-150 ease-out",
+          showMeter ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
         <div className="overflow-hidden">

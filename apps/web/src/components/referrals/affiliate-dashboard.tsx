@@ -201,7 +201,7 @@ export function AffiliateDashboard({
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border">
                     <div
-                      className="h-full rounded-full bg-primary transition-all"
+                      className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
                       style={{ width: `${tierProgress}%` }}
                     />
                   </div>

@@ -16,7 +16,7 @@ type OrderButtonProps = {
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "ghost" | "destructive" | "secondary" | "link";
   onAllowed?: () => void | Promise<void>;
-  /** Show premium provisioning + success flow after order completes */
+  /** Show order confirmation dialog after checkout */
   showSuccessFlow?: boolean;
 };
 

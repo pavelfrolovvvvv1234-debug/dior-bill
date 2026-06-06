@@ -50,7 +50,7 @@ function StatCard({
           <Icon className="h-4 w-4" strokeWidth={1.5} />
         </div>
         {href && (
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+          <ArrowUpRight className="reveal-muted h-4 w-4 text-muted-foreground" />
         )}
       </div>
       <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">

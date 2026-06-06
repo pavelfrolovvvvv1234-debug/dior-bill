@@ -21,7 +21,7 @@ export default async function InvoiceDetailPage({
         ]}
       />
       <PageContainer className="max-w-3xl">
-        <Suspense fallback={<div className="h-48 animate-pulse rounded-lg bg-muted" />}>
+        <Suspense fallback={<div className="skeleton-block h-48 rounded-lg" />}>
           <InvoiceDetailSection id={id} />
         </Suspense>
       </PageContainer>

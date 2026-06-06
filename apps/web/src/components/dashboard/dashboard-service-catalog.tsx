@@ -68,7 +68,7 @@ function ServiceCard({ line, bulletproof }: { line: PlanProductLine; bulletproof
         <span className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-foreground/80 group-hover:text-primary">
           {t("dashboard.catalogConfigure")}
           <ArrowRight
-            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+            className="h-3.5 w-3.5 text-muted-foreground"
             strokeWidth={2}
           />
         </span>

@@ -100,7 +100,7 @@ export function NotificationBell() {
           align="end"
           sideOffset={8}
           className={cn(
-            "z-50 w-80 origin-top-right rounded-lg border border-border bg-card text-card-foreground shadow-float",
+            "z-50 w-80 origin-top-right rounded-lg border border-border bg-card text-card-foreground",
             "data-[state=open]:motion-dropdown-in data-[state=closed]:motion-dropdown-out",
           )}
         >

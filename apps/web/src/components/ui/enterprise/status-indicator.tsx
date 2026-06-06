@@ -15,7 +15,6 @@ interface StatusIndicatorProps {
   status: StatusLevel;
   label?: string;
   showLabel?: boolean;
-  pulse?: boolean;
   className?: string;
 }
 
@@ -23,17 +22,13 @@ export function StatusIndicator({
   status,
   label,
   showLabel = true,
-  pulse = false,
   className,
 }: StatusIndicatorProps) {
   const c = config[status] ?? config.unknown;
   return (
     <span className={cn("inline-flex items-center gap-2 text-xs font-medium", className)}>
-      <span className="relative flex h-2 w-2">
-        {pulse && status === "operational" && (
-          <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-40", c.dot)} />
-        )}
-        <span className={cn("relative inline-flex h-2 w-2 rounded-full", c.dot)} />
+      <span className="flex h-2 w-2">
+        <span className={cn("inline-flex h-2 w-2 rounded-full", c.dot)} />
       </span>
       {showLabel && <span className={cn(c.text)}>{label ?? c.label}</span>}
     </span>
