@@ -7,7 +7,7 @@ import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatDate, formatMoney } from "@/lib/utils";
-import { NotFoundError } from "@dior/shared";
+import { isNotFoundError } from "@/lib/app-errors";
 import { notFound } from "next/navigation";
 
 export default async function InvoiceDetailPage({
@@ -22,7 +22,7 @@ export default async function InvoiceDetailPage({
   try {
     invoice = await getAdminInvoiceDetail(actor.id, id);
   } catch (err) {
-    if (err instanceof NotFoundError) notFound();
+    if (isNotFoundError(err)) notFound();
     throw err;
   }
 

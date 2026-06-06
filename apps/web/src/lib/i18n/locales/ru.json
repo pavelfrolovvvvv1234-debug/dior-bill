@@ -4,7 +4,7 @@
     "selectPlan": "Выбор тарифа",
     "myServices": "Мои услуги",
     "billing": "Биллинг",
-    "affiliate": "Партнёрка",
+    "affiliate": "Рефералы",
     "support": "Поддержка",
     "settings": "Настройки",
     "promoCodes": "Промокоды"
@@ -188,7 +188,7 @@
       "description": "Связаться с поддержкой инфраструктуры"
     },
     "referrals": {
-      "title": "Партнёрка",
+      "title": "Рефералы",
       "description": "Реферальная программа и доход"
     },
     "notifications": {
@@ -327,7 +327,7 @@
     "topUpBalance": "Пополнить",
     "openTicket": "Создать тикет",
     "viewServices": "Мои услуги",
-    "referrals": "Партнёрка",
+    "referrals": "Рефералы",
     "noServices": "Нет активных услуг",
     "noServicesHint": "Услуг пока нет — выберите тариф ниже",
     "orderPlan": "Заказать тариф",

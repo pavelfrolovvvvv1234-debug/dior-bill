@@ -23,7 +23,7 @@ export default async function TopUpDetailPage({
   try {
     topUp = await getAdminTopUpDetail(actor.id, id);
   } catch (err) {
-    if (err instanceof NotFoundError) notFound();
+    if (isNotFoundError(err)) notFound();
     throw err;
   }
 
