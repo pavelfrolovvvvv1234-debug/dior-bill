@@ -9,7 +9,6 @@ import { UserBalanceForm } from "@/components/control/user-balance-form";
 import { CreateInvoiceForm } from "@/components/control/billing/create-invoice-form";
 import { ReferralPercentForm } from "@/components/control/billing/referral-percent-form";
 import { UserFinancialPanel } from "@/components/control/billing/user-financial-panel";
-import { WalletControlsForm } from "@/components/control/billing/wallet-controls-form";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney, formatDate } from "@/lib/utils";
@@ -65,14 +64,6 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               userId={user.id}
               currentBalance={financials.wallet.balance}
               balanceLocked={financials.wallet.balanceLocked}
-            />
-          </Panel>
-          <Panel title="Wallet controls" description="Lock funds, grant credits, issue refunds">
-            <WalletControlsForm
-              userId={user.id}
-              balance={financials.wallet.balance}
-              balanceLocked={financials.wallet.balanceLocked}
-              credits={financials.wallet.credits}
             />
           </Panel>
           <Panel title="Create invoice">
