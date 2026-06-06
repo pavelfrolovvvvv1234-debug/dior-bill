@@ -37,9 +37,21 @@ export async function loginAction(formData: FormData): Promise<LoginActionResult
       },
     };
   } catch (err) {
-    if (err instanceof AppError) {
-      return { ok: false, error: err.message };
+    const appMessage =
+      err instanceof AppError
+        ? err.message
+        : typeof err === "object" &&
+            err !== null &&
+            "message" in err &&
+            "statusCode" in err &&
+            typeof (err as AppError).statusCode === "number"
+          ? String((err as AppError).message)
+          : null;
+
+    if (appMessage) {
+      return { ok: false, error: appMessage };
     }
+
     console.error("[loginAction]", err);
     return { ok: false, error: "Login failed. Please try again." };
   }

@@ -5,12 +5,14 @@ import {
   UnauthorizedError,
   ValidationError,
   generateReferralCode,
+  normalizeRegistrationEmail,
   RATE_LIMITS,
   validateRegistrationEmail,
   validateRegistrationPassword,
 } from "@dior/shared";
 import { createAuditLog } from "../audit";
 import { resolveReferrerId } from "../referrals/resolve-referrer";
+import { recordUserLogin } from "./user-timestamps";
 import { hashToken } from "../lib/crypto";
 import { checkRateLimit } from "../lib/rate-limit";
 import { createSessionToken } from "../lib/session";
@@ -180,7 +182,8 @@ export async function login(input: LoginInput) {
   );
   if (!allowed) throw new ValidationError("Too many login attempts");
 
-  const user = await prisma.user.findUnique({ where: { email: input.email } });
+  const email = normalizeRegistrationEmail(input.email);
+  const user = await prisma.user.findUnique({ where: { email } });
   const success = !!(user?.passwordHash && (await bcrypt.compare(input.password, user.passwordHash)));
 
   if (user) {
@@ -200,11 +203,7 @@ export async function login(input: LoginInput) {
 
   await releaseStuckAbuseRestrictions(user.id);
 
-  const now = new Date();
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLoginAt: now, lastLoginIp: input.ipAddress, lastOnlineAt: now },
-  });
+  await recordUserLogin(user.id, input.ipAddress);
 
   const { token } = await createSessionForUser(
     user.id,

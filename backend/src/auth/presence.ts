@@ -7,13 +7,17 @@ export async function touchUserPresence(userId: string, sessionId?: string): Pro
   const now = new Date();
   const staleBefore = new Date(now.getTime() - PRESENCE_TOUCH_INTERVAL_MS);
 
-  await prisma.user.updateMany({
-    where: {
-      id: userId,
-      OR: [{ lastOnlineAt: null }, { lastOnlineAt: { lt: staleBefore } }],
-    },
-    data: { lastOnlineAt: now },
-  });
+  try {
+    await prisma.user.updateMany({
+      where: {
+        id: userId,
+        OR: [{ lastOnlineAt: null }, { lastOnlineAt: { lt: staleBefore } }],
+      },
+      data: { lastOnlineAt: now },
+    });
+  } catch {
+    // Column may be missing until deploy/sql/add_last_online_at.sql is applied.
+  }
 
   if (!sessionId) return;
 
