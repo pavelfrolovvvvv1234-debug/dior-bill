@@ -73,11 +73,12 @@ export async function POST(req: NextRequest) {
   }
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const marketingUrl = (process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://dior.host").replace(/\/$/, "");
   const payload = text.replace(/^\/start\s*/, "").trim();
   const refCode = payload.startsWith("ref_") ? payload.slice(4) : "";
   const loginUrl = `${appUrl}/login`;
   const registerUrl = refCode ? buildReferralCaptureUrl(refCode, appUrl) : `${appUrl}/register`;
-  const shareUrl = refCode ? buildReferralLink(refCode) : undefined;
+  const shareUrl = refCode ? buildReferralLink(refCode, marketingUrl) : undefined;
   const name = escapeTelegramHtml(from.first_name ?? "there");
 
   await sendTelegramMessage(

@@ -64,7 +64,10 @@ export async function getReferralDashboard(userId: string) {
 
   return {
     referralCode: user.referralCode,
-    referralLink: buildReferralLink(user.referralCode),
+    referralLink: buildReferralLink(
+      user.referralCode,
+      (process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://dior.host").replace(/\/$/, ""),
+    ),
     tier: user.affiliateTier,
     percent,
     totalEarnings: Number(earnings._sum.amount ?? 0),

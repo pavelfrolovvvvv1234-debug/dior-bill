@@ -11,15 +11,12 @@ export function normalizeReferralCode(raw: string | null | undefined): string | 
   return code;
 }
 
-export function buildReferralLink(code: string, marketingUrl?: string): string {
-  const base = (marketingUrl ?? process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://dior.host").replace(
-    /\/$/,
-    "",
-  );
+export function buildReferralLink(code: string, marketingUrl = "https://dior.host"): string {
+  const base = marketingUrl.replace(/\/$/, "");
   return `${base}/?ref=${code}`;
 }
 
-export function buildReferralCaptureUrl(code: string, appUrl?: string): string {
-  const base = (appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+export function buildReferralCaptureUrl(code: string, appUrl = "http://localhost:3000"): string {
+  const base = appUrl.replace(/\/$/, "");
   return `${base}/r/${code}`;
 }
