@@ -1,12 +1,15 @@
+import { getSettingsProfile } from "@dior/backend";
 import { PageHeader } from "@/components/control/page-header";
 import { PageContainer } from "@/components/control/page-container";
 import { Panel } from "@/components/control/panel";
+import { LocalizationSettings } from "@/components/settings/localization-settings";
 import { SettingsLogout } from "@/components/settings/settings-logout";
 import { hasPermission } from "@dior/shared";
 import { requireControlSession } from "@/lib/auth";
 
 export default async function SettingsPage() {
   const user = await requireControlSession();
+  const profile = await getSettingsProfile(user.id);
   const role = user.role as import("@dior/shared").UserRole;
 
   const modules = [
@@ -42,6 +45,7 @@ export default async function SettingsPage() {
             <div className="flex justify-between"><dt>API URL</dt><dd className="font-mono text-foreground">{process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002"}</dd></div>
           </dl>
         </Panel>
+        <LocalizationSettings initialLocale={profile.locale} />
         <Panel title="Account">
           <SettingsLogout />
         </Panel>

@@ -9,6 +9,7 @@ export type ControlUser = {
   email: string | null;
   role: string;
   displayName: string | null;
+  locale: string;
 };
 
 export const getControlSession = cache(async (): Promise<ControlUser | null> => {
@@ -24,7 +25,7 @@ export const getControlSession = cache(async (): Promise<ControlUser | null> => 
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true, email: true, role: true, displayName: true, status: true },
+    select: { id: true, email: true, role: true, displayName: true, status: true, locale: true },
   });
 
   if (!user || user.status !== "ACTIVE") return null;

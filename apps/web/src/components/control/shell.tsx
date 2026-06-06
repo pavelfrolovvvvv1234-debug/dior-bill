@@ -10,7 +10,7 @@ export function ControlShell({
   children: React.ReactNode;
 }) {
   return (
-    <AppShell user={{ email: user.email, role: user.role }}>
+    <AppShell user={{ email: user.email, role: user.role, locale: user.locale }}>
       <CommandPalette />
       {children}
     </AppShell>
