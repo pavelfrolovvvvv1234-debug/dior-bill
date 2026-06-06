@@ -8,6 +8,7 @@ import { ValidationError, NotFoundError } from "@dior/shared";
 import { appendDomainEvent } from "../events/store";
 import { enqueueJob } from "../../lib/queue";
 import { initProvisioningJob } from "../../provisioning/state-machine";
+import { notifyAdminsNewService } from "../../telegram";
 import { releaseStuckAbuseRestrictions } from "../abuse/engine";
 
 /**
@@ -137,6 +138,20 @@ export async function createServiceOrder(params: {
       idempotencyKey: `lifecycle:immediate:${params.idempotencyKey}`,
     });
   }
+
+  const created = await prisma.service.findUnique({
+    where: { id: service.id },
+    select: { status: true },
+  });
+
+  await notifyAdminsNewService({
+    serviceId: service.id,
+    userId: params.userId,
+    label: params.label,
+    type: params.type,
+    status: created?.status ?? "PENDING",
+    monthlyPrice: params.monthlyPrice,
+  }).catch((err) => console.warn("[telegram] new service notify:", err));
 
   return { serviceId: service.id };
 }

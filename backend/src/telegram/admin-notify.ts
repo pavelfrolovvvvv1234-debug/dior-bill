@@ -275,6 +275,27 @@ export async function notifyAdminsManualTopUpPending(params: {
   });
 }
 
+export async function notifyAdminsNewService(params: {
+  serviceId: string;
+  userId: string;
+  label: string;
+  type: string;
+  status: string;
+  monthlyPrice: number;
+}) {
+  const who = escapeTelegramHtml(await getUserLabel(params.userId));
+  const link = panelUrl(`/services/${params.serviceId}`);
+  await notifyHostingAdmins(
+    `🖥 <b>New service order</b>\n` +
+      `<b>${escapeTelegramHtml(params.label)}</b>\n` +
+      `Type: ${escapeTelegramHtml(params.type)}\n` +
+      `Status: ${escapeTelegramHtml(params.status)}\n` +
+      `Price: $${params.monthlyPrice.toFixed(2)}/mo\n` +
+      `User: ${who}\n` +
+      `<a href="${link}">Open service</a>`,
+  );
+}
+
 export async function notifyAdminsNewTicket(params: {
   ticketId: string;
   userId: string;

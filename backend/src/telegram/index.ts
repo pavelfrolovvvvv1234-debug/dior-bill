@@ -4,6 +4,7 @@ export {
   notifyAdminsTopUpCreated,
   notifyAdminsTopUpPaid,
   notifyAdminsManualTopUpPending,
+  notifyAdminsNewService,
   notifyAdminsNewTicket,
   notifyAdminsTicketReply,
   resolveAdminNotifyChatIds,
