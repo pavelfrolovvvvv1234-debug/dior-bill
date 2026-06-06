@@ -13,6 +13,7 @@ import { WalletControlsForm } from "@/components/control/billing/wallet-controls
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney, formatDate } from "@/lib/utils";
+import { formatLastOnline, formatLastOnlineTitle } from "@/lib/format-last-online";
 import { notFound } from "next/navigation";
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -86,6 +87,12 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Telegram</dt><dd>{user.telegramUsername ?? "—"}</dd></div>
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Role</dt><dd><Badge variant="outline">{user.role.replace(/_/g, " ")}</Badge></dd></div>
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Created</dt><dd>{formatDate(user.createdAt)}</dd></div>
+              <div className="flex justify-between">
+                <dt className="text-[var(--muted-foreground)]">Last online</dt>
+                <dd title={formatLastOnlineTitle(user.lastOnlineAt, user.lastLoginAt)}>
+                  {formatLastOnline(user.lastOnlineAt, user.lastLoginAt)}
+                </dd>
+              </div>
             </dl>
           </Panel>
           <Panel title="Services">

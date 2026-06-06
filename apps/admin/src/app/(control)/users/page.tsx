@@ -43,7 +43,7 @@ export default async function UsersPage({
               <DataTableTh>Services</DataTableTh>
               <DataTableTh>Spent</DataTableTh>
               <DataTableTh>Status</DataTableTh>
-              <DataTableTh>Last login</DataTableTh>
+              <DataTableTh>Last online</DataTableTh>
             </DataTableHead>
             <DataTableBody>
               {data.items.length === 0 ? (
@@ -65,7 +65,11 @@ export default async function UsersPage({
                       <Badge variant={u.status === "ACTIVE" ? "success" : "warning"}>{u.status}</Badge>
                     </DataTableTd>
                     <DataTableTd className="text-[var(--muted-foreground)]">
-                      {u.lastLoginAt ? formatDate(u.lastLoginAt) : "—"}
+                      {u.lastOnlineAt
+                        ? formatDate(u.lastOnlineAt)
+                        : u.lastLoginAt
+                          ? formatDate(u.lastLoginAt)
+                          : "—"}
                     </DataTableTd>
                   </DataTableRow>
                 ))

@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { formatLastOnline, formatLastOnlineTitle } from "@/lib/format-last-online";
 
 export default async function UsersPage({
   searchParams,
@@ -44,7 +45,7 @@ export default async function UsersPage({
               <DataTableTh>Services</DataTableTh>
               <DataTableTh>Spent</DataTableTh>
               <DataTableTh>Status</DataTableTh>
-              <DataTableTh>Last login</DataTableTh>
+              <DataTableTh>Last online</DataTableTh>
               <DataTableTh align="right"> </DataTableTh>
             </DataTableHead>
             <DataTableBody>
@@ -66,8 +67,11 @@ export default async function UsersPage({
                     <DataTableTd>
                       <Badge variant={u.status === "ACTIVE" ? "success" : "warning"}>{u.status}</Badge>
                     </DataTableTd>
-                    <DataTableTd className="text-[var(--muted-foreground)]">
-                      {u.lastLoginAt ? formatDate(u.lastLoginAt) : "—"}
+                    <DataTableTd
+                      className="text-muted-foreground"
+                      title={formatLastOnlineTitle(u.lastOnlineAt, u.lastLoginAt)}
+                    >
+                      {formatLastOnline(u.lastOnlineAt, u.lastLoginAt)}
                     </DataTableTd>
                     <DataTableTd align="right">
                       <Link

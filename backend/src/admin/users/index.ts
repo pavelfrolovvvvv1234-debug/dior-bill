@@ -15,6 +15,8 @@ export type AdminUserDetail = {
     status: UserStatus;
     balance: number;
     createdAt: string;
+    lastOnlineAt: string | null;
+    lastLoginAt: string | null;
     serviceCount: number;
     referralCount: number;
     ticketCount: number;
@@ -90,6 +92,7 @@ export async function listAdminUsers(
         credits: true,
         lastLoginAt: true,
         lastLoginIp: true,
+        lastOnlineAt: true,
         createdAt: true,
         _count: { select: { services: true, referrals: true } },
       },
@@ -150,6 +153,8 @@ export async function getAdminUserDetail(
       status: true,
       balance: true,
       createdAt: true,
+      lastOnlineAt: true,
+      lastLoginAt: true,
       _count: { select: { services: true, referrals: true, tickets: true } },
     },
   });
@@ -187,6 +192,8 @@ export async function getAdminUserDetail(
       status: user.status,
       balance: toMoney(user.balance),
       createdAt: user.createdAt.toISOString(),
+      lastOnlineAt: user.lastOnlineAt?.toISOString() ?? null,
+      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
       serviceCount: user._count.services,
       referralCount: user._count.referrals,
       ticketCount: user._count.tickets,

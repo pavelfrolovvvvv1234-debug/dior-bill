@@ -2,7 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@dior/database";
-import { verifySessionToken, COOKIE_NAME } from "@dior/backend";
+import { verifySessionToken, COOKIE_NAME, touchUserPresence } from "@dior/backend";
 
 export type SessionUser = {
   id: string;
@@ -54,6 +54,8 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
   });
 
   if (!row?.user || row.user.status !== "ACTIVE") return null;
+
+  void touchUserPresence(row.user.id, row.id).catch(() => {});
 
   const { balance, ...rest } = row.user;
   return {

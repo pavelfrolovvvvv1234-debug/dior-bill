@@ -145,6 +145,7 @@ export async function register(input: RegisterInput) {
       passwordHash,
       referralCode,
       referredById,
+      lastOnlineAt: new Date(),
     },
   });
 
@@ -197,9 +198,10 @@ export async function login(input: LoginInput) {
 
   await releaseStuckAbuseRestrictions(user.id);
 
+  const now = new Date();
   await prisma.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date(), lastLoginIp: input.ipAddress },
+    data: { lastLoginAt: now, lastLoginIp: input.ipAddress, lastOnlineAt: now },
   });
 
   const { token } = await createSessionForUser(
@@ -255,6 +257,7 @@ export async function loginWithTelegram(input: TelegramAuthInput) {
         avatarUrl: input.photo_url,
         referralCode,
         referredById,
+        lastOnlineAt: new Date(),
       },
     });
     await prisma.notificationPreference.create({ data: { userId: user.id } });
@@ -284,6 +287,7 @@ export async function loginWithTelegram(input: TelegramAuthInput) {
         avatarUrl: input.photo_url ?? user.avatarUrl,
         lastLoginAt: new Date(),
         lastLoginIp: input.ipAddress,
+        lastOnlineAt: new Date(),
       },
     });
   }
@@ -345,3 +349,5 @@ export async function getLoginHistory(userId: string, limit = 20) {
     take: limit,
   });
 }
+
+export { touchUserPresence } from "./presence";
