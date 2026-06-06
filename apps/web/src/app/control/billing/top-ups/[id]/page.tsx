@@ -8,6 +8,7 @@ import { EventTimeline } from "@/components/control/billing/event-timeline";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatDate, formatMoney } from "@/lib/utils";
+import { isNotFoundError } from "@/lib/app-errors";
 import { notFound } from "next/navigation";
 
 export default async function TopUpDetailPage({
@@ -21,8 +22,9 @@ export default async function TopUpDetailPage({
   let topUp;
   try {
     topUp = await getAdminTopUpDetail(actor.id, id);
-  } catch {
-    notFound();
+  } catch (err) {
+    if (err instanceof NotFoundError) notFound();
+    throw err;
   }
 
   return (

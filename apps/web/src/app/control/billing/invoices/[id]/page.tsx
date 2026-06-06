@@ -7,6 +7,7 @@ import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatDate, formatMoney } from "@/lib/utils";
+import { NotFoundError } from "@dior/shared";
 import { notFound } from "next/navigation";
 
 export default async function InvoiceDetailPage({
@@ -20,8 +21,9 @@ export default async function InvoiceDetailPage({
   let invoice;
   try {
     invoice = await getAdminInvoiceDetail(actor.id, id);
-  } catch {
-    notFound();
+  } catch (err) {
+    if (err instanceof NotFoundError) notFound();
+    throw err;
   }
 
   return (
@@ -85,7 +87,7 @@ export default async function InvoiceDetailPage({
         <ul className="space-y-2 text-sm">
           {invoice.transactions.map((tx) => (
             <li key={tx.id} className="flex items-center justify-between gap-3">
-              <span>{tx.type} — {tx.description}</span>
+              <span>{tx.type} — {tx.description ?? "—"}</span>
               <span className="font-mono tabular-nums">{formatMoney(tx.amount)}</span>
             </li>
           ))}

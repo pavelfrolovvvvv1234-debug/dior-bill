@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { TopUpStatus } from "@dior/database";
 import { setTopUpStatusAction } from "@/app/actions/billing";
 import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
-const STATUSES: TopUpStatus[] = [
+const TOP_UP_STATUSES = [
   "PENDING",
   "PROCESSING",
   "MANUAL_REVIEW",
@@ -24,7 +23,9 @@ const STATUSES: TopUpStatus[] = [
   "FAILED",
   "EXPIRED",
   "REFUNDED",
-];
+] as const;
+
+type TopUpStatus = (typeof TOP_UP_STATUSES)[number];
 
 const STATUS_LABELS: Record<TopUpStatus, string> = {
   PENDING: "Pending",
@@ -52,7 +53,7 @@ export function TopUpStatusControl({
   const [confirmStatus, setConfirmStatus] = useState<TopUpStatus | null>(null);
   const [reason, setReason] = useState("");
 
-  const current = (STATUSES.includes(status as TopUpStatus) ? status : "PENDING") as TopUpStatus;
+  const current = (TOP_UP_STATUSES.includes(status as TopUpStatus) ? status : "PENDING") as TopUpStatus;
   const locked = current === "PAID" || current === "REFUNDED";
 
   function applyStatus(next: TopUpStatus) {
@@ -128,6 +129,8 @@ export function TopUpStatusControl({
     );
   }
 
+  const selectLabel = pending ? "Saving…" : locked ? STATUS_LABELS[current] : "Change status";
+
   return (
     <div className={cn("flex items-center gap-2", compact && "justify-end")}>
       {!compact && <BillingStatusBadge status={current} />}
@@ -142,21 +145,10 @@ export function TopUpStatusControl({
             compact ? "h-8 w-[9.5rem] text-xs" : "h-9 w-[11rem] text-sm",
           )}
         >
-          <SelectValue>
-            {pending ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving…
-              </span>
-            ) : locked ? (
-              STATUS_LABELS[current]
-            ) : (
-              "Change status"
-            )}
-          </SelectValue>
+          <SelectValue placeholder={selectLabel} />
         </SelectTrigger>
         <SelectContent align="end">
-          {STATUSES.map((s) => (
+          {TOP_UP_STATUSES.map((s) => (
             <SelectItem key={s} value={s} disabled={s === current}>
               {STATUS_LABELS[s]}
             </SelectItem>
