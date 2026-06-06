@@ -31,7 +31,7 @@ export const CONTROL_NAV: ControlNavItem[] = [
   { href: `${BASE}/support`, label: "Tickets", icon: LifeBuoy, permission: "support.read" },
   { href: `${BASE}/promo`, label: "Promo codes", icon: Tag, permission: "promo.read" },
   { href: `${BASE}/referrals`, label: "Referrals", icon: Share2, permission: "referrals.read" },
-  { href: `${BASE}/audit`, label: "Audit log", icon: ScrollText, permission: "audit.read" },
+  { href: `${BASE}/audit`, label: "Logs", icon: ScrollText, permission: "audit.read" },
   {
     href: `${BASE}/notifications`,
     label: "Notifications",

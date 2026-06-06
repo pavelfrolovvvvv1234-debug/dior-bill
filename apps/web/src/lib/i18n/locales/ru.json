@@ -19,7 +19,7 @@
     "promo": "Промокоды",
     "referrals": "Рефералы",
     "security": "Безопасность",
-    "audit": "Аудит",
+    "audit": "Логи",
     "analytics": "Аналитика",
     "notifications": "Рассылки",
     "statistics": "Статистика",
@@ -81,6 +81,11 @@
       "servicesCreated": "Услуг создано"
     },
     "updated": "Обновлено {date}"
+  },
+  "controlLogs": {
+    "title": "Логи",
+    "description": "История действий в админке",
+    "recentEvents": "Последние события"
   },
   "common": {
     "cancel": "Отмена",

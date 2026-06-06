@@ -19,7 +19,7 @@
     "promo": "Promo codes",
     "referrals": "Referrals",
     "security": "Security",
-    "audit": "Audit log",
+    "audit": "Logs",
     "analytics": "Analytics",
     "notifications": "Notifications",
     "statistics": "Statistics",
@@ -81,6 +81,11 @@
       "servicesCreated": "Services created"
     },
     "updated": "Updated {date}"
+  },
+  "controlLogs": {
+    "title": "Logs",
+    "description": "History of control panel actions",
+    "recentEvents": "Recent events"
   },
   "common": {
     "cancel": "Cancel",
