@@ -32,7 +32,7 @@ export function DedicatedPlanCard({
     plan.bandwidth === "Unlimited" ? t("plans.unlimited") : plan.bandwidth;
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-white/6 bg-white/[0.02] p-4 transition-premium hover:border-white/12">
+    <div className="card-interactive flex h-full flex-col rounded-lg border border-border bg-card p-4">
       <p className="text-sm font-semibold leading-snug">{plan.name}</p>
       <div className="mt-3 flex flex-1 flex-col gap-1.5">
         <SpecRow

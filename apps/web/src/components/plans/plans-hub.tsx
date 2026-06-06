@@ -152,6 +152,7 @@ export function PlansHub({
             inventory={inventory}
             title={t("plans.stdDedicatedTitle")}
             catalog={STANDARD_DEDICATED_PLANS}
+            detailedCatalog
             description={t("plans.stdDedicatedDesc")}
           />
         )}

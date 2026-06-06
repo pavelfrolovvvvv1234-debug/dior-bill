@@ -5,7 +5,7 @@ export type DedicatedCatalogPlan = {
   cpu: string;
   ram: string;
   storage?: string;
-  /** Full card layout (bulletproof dedicated) */
+  /** Full card layout (bulletproof + standard dedicated) */
   name?: string;
   cpuCores?: number;
   network?: string;
@@ -30,26 +30,68 @@ export function isDedicatedPlanDetailed(
   );
 }
 
+const STD_NET = { network: "1 Gbps", bandwidth: "Unlimited" } as const;
+
+/** Standard bare-metal — non-abuse-resistant dedicated servers */
 export const STANDARD_DEDICATED_PLANS: readonly DedicatedCatalogPlan[] = [
-  { id: "ded-i7-6700-64", cpu: "i7-6700", ram: "64GB", price: 81 },
-  { id: "ded-i7-8700-64", cpu: "i7-8700", ram: "64GB", price: 99 },
-  { id: "ded-xeon-e3-64", cpu: "Xeon E3", ram: "64GB", price: 108 },
-  { id: "ded-ryzen7-64", cpu: "Ryzen 7", ram: "64GB", price: 126 },
-  { id: "ded-ryzen9-64", cpu: "Ryzen 9", ram: "64GB", price: 135 },
-  { id: "ded-ryzen9-128", cpu: "Ryzen 9", ram: "128GB", price: 171 },
-  { id: "ded-xeon-e3-32", cpu: "Xeon E3", ram: "32GB", price: 72 },
-  { id: "ded-2x-xeon-64", cpu: "2x Xeon", ram: "64GB", price: 99 },
-  { id: "ded-2x-xeon-144", cpu: "2x Xeon", ram: "144GB", price: 144 },
-  { id: "ded-2x-xeon-256", cpu: "2x Xeon", ram: "256GB", price: 198 },
-  { id: "ded-2x-xeon-384", cpu: "2x Xeon", ram: "384GB", price: 252 },
-  { id: "ded-2x-xeon-512", cpu: "2x Xeon", ram: "512GB", price: 315 },
-  { id: "ded-plat-8173-768", cpu: "2x Platinum 8173M", ram: "768GB", price: 405 },
   {
-    id: "ded-plat-8168-4tb",
-    cpu: "2x Platinum 8168",
-    ram: "768GB",
-    storage: "4TB",
-    price: 720,
+    id: "ded-i7-6700-64",
+    name: "Intel Core i7-6700",
+    cpu: "i7-6700",
+    cpuCores: 4,
+    ram: "64 GB",
+    storage: "500 GB SSD / NVMe",
+    ...STD_NET,
+    price: 90,
   },
-  { id: "ded-plat-8168-1024", cpu: "2x Platinum 8168", ram: "1024GB", price: 810 },
+  {
+    id: "ded-i7-8700-64",
+    name: "Intel Core i7-8700",
+    cpu: "i7-8700",
+    cpuCores: 6,
+    ram: "64 GB",
+    storage: "SSD / NVMe",
+    ...STD_NET,
+    price: 110,
+  },
+  {
+    id: "ded-xeon-e3-64",
+    name: "Intel Xeon E3-1240v2",
+    cpu: "Xeon E3-1240v2",
+    cpuCores: 4,
+    ram: "64 GB",
+    storage: "500 GB SSD / NVMe",
+    ...STD_NET,
+    price: 120,
+  },
+  {
+    id: "ded-ryzen7-64",
+    name: "AMD Ryzen 7 3700X",
+    cpu: "Ryzen 7 3700X",
+    cpuCores: 8,
+    ram: "64 GB",
+    storage: "2 TB SSD / NVMe",
+    ...STD_NET,
+    price: 140,
+  },
+  {
+    id: "ded-ryzen9-64",
+    name: "AMD Ryzen 9 3900",
+    cpu: "Ryzen 9 3900",
+    cpuCores: 12,
+    ram: "64 GB",
+    storage: "2 TB SSD / NVMe",
+    ...STD_NET,
+    price: 150,
+  },
+  {
+    id: "ded-ryzen9-128",
+    name: "AMD Ryzen 9 5950X",
+    cpu: "Ryzen 9 5950X",
+    cpuCores: 16,
+    ram: "128 GB",
+    storage: "2 TB SSD / NVMe",
+    ...STD_NET,
+    price: 190,
+  },
 ];
