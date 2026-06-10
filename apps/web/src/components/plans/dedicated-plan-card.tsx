@@ -1,12 +1,10 @@
 "use client";
 
-import { purchaseDedicatedViaTicketAction } from "@/app/actions/ticket-purchase";
-import { OrderButton } from "@/components/plans/order-button";
 import { formatMoney } from "@/lib/utils";
 import type { DedicatedCatalogPlan } from "@/lib/dedicated-plans";
 import { isDedicatedPlanDetailed } from "@/lib/dedicated-plans";
-import type { TicketOrderProductLine } from "@/lib/ticket-order-copy";
 import { useI18n } from "@/lib/i18n/store";
+import { cn } from "@/lib/utils";
 
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
@@ -19,10 +17,12 @@ function SpecRow({ label, value }: { label: string; value: string }) {
 
 export function DedicatedPlanCard({
   plan,
-  productLine,
+  selected,
+  onSelect,
 }: {
   plan: DedicatedCatalogPlan;
-  productLine: Extract<TicketOrderProductLine, "bulletproof-dedicated" | "dedicated">;
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
   const { t } = useI18n();
 
@@ -31,8 +31,8 @@ export function DedicatedPlanCard({
   const bandwidth =
     plan.bandwidth === "Unlimited" ? t("plans.unlimited") : plan.bandwidth;
 
-  return (
-    <div className="card-interactive flex h-full flex-col rounded-lg border border-border bg-card p-4">
+  const content = (
+    <>
       <p className="text-sm font-semibold leading-snug">{plan.name}</p>
       <div className="mt-3 flex flex-1 flex-col gap-1.5">
         <SpecRow
@@ -48,17 +48,21 @@ export function DedicatedPlanCard({
         {formatMoney(plan.price)}
         <span className="text-xs font-normal text-muted-foreground">{t("plans.perMonth")}</span>
       </p>
-      <OrderButton
-        amount={plan.price}
-        className="mt-3 h-9 w-full"
-        variant="outline"
-        size="default"
-        onAllowed={() =>
-          purchaseDedicatedViaTicketAction({ planId: plan.id, productLine })
-        }
-      >
-        {t("plans.dedicated.order")}
-      </OrderButton>
-    </div>
+    </>
   );
+
+  const className = cn(
+    "card-interactive flex h-full w-full flex-col rounded-lg border border-border bg-card p-4 text-left",
+    selected && "border-primary/40 bg-primary/5",
+  );
+
+  if (onSelect) {
+    return (
+      <button type="button" onClick={onSelect} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
 }

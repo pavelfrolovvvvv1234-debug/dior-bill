@@ -8,6 +8,7 @@ import { requireSession } from "@/lib/auth";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
 import { STANDARD_DEDICATED_PLANS } from "@/lib/dedicated-plans";
 import { STANDARD_VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
+import { DEDICATED_COUNTRY_CODES } from "@/lib/dedicated-plan-locations";
 import { STANDARD_VPS_COUNTRY_CODES } from "@/lib/vps-plan-locations";
 import {
   buildDedicatedTicketCopy,
@@ -40,36 +41,96 @@ async function assertBalanceForOrder(
   }
 }
 
-export async function purchaseDedicatedViaTicketAction(input: {
-  planId: string;
-  productLine: "bulletproof-dedicated" | "dedicated";
-  promoCode?: string;
-}) {
+export async function purchaseDedicatedViaTicketAction(
+  input: FormData | {
+    planId: string;
+    productLine: "bulletproof-dedicated" | "dedicated";
+    promoCode?: string;
+  },
+) {
   const session = await requireSession();
+
+  const planId = input instanceof FormData
+    ? String(input.get("planId") ?? "")
+    : input.planId;
+  const productLine = (input instanceof FormData
+    ? String(input.get("productLine") ?? "")
+    : input.productLine) as "bulletproof-dedicated" | "dedicated";
+  const hostname = input instanceof FormData
+    ? String(input.get("hostname") ?? "").trim()
+    : undefined;
+  const locationId = input instanceof FormData
+    ? String(input.get("locationId") ?? "")
+    : "";
+  const os = input instanceof FormData
+    ? String(input.get("os") ?? "debian-12")
+    : undefined;
+  const promoCode = parsePromoCode(
+    input instanceof FormData
+      ? String(input.get("promoCode") ?? "")
+      : input.promoCode,
+  );
+
+  if (productLine !== "bulletproof-dedicated" && productLine !== "dedicated") {
+    throw new Error("Invalid product line");
+  }
+
   const catalog =
-    input.productLine === "bulletproof-dedicated"
+    productLine === "bulletproof-dedicated"
       ? BULLETPROOF_DEDICATED_PLANS
       : STANDARD_DEDICATED_PLANS;
-  const plan = catalog.find((p) => p.id === input.planId);
+  const plan = catalog.find((p) => p.id === planId);
   if (!plan) throw new Error("Plan not found");
 
-  const promoCode = parsePromoCode(input.promoCode);
+  if (input instanceof FormData) {
+    if (!hostname || !locationId) {
+      throw new Error("Fill hostname and region");
+    }
+  }
+
+  let locationLabel: string | undefined;
+  if (locationId) {
+    const locations = await getLocations();
+    const location = locations.find((l) => l.id === locationId);
+    if (!location) throw new Error("Invalid location");
+
+    const allowed = new Set<string>([...DEDICATED_COUNTRY_CODES]);
+    if (!allowed.has(location.country.toUpperCase())) {
+      throw new Error("This region is not available for dedicated servers");
+    }
+
+    locationLabel = location.city
+      ? `${location.name} (${location.city}, ${location.country})`
+      : `${location.name} (${location.country})`;
+  }
+
   await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
-  const copy = buildDedicatedTicketCopy(plan, input.productLine);
+  const copy = buildDedicatedTicketCopy(plan, productLine, {
+    hostname,
+    locationLabel,
+    os,
+  });
   const { ticket } = await purchaseViaSupportTicket({
     userId: session.user.id,
     amount: plan.price,
-    productLine: input.productLine,
+    productLine,
     subject: copy.subject,
     body: copy.body,
     invoiceDescription: copy.invoiceDescription,
-    metadata: { planId: plan.id, productLine: input.productLine },
+    metadata: {
+      planId: plan.id,
+      productLine,
+      ...(hostname ? { hostname } : {}),
+      ...(locationId ? { locationId } : {}),
+      ...(os ? { os } : {}),
+    },
     promoCode,
   });
 
   revalidatePath("/billing");
   revalidatePath("/support");
+  revalidatePath("/plans");
   redirect(`/support/${ticket.id}`);
 }
 

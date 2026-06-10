@@ -1,6 +1,7 @@
 import type { DedicatedCatalogPlan } from "@/lib/dedicated-plans";
 import { isDedicatedPlanDetailed } from "@/lib/dedicated-plans";
 import type { VpsPlan } from "@/lib/vps-plans";
+import { getDedicatedOsLabel } from "@/lib/dedicated-os-options";
 import { BULLETPROOF_VPS_OS_OPTIONS, STANDARD_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
 
 const PRODUCT_LINE_LABELS = {
@@ -35,22 +36,35 @@ export function formatDedicatedConfiguration(plan: DedicatedCatalogPlan): string
 export function buildDedicatedTicketCopy(
   plan: DedicatedCatalogPlan,
   productLine: "bulletproof-dedicated" | "dedicated",
+  options?: {
+    hostname?: string;
+    locationLabel?: string;
+    os?: string;
+  },
 ): { subject: string; body: string; invoiceDescription: string } {
   const lineLabel = getProductLineLabel(productLine);
   const configuration = formatDedicatedConfiguration(plan);
+  const osLabel = options?.os ? getDedicatedOsLabel(options.os) : undefined;
   const title =
     isDedicatedPlanDetailed(plan) && plan.name
       ? plan.name
       : `${plan.cpu} / ${plan.ram}`;
 
+  const invoiceParts = [configuration];
+  if (options?.locationLabel) invoiceParts.push(options.locationLabel);
+  if (osLabel) invoiceParts.push(osLabel);
+
   return {
     subject: `Order: ${lineLabel} — ${title}`,
-    invoiceDescription: `${lineLabel}: ${configuration}`,
+    invoiceDescription: `${lineLabel}: ${invoiceParts.join(" · ")}`,
     body: [
       "Paid order — balance charged. Please provision and reply with access credentials.",
       "",
       `Product: ${lineLabel}`,
       `Configuration: ${configuration}`,
+      ...(options?.hostname ? [`Hostname: ${options.hostname}`] : []),
+      ...(options?.locationLabel ? [`Region: ${options.locationLabel}`] : []),
+      ...(osLabel ? [`OS: ${osLabel}`] : []),
       `Plan ID: ${plan.id}`,
       `Monthly price: $${plan.price.toFixed(2)}`,
       "",

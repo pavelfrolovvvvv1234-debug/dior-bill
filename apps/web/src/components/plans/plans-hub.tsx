@@ -124,10 +124,12 @@ export function PlansHub({
         {tab === "bulletproof-dedicated" && (
           <DedicatedPlansTab
             inventory={inventory}
+            locations={locations}
             bulletproof
             title={t("plans.bpDedicatedTitle")}
             catalog={BULLETPROOF_DEDICATED_PLANS}
             detailedCatalog
+            panelTitle={t("plans.stdVpsPanel")}
             description={t("plans.bpDedicatedDesc")}
           />
         )}
@@ -150,9 +152,11 @@ export function PlansHub({
         {tab === "dedicated" && (
           <DedicatedPlansTab
             inventory={inventory}
+            locations={locations}
             title={t("plans.stdDedicatedTitle")}
             catalog={STANDARD_DEDICATED_PLANS}
             detailedCatalog
+            panelTitle={t("plans.stdVpsPanel")}
             description={t("plans.stdDedicatedDesc")}
           />
         )}

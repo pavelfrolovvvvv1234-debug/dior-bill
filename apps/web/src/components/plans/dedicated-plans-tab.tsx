@@ -1,15 +1,45 @@
 "use client";
 
-import { purchaseDedicatedViaTicketAction, purchaseInventoryDedicatedViaTicketAction } from "@/app/actions/ticket-purchase";
+import { useEffect, useMemo, useState } from "react";
+import {
+  purchaseDedicatedViaTicketAction,
+  purchaseInventoryDedicatedViaTicketAction,
+} from "@/app/actions/ticket-purchase";
+import { checkSufficientBalance } from "@/app/actions/order";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { OrderButton } from "@/components/plans/order-button";
 import { formatMoney } from "@/lib/utils";
 import type { DedicatedCatalogPlan } from "@/lib/dedicated-plans";
 import { isDedicatedPlanDetailed } from "@/lib/dedicated-plans";
 import { DedicatedPlanCard } from "@/components/plans/dedicated-plan-card";
+import {
+  DEFAULT_DEDICATED_OS,
+  DEDICATED_OS_OPTIONS,
+} from "@/lib/dedicated-os-options";
+import {
+  DEDICATED_COUNTRY_CODES,
+  DEDICATED_LOCATION_DEFS,
+} from "@/lib/dedicated-plan-locations";
+import {
+  filterLocationsByCountryCodes,
+  getTranslatedLocationRegionLabel,
+} from "@/lib/vps-plan-locations";
 import type { TicketOrderProductLine } from "@/lib/ticket-order-copy";
+import { handlePurchaseError, toastInsufficientBalance } from "@/lib/toast";
+import { getPromoErrorMessage } from "@/lib/promo-errors";
 import { useI18n } from "@/lib/i18n/store";
+
+type Location = {
+  id: string;
+  name: string;
+  code: string;
+  country: string;
+  city?: string | null;
+};
 
 type InventoryItem = {
   id: string;
@@ -33,7 +63,7 @@ function DedicatedCatalogRow({
     : `${plan.cpu} • ${plan.ram}`;
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-white/6 bg-white/[0.03] px-4 py-3 transition-premium hover:border-white/12 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="font-mono text-sm font-medium tracking-tight">{spec}</p>
       <div className="flex shrink-0 items-center gap-4">
         <span className="text-lg font-semibold tabular-nums">
@@ -43,6 +73,7 @@ function DedicatedCatalogRow({
         <OrderButton
           amount={plan.price}
           className="h-8"
+          showSuccessFlow={false}
           onAllowed={() =>
             purchaseDedicatedViaTicketAction({ planId: plan.id, productLine })
           }
@@ -56,25 +87,213 @@ function DedicatedCatalogRow({
 
 export function DedicatedPlansTab({
   inventory,
+  locations,
   description,
   bulletproof = false,
   title,
   catalog,
   detailedCatalog = false,
+  panelTitle,
 }: {
   inventory: InventoryItem[];
+  locations: Location[];
   description: string;
   bulletproof?: boolean;
   title?: string;
   catalog?: readonly DedicatedCatalogPlan[];
   detailedCatalog?: boolean;
+  panelTitle?: string;
 }) {
   const { t } = useI18n();
+  const detailedPlans = useMemo(
+    () => (catalog ?? []).filter(isDedicatedPlanDetailed),
+    [catalog],
+  );
   const showCatalog = catalog && catalog.length > 0;
   const useDetailedCards =
-    detailedCatalog && catalog?.some((plan) => isDedicatedPlanDetailed(plan));
+    detailedCatalog && detailedPlans.length > 0;
   const productLine: Extract<TicketOrderProductLine, "bulletproof-dedicated" | "dedicated"> =
     bulletproof ? "bulletproof-dedicated" : "dedicated";
+
+  const [selectedPlan, setSelectedPlan] = useState(detailedPlans[0]?.id ?? "");
+  const [locationId, setLocationId] = useState("");
+  const [os, setOs] = useState(DEFAULT_DEDICATED_OS);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const availableLocations = useMemo(() => {
+    let list = filterLocationsByCountryCodes(locations, DEDICATED_COUNTRY_CODES);
+    if (list.length === 0 && locations.length > 0) {
+      const byCode = new Map(locations.map((l) => [l.code, l]));
+      list = DEDICATED_LOCATION_DEFS.map((def) => byCode.get(def.code)).filter(
+        (l): l is Location => l != null,
+      );
+    }
+    const order = DEDICATED_LOCATION_DEFS.map((d) => d.code as string);
+    list.sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
+    return list;
+  }, [locations]);
+
+  useEffect(() => {
+    if (detailedPlans.length > 0 && !detailedPlans.some((p) => p.id === selectedPlan)) {
+      setSelectedPlan(detailedPlans[0].id);
+    }
+  }, [detailedPlans, selectedPlan]);
+
+  useEffect(() => {
+    if (availableLocations.length === 0) {
+      setLocationId("");
+      return;
+    }
+    setLocationId((current) =>
+      availableLocations.some((loc) => loc.id === current) ? current : availableLocations[0].id,
+    );
+  }, [availableLocations]);
+
+  const selected = detailedPlans.find((p) => p.id === selectedPlan);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!selected) return;
+    setLoading(true);
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    form.set("planId", selectedPlan);
+    form.set("productLine", productLine);
+    try {
+      const { sufficient } = await checkSufficientBalance(selected.price);
+      if (!sufficient) {
+        toastInsufficientBalance();
+        setLoading(false);
+        return;
+      }
+      await purchaseDedicatedViaTicketAction(form);
+    } catch (err) {
+      if (!handlePurchaseError(err)) {
+        const message = err instanceof Error ? err.message : "";
+        setError(message ? getPromoErrorMessage(message, t) : t("plans.deployFailed"));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (showCatalog && useDetailedCards) {
+    return (
+      <div className="space-y-8">
+        <div className="space-y-4">
+          {title && <h3 className="text-base font-semibold tracking-tight">{title}</h3>}
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-muted-foreground">{description}</p>
+            {bulletproof ? (
+              <>
+                <Badge variant="muted">{t("plans.dedicated.badgeBpPolicy")}</Badge>
+                <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
+                <Badge variant="muted">{t("plans.dedicated.badgeAbuse")}</Badge>
+              </>
+            ) : (
+              <>
+                <Badge variant="muted">{t("plans.dedicated.badgeSla")}</Badge>
+                <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
+              </>
+            )}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
+            {detailedPlans.map((plan) => (
+              <DedicatedPlanCard
+                key={plan.id}
+                plan={plan}
+                selected={selectedPlan === plan.id}
+                onSelect={() => setSelectedPlan(plan.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <Panel
+          title={panelTitle ?? t("plans.stdVpsPanel")}
+          description={
+            selected
+              ? `${selected.name} · ${formatMoney(selected.price)}${t("plans.perMonth")}`
+              : undefined
+          }
+          allowOverflow
+        >
+          <form onSubmit={handleSubmit} className="mx-auto max-w-xl space-y-4">
+            <input type="hidden" name="planId" value={selectedPlan} />
+            <input type="hidden" name="productLine" value={productLine} />
+            <div className="space-y-2">
+              <label htmlFor="hostname" className="text-sm font-medium">
+                {t("plans.form.hostname")}
+              </label>
+              <Input id="hostname" name="hostname" placeholder="dedi-01" required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t("plans.form.region")}</label>
+              {availableLocations.length === 0 ? (
+                <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  {t("plans.form.regionsLoading")}
+                </p>
+              ) : (
+                <NativeSelect
+                  id="locationId"
+                  name="locationId"
+                  value={locationId}
+                  onChange={(e) => setLocationId(e.target.value)}
+                  required
+                >
+                  {availableLocations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {getTranslatedLocationRegionLabel(loc, t)}
+                    </option>
+                  ))}
+                </NativeSelect>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t("plans.form.os")}</label>
+              <NativeSelect
+                id="os"
+                name="os"
+                value={os}
+                onChange={(e) => setOs(e.target.value)}
+                required
+              >
+                {DEDICATED_OS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="promoCode" className="text-sm font-medium">
+                {t("plans.form.promoCode")}{" "}
+                <span className="font-normal text-muted-foreground">
+                  ({t("plans.form.optional")})
+                </span>
+              </label>
+              <Input
+                id="promoCode"
+                name="promoCode"
+                placeholder="ORDER10"
+                autoComplete="off"
+                className="font-mono uppercase"
+              />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full" disabled={loading || !selectedPlan}>
+              {loading ? t("plans.processing") : t("plans.dedicated.order")}
+            </Button>
+          </form>
+        </Panel>
+
+        {inventory.length > 0 && (
+          <InventorySection inventory={inventory} bulletproof={bulletproof} />
+        )}
+      </div>
+    );
+  }
 
   if (showCatalog) {
     return (
@@ -95,40 +314,52 @@ export function DedicatedPlansTab({
             </>
           )}
         </div>
-        {useDetailedCards ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
+        <Panel
+          title={t("plans.dedicated.availableConfigs")}
+          description={t("plans.dedicated.bareMetalTiers", { count: catalog.length })}
+        >
+          <div className="space-y-2">
             {catalog.map((plan) => (
-              <DedicatedPlanCard key={plan.id} plan={plan} productLine={productLine} />
+              <DedicatedCatalogRow key={plan.id} plan={plan} productLine={productLine} />
             ))}
           </div>
-        ) : (
-          <Panel
-            title={t("plans.dedicated.availableConfigs")}
-            description={t("plans.dedicated.bareMetalTiers", { count: catalog.length })}
-          >
-            <div className="space-y-2">
-              {catalog.map((plan) => (
-                <DedicatedCatalogRow key={plan.id} plan={plan} productLine={productLine} />
-              ))}
-            </div>
-          </Panel>
-        )}
+        </Panel>
       </div>
     );
   }
 
   return (
+    <InventorySection inventory={inventory} bulletproof={bulletproof} title={title} description={description} />
+  );
+}
+
+function InventorySection({
+  inventory,
+  bulletproof,
+  title,
+  description,
+}: {
+  inventory: InventoryItem[];
+  bulletproof: boolean;
+  title?: string;
+  description?: string;
+}) {
+  const { t } = useI18n();
+
+  return (
     <div className="space-y-6">
       {title && <h3 className="text-base font-semibold tracking-tight">{title}</h3>}
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm text-muted-foreground">{description}</p>
-        {bulletproof && <Badge variant="muted">{t("plans.dedicated.badgeBpPolicy")}</Badge>}
-      </div>
+      {description && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">{description}</p>
+          {bulletproof && <Badge variant="muted">{t("plans.dedicated.badgeBpPolicy")}</Badge>}
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {inventory.map((item) => (
           <div
             key={item.id}
-            className="rounded-lg border border-white/6 bg-white/[0.02] p-5 transition-premium hover:border-white/12"
+            className="card-interactive rounded-lg border border-border bg-card p-5"
           >
             <div className="flex items-start justify-between gap-2">
               <p className="font-semibold">{item.name}</p>
@@ -157,6 +388,7 @@ export function DedicatedPlansTab({
               className="mt-4 h-9 w-full"
               variant="outline"
               size="default"
+              showSuccessFlow={false}
               onAllowed={() =>
                 purchaseInventoryDedicatedViaTicketAction({
                   inventoryId: item.id,
