@@ -50,7 +50,7 @@ export type ControlDashboard = {
 export async function getControlDashboard(actorId: string): Promise<ControlDashboard> {
   await requirePermission(actorId, "analytics.read");
 
-  const cacheKey = "control:dashboard:v4";
+  const cacheKey = "control:dashboard:v5";
   const cached = await cacheGet<ControlDashboard>(cacheKey);
   if (cached) return cached;
 
@@ -109,7 +109,7 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
     }),
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
-      take: 15,
+      take: 10,
       select: { id: true, email: true, status: true, createdAt: true },
     }),
     prisma.service.findMany({

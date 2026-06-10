@@ -4,7 +4,8 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash("admin123!", 12);
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD ?? "LDFKGLDKFJvdf.C123";
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
 
   const tiers = await Promise.all([
     prisma.affiliateTier.upsert({
@@ -26,7 +27,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@dior.cloud" },
-    update: {},
+    update: { passwordHash },
     create: {
       email: "admin@dior.cloud",
       passwordHash,

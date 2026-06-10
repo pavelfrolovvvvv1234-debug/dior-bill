@@ -62,10 +62,17 @@ pnpm --filter @dior/admin dev
 
 ### Demo credentials
 
-| Role  | Email            | Password   |
-|-------|------------------|------------|
-| Admin | admin@dior.cloud | admin123!  |
-| User  | demo@dior.cloud  | demo123!   |
+After seed, set or verify admin password:
+
+```bash
+pnpm db:set-password admin@dior.cloud 'your-secure-password'
+pnpm db:verify-password admin@dior.cloud 'your-secure-password'
+```
+
+| Role  | Email            | Notes        |
+|-------|------------------|--------------|
+| Admin | admin@dior.cloud | SUPER_ADMIN  |
+| User  | demo@dior.cloud  | demo123!     |
 
 ## Features
 

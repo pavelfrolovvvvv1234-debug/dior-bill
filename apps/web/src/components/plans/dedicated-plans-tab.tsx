@@ -320,10 +320,6 @@ export function DedicatedPlansTab({
             </Panel>
           </div>
         </div>
-
-        {inventory.length > 0 && (
-          <InventorySection inventory={inventory} bulletproof={bulletproof} />
-        )}
       </div>
     );
   }
