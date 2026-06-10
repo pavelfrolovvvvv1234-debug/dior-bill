@@ -11,6 +11,7 @@ import { STANDARD_VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
 import { DEDICATED_COUNTRY_CODES } from "@/lib/dedicated-plan-locations";
 import {
   BULLETPROOF_OFFSHORE_COUNTRY_CODES,
+  getLocationCountryLabel,
   STANDARD_VPS_COUNTRY_CODES,
 } from "@/lib/vps-plan-locations";
 import {
@@ -109,9 +110,7 @@ export async function purchaseDedicatedViaTicketAction(
       );
     }
 
-    locationLabel = location.city
-      ? `${location.name} (${location.city}, ${location.country})`
-      : `${location.name} (${location.country})`;
+    locationLabel = getLocationCountryLabel(location);
   }
 
   await assertBalanceForOrder(session.user.id, plan.price, promoCode);
@@ -210,9 +209,7 @@ export async function purchaseStandardVpsViaTicketAction(formData: FormData) {
 
   await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
-  const locationLabel = location.city
-    ? `${location.name} (${location.city}, ${location.country})`
-    : `${location.name} (${location.country})`;
+  const locationLabel = getLocationCountryLabel(location);
 
   const copy = buildStandardVpsTicketCopy({
     plan,
@@ -261,9 +258,7 @@ export async function purchaseTurbovdsViaTicketAction(formData: FormData) {
 
   await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
-  const locationLabel = location.city
-    ? `${location.name} (${location.city}, ${location.country})`
-    : `${location.name} (${location.country})`;
+  const locationLabel = getLocationCountryLabel(location);
 
   const copy = buildTurbovdsTicketCopy({
     plan,

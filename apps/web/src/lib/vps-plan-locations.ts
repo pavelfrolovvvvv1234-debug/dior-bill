@@ -28,11 +28,9 @@ export function getLocationCountryLabel(loc: VpsLocationRef): string {
   return loc.name;
 }
 
-/** Region line in order form: "Russia — Moscow" */
+/** Region line in order form — country only */
 export function getLocationRegionLabel(loc: VpsLocationRef): string {
-  const country = getLocationCountryLabel(loc);
-  if (loc.city?.trim()) return `${country} — ${loc.city.trim()}`;
-  return country;
+  return getLocationCountryLabel(loc);
 }
 
 /** Fallback when DB has no RU/BY/AB rows yet (matched by code after ensure on server) */
@@ -108,7 +106,7 @@ export function filterLocationsByCountryCodes<T extends { country: string }>(
 
 type TranslateFn = (key: string, vars?: Record<string, string | number>) => string;
 
-/** Region line in order form with locale-aware country/city labels */
+/** Region line in order form with locale-aware country label */
 export function getTranslatedLocationRegionLabel(
   loc: VpsLocationRef,
   t: TranslateFn,
@@ -116,14 +114,5 @@ export function getTranslatedLocationRegionLabel(
   const cc = loc.country?.toUpperCase() ?? "";
   const countryKey = `locations.countries.${cc}`;
   const translatedCountry = t(countryKey);
-  const country = translatedCountry !== countryKey ? translatedCountry : getLocationCountryLabel(loc);
-
-  if (loc.city?.trim()) {
-    const citySlug = loc.city.trim().toLowerCase().replace(/\s+/g, "-");
-    const cityKey = `locations.cities.${citySlug}`;
-    const translatedCity = t(cityKey);
-    const city = translatedCity !== cityKey ? translatedCity : loc.city.trim();
-    return `${country} — ${city}`;
-  }
-  return country;
+  return translatedCountry !== countryKey ? translatedCountry : getLocationCountryLabel(loc);
 }

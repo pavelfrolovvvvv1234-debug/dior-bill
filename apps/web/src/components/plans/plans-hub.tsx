@@ -138,7 +138,6 @@ export function PlansHub({
             description={t("plans.bpDedicatedDesc")}
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
             allowedCountryCodes={BULLETPROOF_OFFSHORE_COUNTRY_CODES}
-            locationCountryLabels
           />
         )}
         {tab === "vps" && (
@@ -152,7 +151,6 @@ export function PlansHub({
             detailedCatalog
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
             allowedCountryCodes={STANDARD_VPS_COUNTRY_CODES}
-            locationCountryLabels
             purchaseViaTicket
             ticketKind="standard-vps"
           />
@@ -169,7 +167,6 @@ export function PlansHub({
             description={t("plans.stdDedicatedDesc")}
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
             allowedCountryCodes={DEDICATED_COUNTRY_CODES}
-            locationCountryLabels
           />
         )}
         {tab === "turbovds" && <TurbovdsPlansTab locations={locations} plans={turboPlans} />}

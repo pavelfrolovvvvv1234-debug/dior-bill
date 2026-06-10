@@ -96,7 +96,6 @@ export function DedicatedPlansTab({
   deployLabel,
   osOptions = STANDARD_VPS_OS_OPTIONS,
   allowedCountryCodes,
-  locationCountryLabels = false,
 }: {
   inventory: InventoryItem[];
   locations: Location[];
@@ -110,7 +109,6 @@ export function DedicatedPlansTab({
   osOptions?: readonly VpsOsOption[];
   /** Restrict region list (e.g. RU/BY/AB standard, NL/DE/US/TR bulletproof) */
   allowedCountryCodes?: readonly string[];
-  locationCountryLabels?: boolean;
 }) {
   const { t } = useI18n();
   const detailedPlans = useMemo(
@@ -273,9 +271,7 @@ export function DedicatedPlansTab({
                     >
                       {availableLocations.map((loc) => (
                         <option key={loc.id} value={loc.id}>
-                          {locationCountryLabels
-                            ? getTranslatedLocationRegionLabel(loc, t)
-                            : loc.name}
+                          {getTranslatedLocationRegionLabel(loc, t)}
                         </option>
                       ))}
                     </NativeSelect>

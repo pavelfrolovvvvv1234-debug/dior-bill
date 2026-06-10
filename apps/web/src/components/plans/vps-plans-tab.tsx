@@ -48,7 +48,6 @@ export function VpsPlansTab({
   osOptions = STANDARD_VPS_OS_OPTIONS,
   filterLocationsByPlan = false,
   allowedCountryCodes,
-  locationCountryLabels = false,
   purchaseViaTicket = false,
   ticketKind = "turbovds",
 }: {
@@ -64,8 +63,6 @@ export function VpsPlansTab({
   filterLocationsByPlan?: boolean;
   /** Restrict region list (e.g. RU, BY, AB for standard VPS) */
   allowedCountryCodes?: readonly string[];
-  /** Show country names in region picker (bulletproof + standard VPS) */
-  locationCountryLabels?: boolean;
   /** Charge balance and open support ticket instead of instant deploy */
   purchaseViaTicket?: boolean;
   ticketKind?: "turbovds" | "standard-vps";
@@ -210,9 +207,7 @@ export function VpsPlansTab({
                 >
                   {availableLocations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
-                      {filterLocationsByPlan || locationCountryLabels
-                        ? getTranslatedLocationRegionLabel(loc, t)
-                        : loc.name}
+                      {getTranslatedLocationRegionLabel(loc, t)}
                     </option>
                   ))}
                 </NativeSelect>
