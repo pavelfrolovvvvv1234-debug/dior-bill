@@ -42,7 +42,7 @@ export function VpsPlansTab({
   plans,
   title,
   description = "Offshore VPS with manual abuse review. Select a plan, region, and deploy.",
-  deployLabel = "Deploy VPS",
+  deployLabel,
   panelTitle = "Deploy configuration",
   detailedCatalog = false,
   osOptions = STANDARD_VPS_OS_OPTIONS,
@@ -71,6 +71,7 @@ export function VpsPlansTab({
   ticketKind?: "turbovds" | "standard-vps";
 }) {
   const { t } = useI18n();
+  const resolvedDeployLabel = deployLabel ?? t("plans.buy");
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id ?? "");
   const [locationId, setLocationId] = useState("");
   const [os, setOs] = useState(DEFAULT_VPS_OS);
@@ -252,7 +253,7 @@ export function VpsPlansTab({
                 ? purchaseViaTicket
                   ? t("plans.processing")
                   : t("plans.creatingOrder")
-                : deployLabel}
+                : resolvedDeployLabel}
             </Button>
           </form>
         </Panel>

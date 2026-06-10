@@ -11,7 +11,10 @@ import {
   validateRegistrationPassword,
 } from "@dior/shared";
 import { createAuditLog } from "../audit";
+import { assertEmailAvailableForCustomer } from "../lib/staff-privacy";
+import { verifyTurnstileToken } from "../lib/turnstile";
 import { resolveReferrerId } from "../referrals/resolve-referrer";
+import { notifyAdminsReferralSignup } from "../telegram";
 import { recordUserLogin } from "./user-timestamps";
 import { hashToken } from "../lib/crypto";
 import { checkRateLimit } from "../lib/rate-limit";
@@ -23,6 +26,7 @@ export interface RegisterInput {
   email: string;
   password: string;
   referralCode?: string;
+  turnstileToken?: string;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -122,8 +126,11 @@ export async function register(input: RegisterInput) {
   );
   if (!allowed) throw new ValidationError("Too many registration attempts");
 
+  await verifyTurnstileToken(input.turnstileToken, input.ipAddress);
+
   const email = validateRegistrationEmail(input.email);
   validateRegistrationPassword(input.password);
+  await assertEmailAvailableForCustomer(email);
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new ConflictError("Email already registered");
@@ -169,6 +176,14 @@ export async function register(input: RegisterInput) {
         }
       : undefined,
   });
+
+  if (referral.attributed && referral.referredById && referral.normalizedCode) {
+    await notifyAdminsReferralSignup({
+      userId: user.id,
+      referrerId: referral.referredById,
+      referralCode: referral.normalizedCode,
+    }).catch((err) => console.warn("[telegram] referral signup notify:", err));
+  }
 
   return { user, token };
 }
@@ -274,6 +289,14 @@ export async function loginWithTelegram(input: TelegramAuthInput) {
           : {}),
       },
     });
+
+    if (referral.attributed && referral.referredById && referral.normalizedCode) {
+      await notifyAdminsReferralSignup({
+        userId: user.id,
+        referrerId: referral.referredById,
+        referralCode: referral.normalizedCode,
+      }).catch((err) => console.warn("[telegram] referral signup notify:", err));
+    }
   } else {
     if (user.status !== "ACTIVE") {
       throw new UnauthorizedError("Account suspended");

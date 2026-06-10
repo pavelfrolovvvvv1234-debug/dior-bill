@@ -27,7 +27,7 @@ export function TurbovdsPlansTab({
       plans={plans}
       title={t("plans.turbovds.title")}
       description={t("plans.turbovds.desc")}
-      deployLabel={t("plans.turbovds.deploy")}
+      deployLabel={t("plans.buy")}
       panelTitle={t("plans.turbovds.panel")}
       detailedCatalog
       purchaseViaTicket

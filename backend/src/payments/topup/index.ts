@@ -15,11 +15,7 @@ import { toJsonValue } from "../../lib/json";
 import { checkRateLimit } from "../../lib/rate-limit";
 import { enqueueJob } from "../../lib/queue";
 import { createNotification } from "../../notifications";
-import {
-  notifyAdminsTopUpCreated,
-  notifyAdminsTopUpPaid,
-  resolveAdminNotifyUserIds,
-} from "../../telegram";
+import { notifyAdminsTopUpPaid, resolveAdminNotifyUserIds } from "../../telegram";
 import { NOTIFICATION_TYPES } from "@dior/shared";
 import { createHash } from "crypto";
 import { assertBillingAllowed } from "../../billing/guards";
@@ -86,14 +82,6 @@ export async function createTopUp(input: CreateTopUpInput) {
       body: `Reference ${referenceCode} — awaiting support confirmation`,
       link: `/billing/topup/${topUp.id}`,
     });
-    await notifyAdminsTopUpCreated({
-      topUpId: topUp.id,
-      userId: input.userId,
-      amount: input.amount,
-      provider: input.provider,
-      referenceCode,
-      status: topUp.status,
-    }).catch((err) => console.warn("[telegram] admin top-up notify:", err));
     await notifyAdminsInAppTopUp(topUp.id, input.amount, referenceCode, "Manual transfer pending");
     return topUp;
   }
@@ -133,15 +121,6 @@ export async function createTopUp(input: CreateTopUpInput) {
       body: `$${input.amount.toFixed(2)} — complete payment to credit your balance`,
       link: `/billing/topup/${topUp.id}`,
     });
-
-    await notifyAdminsTopUpCreated({
-      topUpId: topUp.id,
-      userId: input.userId,
-      amount: input.amount,
-      provider: input.provider,
-      referenceCode,
-      status: updated.status,
-    }).catch((err) => console.warn("[telegram] admin top-up notify:", err));
 
     await enqueueJob("payment.retry", { topUpId: topUp.id, action: "sync" });
 

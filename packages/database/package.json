@@ -11,6 +11,7 @@
     "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "set-password": "dotenv -e ../../.env -- tsx ../../scripts/set-dev-password.ts",
+    "verify-password": "dotenv -e ../../.env -- tsx ../../scripts/verify-admin-password.ts",
     "sql:last-online": "dotenv -e ../../.env -- prisma db execute --schema prisma/schema.prisma --file ../../deploy/sql/add_last_online_at.sql",
     "build": "prisma generate"
   },

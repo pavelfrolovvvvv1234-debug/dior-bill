@@ -8,3 +8,4 @@ export * from "./payments";
 export * from "./admin-rbac";
 export * from "./promo";
 export * from "./auth-validation";
+export * from "./staff-privacy";

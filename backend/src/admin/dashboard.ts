@@ -21,6 +21,7 @@ export type ControlDashboard = {
     status: string;
     provider: string;
     createdAt: Date;
+    paidAt: Date | null;
     user: { email: string | null; telegramUsername: string | null };
   }>;
   recentUsers: Array<{
@@ -49,7 +50,7 @@ export type ControlDashboard = {
 export async function getControlDashboard(actorId: string): Promise<ControlDashboard> {
   await requirePermission(actorId, "analytics.read");
 
-  const cacheKey = "control:dashboard:v2";
+  const cacheKey = "control:dashboard:v4";
   const cached = await cacheGet<ControlDashboard>(cacheKey);
   if (cached) return cached;
 
@@ -92,7 +93,8 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
     prisma.topUp.count({ where: { status: "FAILED" } }),
     prisma.ticket.count({ where: { status: { in: ["OPEN", "AWAITING_STAFF"] } } }),
     prisma.topUp.findMany({
-      orderBy: { createdAt: "desc" },
+      where: { status: "PAID" },
+      orderBy: { paidAt: "desc" },
       take: 8,
       select: {
         id: true,
@@ -101,17 +103,18 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
         status: true,
         provider: true,
         createdAt: true,
+        paidAt: true,
         user: { select: { email: true, telegramUsername: true } },
       },
     }),
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 15,
       select: { id: true, email: true, status: true, createdAt: true },
     }),
     prisma.service.findMany({
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 12,
       select: {
         id: true,
         type: true,
@@ -124,7 +127,7 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
     prisma.ticket.findMany({
       where: { status: { in: ["OPEN", "AWAITING_STAFF"] } },
       orderBy: { updatedAt: "desc" },
-      take: 6,
+      take: 12,
       select: { id: true, subject: true, priority: true, status: true, updatedAt: true },
     }),
   ]);

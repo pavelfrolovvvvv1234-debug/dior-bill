@@ -6,6 +6,7 @@ import {
   validateRegistrationEmail,
   validateRegistrationPassword,
 } from "../auth-validation";
+import { assertCustomerEmailAllowed } from "../staff-privacy";
 
 describe("auth-validation", () => {
   it("accepts valid domain emails", () => {
@@ -39,5 +40,11 @@ describe("auth-validation", () => {
 
   it("normalizes email on validate", () => {
     assert.equal(validateRegistrationEmail("  User@Example.com "), "user@example.com");
+  });
+
+  it("blocks reserved staff emails for customers", () => {
+    assert.throws(() => assertCustomerEmailAllowed("admin@dior.cloud"), /cannot be used/i);
+    assert.throws(() => assertCustomerEmailAllowed("  Admin@Dior.Cloud "), /cannot be used/i);
+    assert.doesNotThrow(() => assertCustomerEmailAllowed("user@gmail.com"));
   });
 });

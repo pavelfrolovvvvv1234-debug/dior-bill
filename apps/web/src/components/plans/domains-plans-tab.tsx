@@ -159,7 +159,7 @@ export function DomainsPlansTab({
         {isPurchasing ? (
           <Loader2 className={size === "sm" ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4 animate-spin"} />
         ) : (
-          t("domains.registerNow")
+          t("plans.buy")
         )}
       </Button>
     );

@@ -1,8 +1,7 @@
 import type { DedicatedCatalogPlan } from "@/lib/dedicated-plans";
 import { isDedicatedPlanDetailed } from "@/lib/dedicated-plans";
 import type { VpsPlan } from "@/lib/vps-plans";
-import { getDedicatedOsLabel } from "@/lib/dedicated-os-options";
-import { BULLETPROOF_VPS_OS_OPTIONS, STANDARD_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
+import { BULLETPROOF_VPS_OS_OPTIONS, STANDARD_VPS_OS_OPTIONS, getVpsOsLabel } from "@/lib/vps-os-options";
 
 const PRODUCT_LINE_LABELS = {
   "bulletproof-dedicated": "Bulletproof Dedicated Server",
@@ -44,7 +43,7 @@ export function buildDedicatedTicketCopy(
 ): { subject: string; body: string; invoiceDescription: string } {
   const lineLabel = getProductLineLabel(productLine);
   const configuration = formatDedicatedConfiguration(plan);
-  const osLabel = options?.os ? getDedicatedOsLabel(options.os) : undefined;
+  const osLabel = options?.os ? getVpsOsLabel(options.os) : undefined;
   const title =
     isDedicatedPlanDetailed(plan) && plan.name
       ? plan.name

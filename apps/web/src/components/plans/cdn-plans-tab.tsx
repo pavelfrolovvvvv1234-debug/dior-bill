@@ -1,9 +1,14 @@
+"use client";
+
 import { Panel } from "@/components/ui/enterprise/panel";
 import { OrderButton } from "@/components/plans/order-button";
 import { formatMoney } from "@/lib/utils";
 import { CDN_PLANS, type CdnPlan } from "@/lib/cdn-plans";
+import { useI18n } from "@/lib/i18n/store";
 
 function CdnPlanRow({ plan }: { plan: CdnPlan }) {
+  const { t } = useI18n();
+
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-white/6 bg-white/[0.03] px-4 py-3 transition-premium hover:border-white/12 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm font-semibold tracking-tight">
@@ -17,7 +22,7 @@ function CdnPlanRow({ plan }: { plan: CdnPlan }) {
           from {formatMoney(plan.priceFrom)}
         </span>
         <OrderButton amount={plan.priceFrom} className="h-8">
-          Order
+          {t("plans.buy")}
         </OrderButton>
       </div>
     </div>
@@ -46,4 +51,3 @@ export function CdnPlansTab() {
     </div>
   );
 }
-

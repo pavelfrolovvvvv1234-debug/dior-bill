@@ -12,6 +12,7 @@ import {
 } from "@dior/shared";
 import { registerAction } from "@/app/actions/auth";
 import { PasswordStrengthField } from "@/components/auth/password-strength-field";
+import { TurnstileField } from "@/components/auth/turnstile-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,9 +23,10 @@ import { cn } from "@/lib/utils";
 
 type RegisterFormProps = {
   initialReferralCode?: string;
+  turnstileSiteKey?: string;
 };
 
-export function RegisterForm({ initialReferralCode }: RegisterFormProps) {
+export function RegisterForm({ initialReferralCode, turnstileSiteKey }: RegisterFormProps) {
   const router = useRouter();
   const params = useSearchParams();
   const { t } = useI18n();
@@ -34,6 +36,14 @@ export function RegisterForm({ initialReferralCode }: RegisterFormProps) {
   const [emailTouched, setEmailTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const captchaRequired = !!turnstileSiteKey;
+
+  function resetTurnstile() {
+    setTurnstileToken(null);
+    setTurnstileKey((k) => k + 1);
+  }
 
   const referralCode = useMemo(() => {
     const fromUrl = normalizeReferralCode(params.get("ref"));
@@ -96,18 +106,29 @@ export function RegisterForm({ initialReferralCode }: RegisterFormProps) {
       setError(t("auth.passwordTooWeak"));
       return;
     }
+    if (captchaRequired && !turnstileToken) {
+      setError(t("auth.captchaRequired"));
+      return;
+    }
 
     setLoading(true);
     try {
       const formData = new FormData(e.currentTarget);
       formData.set("email", normalized);
       if (referralCode) formData.set("referralCode", referralCode);
+      if (turnstileToken) formData.set("cf-turnstile-response", turnstileToken);
       const result = await registerAction(formData);
+      if (!result.ok) {
+        setError(result.error);
+        resetTurnstile();
+        return;
+      }
       setUser(result.user);
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auth.registerFailed"));
+      resetTurnstile();
     } finally {
       setLoading(false);
     }
@@ -116,7 +137,8 @@ export function RegisterForm({ initialReferralCode }: RegisterFormProps) {
   const canSubmit =
     !loading &&
     isValidRegistrationEmail(normalizeRegistrationEmail(email)) &&
-    passwordAnalysis.strongEnough;
+    passwordAnalysis.strongEnough &&
+    (!captchaRequired || !!turnstileToken);
 
   return (
     <div className="auth-page flex min-h-screen flex-col items-center justify-center p-6">
@@ -182,6 +204,17 @@ export function RegisterForm({ initialReferralCode }: RegisterFormProps) {
                   name="referralCode"
                   placeholder={t("auth.referralCodeOptional")}
                 />
+              )}
+
+              {turnstileSiteKey && (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium">{t("auth.captchaLabel")}</p>
+                  <TurnstileField
+                    key={turnstileKey}
+                    siteKey={turnstileSiteKey}
+                    onToken={setTurnstileToken}
+                  />
+                </div>
               )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}

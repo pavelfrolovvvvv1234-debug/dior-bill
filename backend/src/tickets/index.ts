@@ -4,6 +4,7 @@ import { NotFoundError, ForbiddenError, ADMIN_ROLES } from "@dior/shared";
 import { createNotification } from "../notifications";
 import { notifyAdminsTicketReply } from "../telegram";
 import { NOTIFICATION_TYPES } from "@dior/shared";
+import { redactStaffAuthorForCustomer } from "../lib/staff-privacy";
 import { createTicketRecord } from "./create-ticket";
 
 export { purchaseViaSupportTicket } from "./purchase-via-ticket";
@@ -44,6 +45,17 @@ export async function getTicketById(ticketId: string, userId: string, isStaff = 
     },
   });
   if (!ticket) throw new NotFoundError("Ticket not found");
+
+  if (!isStaff) {
+    return {
+      ...ticket,
+      messages: ticket.messages.map((message) => ({
+        ...message,
+        author: redactStaffAuthorForCustomer(message.author),
+      })),
+    };
+  }
+
   return ticket;
 }
 

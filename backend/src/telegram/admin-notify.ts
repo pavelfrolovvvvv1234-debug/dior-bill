@@ -1,6 +1,45 @@
 import { prisma } from "@dior/database";
-import { ADMIN_ROLES } from "@dior/shared";
+import { ADMIN_ROLES, DEFAULT_REFERRAL_PERCENT } from "@dior/shared";
 import { escapeTelegramHtml, sendTelegramMessage } from "./bot";
+
+const NOTIFY_DIVIDER = "────────────────";
+
+function formatUsd(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
+
+function formatProviderLabel(provider: string): string {
+  return provider
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function buildPremiumTelegramMessage(params: {
+  headline: string;
+  sections: Array<{ label: string; value: string }>;
+  link?: string;
+  linkLabel?: string;
+}): string {
+  const body = params.sections
+    .map(
+      (section) =>
+        `<b>${escapeTelegramHtml(section.label)}</b>\n${escapeTelegramHtml(section.value)}`,
+    )
+    .join(`\n\n${NOTIFY_DIVIDER}\n\n`);
+
+  const link = params.link ? panelUrl(params.link) : undefined;
+
+  return (
+    `<b>${escapeTelegramHtml(params.headline)}</b>\n` +
+    `${NOTIFY_DIVIDER}\n\n` +
+    `${body}` +
+    (link
+      ? `\n\n${NOTIFY_DIVIDER}\n<a href="${link}">${escapeTelegramHtml(params.linkLabel ?? "Open in panel")}</a>`
+      : "")
+  );
+}
 
 function panelUrl(path: string): string {
   const base = (
@@ -243,16 +282,97 @@ export async function notifyAdminsTopUpPaid(params: {
   referenceCode: string;
 }) {
   const who = await getUserLabel(params.userId);
-  await notifyPaymentAdmins({
-    title: "✅ Balance top-up completed",
-    lines: [
-      `Amount: $${params.amount.toFixed(2)}`,
-      `Provider: ${params.provider}`,
-      `Ref: ${params.referenceCode}`,
-      `User: ${who}`,
+  const html = buildPremiumTelegramMessage({
+    headline: "Balance credited",
+    sections: [
+      { label: "Amount", value: formatUsd(params.amount) },
+      { label: "Customer", value: who },
+      { label: "Provider", value: formatProviderLabel(params.provider) },
+      { label: "Reference", value: params.referenceCode },
     ],
     link: `/billing/top-ups/${params.topUpId}`,
-    linkLabel: "View top-up",
+    linkLabel: "View payment",
+  });
+
+  await sendTelegramToAdminList(html, "payment");
+
+  const link = panelUrl(`/billing/top-ups/${params.topUpId}`);
+  await sendDiscordToWebhooks(getDiscordWebhookUrls(), {
+    content: `**Balance credited**\n${formatUsd(params.amount)} · ${who} · ${params.referenceCode}`.slice(
+      0,
+      2000,
+    ),
+    embeds: [{ title: "View payment", url: link, color: 0x22c55e }],
+  });
+}
+
+export async function notifyAdminsReferralSignup(params: {
+  userId: string;
+  referrerId: string;
+  referralCode: string;
+}) {
+  const [newUser, referrer] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { email: true, telegramUsername: true, displayName: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: params.referrerId },
+      select: {
+        email: true,
+        telegramUsername: true,
+        displayName: true,
+        referralCode: true,
+        customReferralPercent: true,
+        affiliateTier: { select: { name: true, percent: true } },
+      },
+    }),
+  ]);
+
+  if (!newUser || !referrer) return;
+
+  const newUserLabel =
+    newUser.email ??
+    (newUser.telegramUsername ? `@${newUser.telegramUsername}` : newUser.displayName ?? params.userId.slice(0, 8));
+
+  const referrerLabel =
+    referrer.email ??
+    (referrer.telegramUsername
+      ? `@${referrer.telegramUsername}`
+      : referrer.displayName ?? params.referrerId.slice(0, 8));
+
+  const percent =
+    Number(referrer.customReferralPercent) ||
+    Number(referrer.affiliateTier?.percent) ||
+    DEFAULT_REFERRAL_PERCENT;
+
+  const tierLabel = referrer.affiliateTier?.name
+    ? `${referrer.affiliateTier.name} · ${percent}%`
+    : `${percent}%`;
+
+  const html = buildPremiumTelegramMessage({
+    headline: "New referral signup",
+    sections: [
+      { label: "New user", value: newUserLabel },
+      { label: "Referred by", value: referrerLabel },
+      { label: "Referral code", value: params.referralCode },
+      { label: "Commission rate", value: tierLabel },
+    ],
+    link: `/users/${params.userId}`,
+    linkLabel: "View customer",
+  });
+
+  await sendTelegramToAdminList(html, "all");
+
+  const link = panelUrl(`/users/${params.userId}`);
+  await sendDiscordToWebhooks(getDiscordWebhookUrls(), {
+    content:
+      `**New referral signup**\n` +
+      `User: ${newUserLabel}\n` +
+      `Referrer: ${referrerLabel}\n` +
+      `Code: ${params.referralCode}\n` +
+      `Rate: ${tierLabel}`.slice(0, 2000),
+    embeds: [{ title: "View customer", url: link, color: 0x8b5cf6 }],
   });
 }
 

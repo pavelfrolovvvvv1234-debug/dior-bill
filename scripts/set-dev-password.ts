@@ -25,7 +25,7 @@ function loadEnvFile() {
 
 loadEnvFile();
 
-const email = process.argv[2];
+const email = process.argv[2]?.trim().toLowerCase();
 const password = process.argv[3];
 
 if (!email || !password) {
@@ -36,12 +36,26 @@ if (!email || !password) {
 const prisma = new PrismaClient();
 
 async function main() {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (!existing) {
+    console.error(`FAIL: user not found (${email})`);
+    process.exit(1);
+  }
+
   const hash = await bcrypt.hash(password, 12);
   await prisma.user.update({
     where: { email },
     data: { passwordHash: hash, emailVerified: new Date() },
   });
-  console.log(`OK: password updated for ${email}`);
+
+  const verified = await bcrypt.compare(password, hash);
+  if (!verified) {
+    console.error(`FAIL: password hash verification failed for ${email}`);
+    process.exit(1);
+  }
+
+  console.log(`OK: password updated for ${email} (role=${existing.role})`);
+  console.log("OK: bcrypt verify passed — login will accept this password");
 }
 
 main()

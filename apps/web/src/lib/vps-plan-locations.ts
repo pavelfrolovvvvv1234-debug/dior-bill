@@ -13,6 +13,9 @@ export const VPS_COUNTRY_LABELS: Record<string, string> = {
 /** Standard (non-bulletproof) VPS — Russia, Belarus, Abkhazia only */
 export const STANDARD_VPS_COUNTRY_CODES = ["RU", "BY", "AB"] as const;
 
+/** Bulletproof offshore VPS / dedicated — Netherlands, Germany, USA, Turkey */
+export const BULLETPROOF_OFFSHORE_COUNTRY_CODES = ["NL", "DE", "US", "TR"] as const;
+
 export type VpsLocationRef = {
   country: string;
   name: string;
@@ -37,6 +40,14 @@ export const STANDARD_VPS_LOCATION_DEFS = [
   { code: "ru-msk", name: "Russia", country: "RU", city: "Moscow" },
   { code: "by-msq", name: "Belarus", country: "BY", city: "Minsk" },
   { code: "ab-suk", name: "Abkhazia", country: "AB", city: "Sukhumi" },
+] as const;
+
+/** Fallback for bulletproof offshore (NL, DE, US, TR) */
+export const BULLETPROOF_OFFSHORE_LOCATION_DEFS = [
+  { code: "nl-ams", name: "Netherlands", country: "NL", city: "Amsterdam" },
+  { code: "de-fra", name: "Germany", country: "DE", city: "Frankfurt" },
+  { code: "us-nyc", name: "USA", country: "US", city: "New York" },
+  { code: "tr-ist", name: "Turkey", country: "TR", city: "Istanbul" },
 ] as const;
 
 /** Location codes available per Bulletproof VPS tier */

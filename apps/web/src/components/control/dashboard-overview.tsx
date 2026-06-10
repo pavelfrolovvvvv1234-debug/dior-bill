@@ -72,6 +72,7 @@ function FeedPanel({
   linkLabel,
   children,
   empty,
+  className,
 }: {
   title: string;
   description: string;
@@ -79,9 +80,10 @@ function FeedPanel({
   linkLabel: string;
   children: React.ReactNode;
   empty?: boolean;
+  className?: string;
 }) {
   return (
-    <section className="panel flex flex-col overflow-hidden">
+    <section className={cn("panel flex h-full min-h-0 flex-col overflow-hidden", className)}>
       <div className="panel-header !flex-row !items-start">
         <div>
           <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
@@ -95,7 +97,13 @@ function FeedPanel({
           <ArrowUpRight className="h-3 w-3" />
         </Link>
       </div>
-      <div className="flex-1">{empty ? <EmptyFeed label={description} /> : children}</div>
+      <div className="flex min-h-0 flex-1 flex-col">
+        {empty ? (
+          <EmptyFeed label={description} />
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+        )}
+      </div>
     </section>
   );
 }
@@ -202,7 +210,7 @@ export function DashboardOverview({ data }: Props) {
 
       <FeedPanel
         title="Recent top-ups"
-        description="Latest balance deposits across all providers"
+        description="Latest successful balance deposits"
         href={controlPath("/billing/top-ups")}
         linkLabel="All top-ups"
         empty={data.recentTopUps.length === 0}
@@ -213,13 +221,13 @@ export function DashboardOverview({ data }: Props) {
             href={controlPath(`/billing/top-ups/${t.id}`)}
             primary={formatMoney(t.amount)}
             secondary={t.user.email ?? t.user.telegramUsername ?? "Unknown customer"}
-            meta={formatRelative(t.createdAt)}
-            badge={<BillingStatusBadge status={t.status} />}
+            meta={formatRelative(t.paidAt ?? t.createdAt)}
+            badge={<BillingStatusBadge status="PAID" />}
           />
         ))}
       </FeedPanel>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid items-stretch gap-6 lg:grid-cols-3">
         <FeedPanel
           title="New users"
           description="Latest account registrations"

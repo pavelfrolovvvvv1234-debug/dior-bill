@@ -17,16 +17,15 @@ import type { DedicatedCatalogPlan } from "@/lib/dedicated-plans";
 import { isDedicatedPlanDetailed } from "@/lib/dedicated-plans";
 import { DedicatedPlanCard } from "@/components/plans/dedicated-plan-card";
 import {
-  DEFAULT_DEDICATED_OS,
-  DEDICATED_OS_OPTIONS,
-} from "@/lib/dedicated-os-options";
+  DEFAULT_VPS_OS,
+  STANDARD_VPS_OS_OPTIONS,
+  type VpsOsOption,
+} from "@/lib/vps-os-options";
 import {
-  DEDICATED_COUNTRY_CODES,
-  DEDICATED_LOCATION_DEFS,
-} from "@/lib/dedicated-plan-locations";
-import {
+  BULLETPROOF_OFFSHORE_LOCATION_DEFS,
   filterLocationsByCountryCodes,
   getTranslatedLocationRegionLabel,
+  STANDARD_VPS_LOCATION_DEFS,
 } from "@/lib/vps-plan-locations";
 import type { TicketOrderProductLine } from "@/lib/ticket-order-copy";
 import { handlePurchaseError, toastInsufficientBalance } from "@/lib/toast";
@@ -78,7 +77,7 @@ function DedicatedCatalogRow({
             purchaseDedicatedViaTicketAction({ planId: plan.id, productLine })
           }
         >
-          {t("plans.dedicated.order")}
+          {t("plans.buy")}
         </OrderButton>
       </div>
     </div>
@@ -94,6 +93,10 @@ export function DedicatedPlansTab({
   catalog,
   detailedCatalog = false,
   panelTitle,
+  deployLabel,
+  osOptions = STANDARD_VPS_OS_OPTIONS,
+  allowedCountryCodes,
+  locationCountryLabels = false,
 }: {
   inventory: InventoryItem[];
   locations: Location[];
@@ -103,6 +106,11 @@ export function DedicatedPlansTab({
   catalog?: readonly DedicatedCatalogPlan[];
   detailedCatalog?: boolean;
   panelTitle?: string;
+  deployLabel?: string;
+  osOptions?: readonly VpsOsOption[];
+  /** Restrict region list (e.g. RU/BY/AB standard, NL/DE/US/TR bulletproof) */
+  allowedCountryCodes?: readonly string[];
+  locationCountryLabels?: boolean;
 }) {
   const { t } = useI18n();
   const detailedPlans = useMemo(
@@ -117,22 +125,34 @@ export function DedicatedPlansTab({
 
   const [selectedPlan, setSelectedPlan] = useState(detailedPlans[0]?.id ?? "");
   const [locationId, setLocationId] = useState("");
-  const [os, setOs] = useState(DEFAULT_DEDICATED_OS);
+  const [os, setOs] = useState(DEFAULT_VPS_OS);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const availableLocations = useMemo(() => {
-    let list = filterLocationsByCountryCodes(locations, DEDICATED_COUNTRY_CODES);
-    if (list.length === 0 && locations.length > 0) {
-      const byCode = new Map(locations.map((l) => [l.code, l]));
-      list = DEDICATED_LOCATION_DEFS.map((def) => byCode.get(def.code)).filter(
-        (l): l is Location => l != null,
-      );
+    const locationDefs = bulletproof
+      ? BULLETPROOF_OFFSHORE_LOCATION_DEFS
+      : STANDARD_VPS_LOCATION_DEFS;
+
+    let list = [...locations];
+    if (allowedCountryCodes?.length) {
+      list = filterLocationsByCountryCodes(list, allowedCountryCodes);
+      if (list.length === 0 && locations.length > 0) {
+        const byCode = new Map(locations.map((l) => [l.code, l]));
+        list = locationDefs.map((def) => byCode.get(def.code)).filter(
+          (l): l is Location => l != null,
+        );
+        if (allowedCountryCodes.length) {
+          list = filterLocationsByCountryCodes(list, allowedCountryCodes);
+        }
+      }
     }
-    const order = DEDICATED_LOCATION_DEFS.map((d) => d.code as string);
-    list.sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
+    if (allowedCountryCodes?.length && list.length > 1) {
+      const order: string[] = locationDefs.map((d) => d.code);
+      list.sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
+    }
     return list;
-  }, [locations]);
+  }, [locations, allowedCountryCodes, bulletproof]);
 
   useEffect(() => {
     if (detailedPlans.length > 0 && !detailedPlans.some((p) => p.id === selectedPlan)) {
@@ -179,114 +199,127 @@ export function DedicatedPlansTab({
   }
 
   if (showCatalog && useDetailedCards) {
+    const orderLabel = deployLabel ?? t("plans.buy");
+
     return (
       <div className="space-y-8">
-        <div className="space-y-4">
-          {title && <h3 className="text-base font-semibold tracking-tight">{title}</h3>}
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm text-muted-foreground">{description}</p>
-            {bulletproof ? (
-              <>
-                <Badge variant="muted">{t("plans.dedicated.badgeBpPolicy")}</Badge>
-                <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
-                <Badge variant="muted">{t("plans.dedicated.badgeAbuse")}</Badge>
-              </>
-            ) : (
-              <>
-                <Badge variant="muted">{t("plans.dedicated.badgeSla")}</Badge>
-                <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
-              </>
-            )}
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
-            {detailedPlans.map((plan) => (
-              <DedicatedPlanCard
-                key={plan.id}
-                plan={plan}
-                selected={selectedPlan === plan.id}
-                onSelect={() => setSelectedPlan(plan.id)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <Panel
-          title={panelTitle ?? t("plans.stdVpsPanel")}
-          description={
-            selected
-              ? `${selected.name} · ${formatMoney(selected.price)}${t("plans.perMonth")}`
-              : undefined
-          }
-          allowOverflow
-        >
-          <form onSubmit={handleSubmit} className="mx-auto max-w-xl space-y-4">
-            <input type="hidden" name="planId" value={selectedPlan} />
-            <input type="hidden" name="productLine" value={productLine} />
-            <div className="space-y-2">
-              <label htmlFor="hostname" className="text-sm font-medium">
-                {t("plans.form.hostname")}
-              </label>
-              <Input id="hostname" name="hostname" placeholder="dedi-01" required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("plans.form.region")}</label>
-              {availableLocations.length === 0 ? (
-                <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                  {t("plans.form.regionsLoading")}
-                </p>
+        <div className="grid gap-6 xl:grid-cols-12">
+          <div className="space-y-4 xl:col-span-8">
+            {title && <h3 className="text-base font-semibold tracking-tight">{title}</h3>}
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-muted-foreground">{description}</p>
+              {bulletproof ? (
+                <>
+                  <Badge variant="muted">{t("plans.dedicated.badgeBpPolicy")}</Badge>
+                  <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
+                  <Badge variant="muted">{t("plans.dedicated.badgeAbuse")}</Badge>
+                </>
               ) : (
-                <NativeSelect
-                  id="locationId"
-                  name="locationId"
-                  value={locationId}
-                  onChange={(e) => setLocationId(e.target.value)}
-                  required
-                >
-                  {availableLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {getTranslatedLocationRegionLabel(loc, t)}
-                    </option>
-                  ))}
-                </NativeSelect>
+                <>
+                  <Badge variant="muted">{t("plans.dedicated.badgeSla")}</Badge>
+                  <Badge variant="muted">{t("plans.dedicated.badgeDdos")}</Badge>
+                </>
               )}
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("plans.form.os")}</label>
-              <NativeSelect
-                id="os"
-                name="os"
-                value={os}
-                onChange={(e) => setOs(e.target.value)}
-                required
-              >
-                {DEDICATED_OS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </NativeSelect>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
+              {detailedPlans.map((plan) => (
+                <DedicatedPlanCard
+                  key={plan.id}
+                  plan={plan}
+                  selected={selectedPlan === plan.id}
+                  onSelect={() => setSelectedPlan(plan.id)}
+                />
+              ))}
             </div>
-            <div className="space-y-2">
-              <label htmlFor="promoCode" className="text-sm font-medium">
-                {t("plans.form.promoCode")}{" "}
-                <span className="font-normal text-muted-foreground">
-                  ({t("plans.form.optional")})
-                </span>
-              </label>
-              <Input
-                id="promoCode"
-                name="promoCode"
-                placeholder="ORDER10"
-                autoComplete="off"
-                className="font-mono uppercase"
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading || !selectedPlan}>
-              {loading ? t("plans.processing") : t("plans.dedicated.order")}
-            </Button>
-          </form>
-        </Panel>
+          </div>
+
+          <div className="xl:col-span-4">
+            <Panel
+              title={panelTitle ?? t("plans.stdVpsPanel")}
+              description={
+                selected
+                  ? t("plans.spec.panelVcpu", {
+                      name: selected.name ?? selected.cpu,
+                      cpu: selected.cpuCores ?? 0,
+                    })
+                  : undefined
+              }
+              className="xl:sticky xl:top-20"
+              allowOverflow
+            >
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <input type="hidden" name="planId" value={selectedPlan} />
+                <input type="hidden" name="productLine" value={productLine} />
+                <div className="space-y-2">
+                  <label htmlFor="hostname" className="text-sm font-medium">
+                    {t("plans.form.hostname")}
+                  </label>
+                  <Input id="hostname" name="hostname" placeholder="srv-01" required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t("plans.form.region")}</label>
+                  {availableLocations.length === 0 ? (
+                    <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                      {t("plans.form.regionsLoading")}
+                    </p>
+                  ) : (
+                    <NativeSelect
+                      id="locationId"
+                      name="locationId"
+                      value={locationId}
+                      onChange={(e) => setLocationId(e.target.value)}
+                      required
+                      disabled={availableLocations.length === 0}
+                    >
+                      {availableLocations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {locationCountryLabels
+                            ? getTranslatedLocationRegionLabel(loc, t)
+                            : loc.name}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t("plans.form.os")}</label>
+                  <NativeSelect
+                    id="os"
+                    name="os"
+                    value={os}
+                    onChange={(e) => setOs(e.target.value)}
+                    required
+                  >
+                    {osOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="promoCode" className="text-sm font-medium">
+                    {t("plans.form.promoCode")}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      ({t("plans.form.optional")})
+                    </span>
+                  </label>
+                  <Input
+                    id="promoCode"
+                    name="promoCode"
+                    placeholder="ORDER10"
+                    autoComplete="off"
+                    className="font-mono uppercase"
+                  />
+                </div>
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <Button type="submit" className="w-full" disabled={loading || !selectedPlan}>
+                  {loading ? t("plans.processing") : orderLabel}
+                </Button>
+              </form>
+            </Panel>
+          </div>
+        </div>
 
         {inventory.length > 0 && (
           <InventorySection inventory={inventory} bulletproof={bulletproof} />
@@ -399,7 +432,7 @@ function InventorySection({
                 })
               }
             >
-              {t("plans.dedicated.order")}
+              {t("plans.buy")}
             </OrderButton>
           </div>
         ))}

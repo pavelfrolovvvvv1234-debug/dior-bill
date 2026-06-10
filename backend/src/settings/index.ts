@@ -2,8 +2,15 @@ import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
 import { prisma } from "@dior/database";
-import { NotFoundError, UnauthorizedError, ValidationError } from "@dior/shared";
+import {
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+  validateRegistrationEmail,
+  normalizeRegistrationEmail,
+} from "@dior/shared";
 import { hashToken } from "../lib/crypto";
+import { assertEmailAvailableForCustomer } from "../lib/staff-privacy";
 import { revokeSession, getActiveSessions, getLoginHistory } from "../auth";
 
 export const API_PERMISSIONS = [
@@ -113,17 +120,32 @@ export async function getSettingsProfile(userId: string) {
 }
 
 export async function updateProfile(userId: string, data: { email?: string }) {
-  if (data.email) {
+  if (!data.email) {
+    return prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+  }
+
+  const normalized = validateRegistrationEmail(data.email);
+  const current = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  if (!current) throw new NotFoundError();
+
+  const currentNormalized = current.email ? normalizeRegistrationEmail(current.email) : null;
+  if (normalized !== currentNormalized) {
+    await assertEmailAvailableForCustomer(normalized, userId);
     const taken = await prisma.user.findFirst({
-      where: { email: data.email, id: { not: userId } },
+      where: { email: normalized, id: { not: userId } },
     });
     if (taken) throw new ValidationError("Email already in use");
   }
+
   return prisma.user.update({
     where: { id: userId },
-    data: {
-      email: data.email?.trim().toLowerCase() || undefined,
-    },
+    data: { email: normalized },
     select: { id: true, email: true },
   });
 }

@@ -57,34 +57,70 @@ export async function loginAction(formData: FormData): Promise<LoginActionResult
   }
 }
 
-export async function registerAction(formData: FormData) {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const referralCode = await resolveRegistrationReferralCode(
-    formData.get("referralCode") as string | undefined,
-  );
-  const { token, user } = await register({
-    email,
-    password,
-    referralCode,
-  });
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: SESSION_TTL,
-    path: "/",
-  });
-  await clearReferralCookie();
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
-    },
-  };
+export type RegisterActionResult =
+  | {
+      ok: true;
+      user: { id: string; email: string | null; role: string; avatarUrl: string | null };
+    }
+  | { ok: false; error: string };
+
+export async function registerAction(formData: FormData): Promise<RegisterActionResult> {
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const ipAddress =
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? undefined;
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const turnstileToken = formData.get("cf-turnstile-response") as string | null;
+    const referralCode = await resolveRegistrationReferralCode(
+      formData.get("referralCode") as string | undefined,
+    );
+    const { token, user } = await register({
+      email,
+      password,
+      referralCode,
+      turnstileToken: turnstileToken ?? undefined,
+      ipAddress,
+    });
+    const cookieStore = await cookies();
+    cookieStore.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: SESSION_TTL,
+      path: "/",
+    });
+    await clearReferralCookie();
+    return {
+      ok: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  } catch (err) {
+    const appMessage =
+      err instanceof AppError
+        ? err.message
+        : typeof err === "object" &&
+            err !== null &&
+            "message" in err &&
+            "statusCode" in err &&
+            typeof (err as AppError).statusCode === "number"
+          ? String((err as AppError).message)
+          : null;
+
+    if (appMessage) {
+      return { ok: false, error: appMessage };
+    }
+
+    console.error("[registerAction]", err);
+    return { ok: false, error: "Registration failed. Please try again." };
+  }
 }
 
 export async function telegramLoginAction(

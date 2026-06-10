@@ -31,3 +31,10 @@ export const BULLETPROOF_VPS_OS_OPTIONS: readonly VpsOsOption[] = [
   { value: "ubuntu-22.04", label: "Ubuntu 22.04" },
   { value: "ubuntu-24.04", label: "Ubuntu 24.04" },
 ];
+
+export function getVpsOsLabel(
+  value: string,
+  options: readonly VpsOsOption[] = BULLETPROOF_VPS_OS_OPTIONS,
+): string {
+  return options.find((o) => o.value === value)?.label ?? value;
+}

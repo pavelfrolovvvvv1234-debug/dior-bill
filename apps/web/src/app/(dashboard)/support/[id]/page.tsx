@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { getTicketById } from "@dior/backend";
+import { ADMIN_ROLES, STAFF_TICKET_AUTHOR_LABEL } from "@dior/shared";
 import { PageHeader } from "@/components/ui/enterprise/page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { Panel } from "@/components/ui/enterprise/panel";
@@ -41,15 +42,24 @@ export default async function SupportTicketPage({
       <PageContainer className="max-w-3xl space-y-6">
         <Panel title="Conversation" noPadding>
           <div className="divide-y divide-white/6">
-            {ticket.messages.map((msg) => (
+            {ticket.messages.map((msg) => {
+              const isStaffAuthor = ADMIN_ROLES.includes(
+                msg.author.role as (typeof ADMIN_ROLES)[number],
+              );
+              const authorLabel = isStaffAuthor
+                ? STAFF_TICKET_AUTHOR_LABEL
+                : (msg.author.email ?? msg.author.id.slice(0, 8));
+
+              return (
               <div key={msg.id} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>{msg.author.email ?? msg.author.id.slice(0, 8)}</span>
+                  <span>{authorLabel}</span>
                   <span>{formatRelative(msg.createdAt)}</span>
                 </div>
                 <p className="mt-2 whitespace-pre-wrap text-sm">{msg.body}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </Panel>
 

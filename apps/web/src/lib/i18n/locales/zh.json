@@ -179,7 +179,7 @@
     "topup": {
       "paymentPolicy": "支付政策",
       "paymentPolicyDesc": "DIOR.host 账单",
-      "paymentPolicyBody": "通过加密货币网关或人工审核转账充值。每笔支付均有幂等键与账本审计。",
+      "paymentPolicyBody": "可通过加密货币或人工审核转账充值，客服核实后入账。每笔付款都会记录在历史中，不会重复到账。",
       "paymentMethod": "支付方式",
       "paymentMethodHint": "选择充值方式",
       "amount": "金额",
@@ -267,7 +267,7 @@
     "viewServices": "查看服务",
     "referrals": "联盟",
     "noServices": "暂无活跃服务",
-    "orderPlan": "订购套餐",
+    "orderPlan": "购买",
     "manage": "管理",
     "renewal": "续费 {date}",
     "servicesCount": "{count} 个服务"
@@ -278,13 +278,14 @@
     "bpDomainsDesc": "DMCA-ignored 注册，人工 abuse 审核与离岸 DNS。",
     "bpVpsTitle": "Bulletproof VPS/VDS",
     "bpVpsDesc": "离岸 VPS/VDS，DMCA-ignored 策略与即时交付",
-    "bpVpsDeploy": "部署 VPS",
+    "buy": "购买",
+    "bpVpsDeploy": "购买",
     "bpVpsPanel": "即时交付",
     "bpDedicatedTitle": "Bulletproof 独服",
     "bpDedicatedDesc": "Bulletproof 策略裸金属 — 高信任与 DMCA-ignored 托管。",
     "stdVpsTitle": "VPS/VDS 托管",
     "stdVpsDesc": "俄罗斯、白俄罗斯、阿布哈兹标准 VPS。付款后由支持人工开通。",
-    "stdVpsDeploy": "通过支持订购",
+    "stdVpsDeploy": "购买",
     "stdVpsPanel": "订单配置",
     "stdDedicatedTitle": "独服",
     "stdDedicatedDesc": "固定配置裸金属，SLA 性能与 DDoS 上联。",
@@ -298,7 +299,7 @@
     "perYear": "/年",
     "unlimited": "不限流量",
     "popular": "热门",
-    "order": "订购",
+    "order": "购买",
     "spec": {
       "cpu": "CPU",
       "ram": "内存",
@@ -328,11 +329,11 @@
     "turbovds": {
       "title": "TurboVDS",
       "desc": "高频 DDR5 + NVMe，10 Gbps 上联，不限带宽。",
-      "deploy": "购买 TurboVDS",
+      "deploy": "购买",
       "panel": "订单配置"
     },
     "dedicated": {
-      "order": "订购",
+      "order": "购买",
       "inStock": "库存 {count}",
       "noInventory": "您所在区域暂无可用库存。",
       "availableConfigs": "可用配置",
@@ -436,7 +437,7 @@
     "exactAvailableDesc": "该域名可用，可立即注册。",
     "exactTakenTitle": "{domain} 已被注册",
     "exactTakenDesc": "该后缀已被占用，请查看下方其他后缀。",
-    "registerNow": "立即注册",
+    "registerNow": "购买",
     "otherExtensions": "其他后缀",
     "registerSuccessTitle": "域名已注册",
     "registerSuccessDesc": "{domain} 已添加到您的账户。",
@@ -489,7 +490,9 @@
     "creating": "创建账户中…",
     "registerFailed": "注册失败",
     "hasAccount": "已有账户？",
-    "signInLink": "登录"
+    "signInLink": "登录",
+    "captchaLabel": "人机验证",
+    "captchaRequired": "请完成人机验证"
   },
   "promo": {
     "title": "优惠码",

@@ -9,7 +9,10 @@ import { DomainsPlansTab } from "./domains-plans-tab";
 import { TurbovdsPlansTab } from "./turbovds-plans-tab";
 import type { VpsPlan } from "@/lib/vps-plans";
 import { BULLETPROOF_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
-import { STANDARD_VPS_COUNTRY_CODES } from "@/lib/vps-plan-locations";
+import {
+  BULLETPROOF_OFFSHORE_COUNTRY_CODES,
+  STANDARD_VPS_COUNTRY_CODES,
+} from "@/lib/vps-plan-locations";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
 import { STANDARD_DEDICATED_PLANS } from "@/lib/dedicated-plans";
 import { parsePlanTab, getPlanProductLine, type PlanTab } from "@/lib/plan-catalog";
@@ -114,7 +117,7 @@ export function PlansHub({
             plans={bulletproofVpsPlans}
             title={t("plans.bpVpsTitle")}
             description={t("plans.bpVpsDesc")}
-            deployLabel={t("plans.bpVpsDeploy")}
+            deployLabel={t("plans.buy")}
             panelTitle={t("plans.bpVpsPanel")}
             detailedCatalog
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
@@ -129,8 +132,12 @@ export function PlansHub({
             title={t("plans.bpDedicatedTitle")}
             catalog={BULLETPROOF_DEDICATED_PLANS}
             detailedCatalog
-            panelTitle={t("plans.stdVpsPanel")}
+            panelTitle={t("plans.bpVpsPanel")}
+            deployLabel={t("plans.buy")}
             description={t("plans.bpDedicatedDesc")}
+            osOptions={BULLETPROOF_VPS_OS_OPTIONS}
+            allowedCountryCodes={BULLETPROOF_OFFSHORE_COUNTRY_CODES}
+            locationCountryLabels
           />
         )}
         {tab === "vps" && (
@@ -139,7 +146,7 @@ export function PlansHub({
             plans={standardVpsPlans}
             title={t("plans.stdVpsTitle")}
             description={t("plans.stdVpsDesc")}
-            deployLabel={t("plans.stdVpsDeploy")}
+            deployLabel={t("plans.buy")}
             panelTitle={t("plans.stdVpsPanel")}
             detailedCatalog
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
@@ -157,7 +164,11 @@ export function PlansHub({
             catalog={STANDARD_DEDICATED_PLANS}
             detailedCatalog
             panelTitle={t("plans.stdVpsPanel")}
+            deployLabel={t("plans.buy")}
             description={t("plans.stdDedicatedDesc")}
+            osOptions={BULLETPROOF_VPS_OS_OPTIONS}
+            allowedCountryCodes={STANDARD_VPS_COUNTRY_CODES}
+            locationCountryLabels
           />
         )}
         {tab === "turbovds" && <TurbovdsPlansTab locations={locations} plans={turboPlans} />}

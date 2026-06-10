@@ -179,7 +179,7 @@
     "topup": {
       "paymentPolicy": "Política de pago",
       "paymentPolicyDesc": "Facturación DIOR.host",
-      "paymentPolicyBody": "Añade fondos por pasarelas cripto o transferencia manual verificada. Cada pago tiene clave de idempotencia y auditoría en el libro mayor.",
+      "paymentPolicyBody": "Añade fondos con cripto o transferencia manual: soporte verifica y acredita el saldo. Cada pago queda en el historial y no se aplica dos veces.",
       "paymentMethod": "Método de pago",
       "paymentMethodHint": "Elige cómo financiar tu monedero",
       "amount": "Importe",
@@ -267,7 +267,7 @@
     "viewServices": "Ver servicios",
     "referrals": "Afiliados",
     "noServices": "Sin servicios activos",
-    "orderPlan": "Pedir plan",
+    "orderPlan": "Comprar",
     "manage": "Gestionar",
     "renewal": "Renueva {date}",
     "servicesCount": "{count} servicios"
@@ -278,13 +278,14 @@
     "bpDomainsDesc": "Registro DMCA-ignored con revisión manual de abuso y DNS offshore.",
     "bpVpsTitle": "Hosting Bulletproof VPS/VDS",
     "bpVpsDesc": "VPS/VDS offshore con políticas DMCA-ignored y entrega instantánea",
-    "bpVpsDeploy": "Desplegar VPS",
+    "buy": "Comprar",
+    "bpVpsDeploy": "Comprar",
     "bpVpsPanel": "Entrega instantánea",
     "bpDedicatedTitle": "Servidores dedicados bulletproof",
     "bpDedicatedDesc": "Bare-metal bajo política bulletproof — cargas de alta confianza y hosting DMCA-ignored.",
     "stdVpsTitle": "Hosting VPS/VDS",
     "stdVpsDesc": "VPS estándar en Rusia, Bielorrusia y Abjasia. Pedidos manuales vía soporte tras el pago.",
-    "stdVpsDeploy": "Pedir vía soporte",
+    "stdVpsDeploy": "Comprar",
     "stdVpsPanel": "Configuración del pedido",
     "stdDedicatedTitle": "Servidores dedicados",
     "stdDedicatedDesc": "Bare-metal estándar con configs fijas, rendimiento SLA y uplinks anti-DDoS.",
@@ -298,7 +299,7 @@
     "perYear": "/año",
     "unlimited": "Ilimitado",
     "popular": "Popular",
-    "order": "Pedir",
+    "order": "Comprar",
     "spec": {
       "cpu": "CPU",
       "ram": "RAM",
@@ -328,11 +329,11 @@
     "turbovds": {
       "title": "TurboVDS",
       "desc": "Compute DDR5 + NVMe de alta frecuencia con uplink 10 Gbps y ancho de banda ilimitado.",
-      "deploy": "Comprar TurboVDS",
+      "deploy": "Comprar",
       "panel": "Configuración del pedido"
     },
     "dedicated": {
-      "order": "Pedir",
+      "order": "Comprar",
       "inStock": "{count} en stock",
       "noInventory": "No hay inventario disponible en sus regiones.",
       "availableConfigs": "Configuraciones disponibles",
@@ -456,7 +457,9 @@
     "creating": "Creando cuenta…",
     "registerFailed": "Error al registrarse",
     "hasAccount": "¿Ya tienes cuenta?",
-    "signInLink": "Iniciar sesión"
+    "signInLink": "Iniciar sesión",
+    "captchaLabel": "Verificación",
+    "captchaRequired": "Completa la verificación captcha"
   },
   "promo": {
     "title": "Código promocional",
