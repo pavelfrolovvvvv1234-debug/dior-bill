@@ -9,6 +9,7 @@ import { DomainsPlansTab } from "./domains-plans-tab";
 import { TurbovdsPlansTab } from "./turbovds-plans-tab";
 import type { VpsPlan } from "@/lib/vps-plans";
 import { BULLETPROOF_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
+import { DEDICATED_COUNTRY_CODES } from "@/lib/dedicated-plan-locations";
 import {
   BULLETPROOF_OFFSHORE_COUNTRY_CODES,
   STANDARD_VPS_COUNTRY_CODES,
@@ -167,7 +168,7 @@ export function PlansHub({
             deployLabel={t("plans.buy")}
             description={t("plans.stdDedicatedDesc")}
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
-            allowedCountryCodes={STANDARD_VPS_COUNTRY_CODES}
+            allowedCountryCodes={DEDICATED_COUNTRY_CODES}
             locationCountryLabels
           />
         )}

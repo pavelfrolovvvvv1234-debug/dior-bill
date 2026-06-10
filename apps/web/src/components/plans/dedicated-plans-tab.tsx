@@ -21,11 +21,11 @@ import {
   STANDARD_VPS_OS_OPTIONS,
   type VpsOsOption,
 } from "@/lib/vps-os-options";
+import { DEDICATED_LOCATION_DEFS } from "@/lib/dedicated-plan-locations";
 import {
   BULLETPROOF_OFFSHORE_LOCATION_DEFS,
   filterLocationsByCountryCodes,
   getTranslatedLocationRegionLabel,
-  STANDARD_VPS_LOCATION_DEFS,
 } from "@/lib/vps-plan-locations";
 import type { TicketOrderProductLine } from "@/lib/ticket-order-copy";
 import { handlePurchaseError, toastInsufficientBalance } from "@/lib/toast";
@@ -132,7 +132,7 @@ export function DedicatedPlansTab({
   const availableLocations = useMemo(() => {
     const locationDefs = bulletproof
       ? BULLETPROOF_OFFSHORE_LOCATION_DEFS
-      : STANDARD_VPS_LOCATION_DEFS;
+      : DEDICATED_LOCATION_DEFS;
 
     let list = [...locations];
     if (allowedCountryCodes?.length) {

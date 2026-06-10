@@ -8,6 +8,7 @@ import { requireSession } from "@/lib/auth";
 import { BULLETPROOF_DEDICATED_PLANS } from "@/lib/bulletproof-dedicated-plans";
 import { STANDARD_DEDICATED_PLANS } from "@/lib/dedicated-plans";
 import { STANDARD_VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
+import { DEDICATED_COUNTRY_CODES } from "@/lib/dedicated-plan-locations";
 import {
   BULLETPROOF_OFFSHORE_COUNTRY_CODES,
   STANDARD_VPS_COUNTRY_CODES,
@@ -99,7 +100,7 @@ export async function purchaseDedicatedViaTicketAction(
     const allowedCountries =
       productLine === "bulletproof-dedicated"
         ? new Set<string>([...BULLETPROOF_OFFSHORE_COUNTRY_CODES])
-        : new Set<string>([...STANDARD_VPS_COUNTRY_CODES]);
+        : new Set<string>([...DEDICATED_COUNTRY_CODES]);
     if (!allowedCountries.has(location.country.toUpperCase())) {
       throw new Error(
         productLine === "bulletproof-dedicated"
