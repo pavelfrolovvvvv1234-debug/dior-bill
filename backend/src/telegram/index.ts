@@ -8,8 +8,12 @@ export {
   notifyAdminsNewService,
   notifyAdminsNewTicket,
   notifyAdminsTicketReply,
+  notifyAdminsBillingAlert,
   notifyAdminsOperationalAlert,
   notifyAdminsProvisioningFailed,
+  notifyAdminsProvisioningStuck,
+  notifyAdminsQueueJobDead,
+  notifyAdminsWorkerError,
   resolveAdminNotifyChatIds,
   resolveAdminNotifyUserIds,
 } from "./admin-notify";

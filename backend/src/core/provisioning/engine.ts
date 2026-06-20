@@ -443,10 +443,11 @@ export async function resumeAllStuckVpsProvisioning(): Promise<{
     findings.push(`Paid VPS ${svc.id} (${svc.label}) still PENDING`);
     await reportOperationalIssue({
       category: "provisioning.stuck",
-      message: `VPS "${svc.label}" is paid but still PENDING after ${Math.round(PENDING_ALERT_MS / 60000)}+ minutes`,
+      message: `Paid but still PENDING after ${Math.round(PENDING_ALERT_MS / 60000)}+ minutes`,
       severity: "critical",
       serviceId: svc.id,
       userId: svc.userId,
+      details: { label: svc.label },
       dedupeKey: `stuck_pending:${svc.id}`,
     });
   }

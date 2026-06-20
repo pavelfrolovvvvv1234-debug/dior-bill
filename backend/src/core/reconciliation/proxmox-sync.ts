@@ -1,7 +1,6 @@
 import { prisma } from "@dior/database";
 import { getProxmoxClient } from "../../proxmox/client";
 import { markProvisioningFailed } from "../provisioning/engine";
-import { reportOperationalIssue } from "../../lib/operational-alerts";
 
 export async function reconcileProvisioningWithProxmox(): Promise<{
   fixed: number;
@@ -34,14 +33,6 @@ export async function reconcileProvisioningWithProxmox(): Promise<{
             idempotencyKey: `reconcile:fail:${svc.id}`,
             error: "Provisioning timeout — no VM created within 30 minutes",
             rollback: true,
-          });
-          await reportOperationalIssue({
-            category: "provisioning.timeout",
-            message: `VPS stuck in PROVISIONING >30m without VMID`,
-            severity: "critical",
-            serviceId: svc.id,
-            userId: svc.userId,
-            dedupeKey: `prov_timeout:${svc.id}`,
           });
           fixed++;
         }

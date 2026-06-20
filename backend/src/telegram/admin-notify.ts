@@ -395,8 +395,8 @@ export async function notifyAdminsManualTopUpPending(params: {
   });
 }
 
-export async function notifyAdminsOperationalAlert(params: {
-  category: string;
+export async function notifyAdminsBillingAlert(params: {
+  headline: string;
   message: string;
   severity?: "warning" | "error" | "critical";
   details?: Record<string, string | number | undefined>;
@@ -406,25 +406,94 @@ export async function notifyAdminsOperationalAlert(params: {
   const severity = params.severity ?? "error";
   const icon =
     severity === "critical" ? "🚨" : severity === "warning" ? "⚠️" : "❗";
-  const who = params.userId
-    ? escapeTelegramHtml(await getUserLabel(params.userId))
-    : undefined;
-  const detailLines = params.details
-    ? Object.entries(params.details)
-        .filter(([, v]) => v !== undefined && v !== "")
-        .map(([k, v]) => `${escapeTelegramHtml(k)}: ${escapeTelegramHtml(String(v))}`)
-        .join("\n")
-    : "";
-
-  const link = params.serviceId ? panelUrl(`/services/${params.serviceId}`) : undefined;
-
+  const sections: Array<{ label: string; value: string }> = [
+    { label: "Details", value: params.message },
+  ];
+  if (params.userId) {
+    sections.push({ label: "User", value: await getUserLabel(params.userId) });
+  }
+  if (params.details) {
+    for (const [key, value] of Object.entries(params.details)) {
+      if (value !== undefined && value !== "") {
+        sections.push({ label: key, value: String(value) });
+      }
+    }
+  }
   await notifyHostingAdmins(
-    `${icon} <b>Billing alert</b>\n` +
-      `<b>${escapeTelegramHtml(params.category)}</b>\n` +
-      `${escapeTelegramHtml(params.message)}\n` +
-      (who ? `User: ${who}\n` : "") +
-      (detailLines ? `${detailLines}\n` : "") +
-      (link ? `<a href="${link}">Open service</a>` : ""),
+    buildPremiumTelegramMessage({
+      headline: `${icon} ${params.headline}`,
+      sections,
+      link: params.serviceId ? `/services/${params.serviceId}` : undefined,
+    }),
+  );
+}
+
+/** @deprecated alias — use notifyAdminsBillingAlert */
+export async function notifyAdminsOperationalAlert(params: {
+  category: string;
+  message: string;
+  severity?: "warning" | "error" | "critical";
+  details?: Record<string, string | number | undefined>;
+  serviceId?: string;
+  userId?: string;
+}): Promise<void> {
+  await notifyAdminsBillingAlert({
+    headline: params.category,
+    message: params.message,
+    severity: params.severity,
+    details: params.details,
+    serviceId: params.serviceId,
+    userId: params.userId,
+  });
+}
+
+export async function notifyAdminsProvisioningStuck(params: {
+  serviceId: string;
+  userId: string;
+  label: string;
+  message: string;
+}): Promise<void> {
+  const who = await getUserLabel(params.userId);
+  await notifyHostingAdmins(
+    buildPremiumTelegramMessage({
+      headline: "⚠️ VPS paid but not provisioned",
+      sections: [
+        { label: "Service", value: params.label },
+        { label: "User", value: who },
+        { label: "Issue", value: params.message },
+      ],
+      link: `/services/${params.serviceId}`,
+    }),
+  );
+}
+
+export async function notifyAdminsQueueJobDead(params: {
+  jobType: string;
+  jobId: string;
+  error: string;
+  serviceId?: string;
+}): Promise<void> {
+  await notifyHostingAdmins(
+    buildPremiumTelegramMessage({
+      headline: "🚨 Background job failed",
+      sections: [
+        { label: "Job", value: params.jobType },
+        { label: "Job ID", value: params.jobId || "—" },
+        { label: "Error", value: params.error.slice(0, 400) },
+      ],
+      link: params.serviceId ? `/services/${params.serviceId}` : undefined,
+    }),
+  );
+}
+
+export async function notifyAdminsWorkerError(params: { message: string }): Promise<void> {
+  await notifyHostingAdmins(
+    buildPremiumTelegramMessage({
+      headline: "🚨 Worker error",
+      sections: [{ label: "Error", value: params.message.slice(0, 400) }],
+      link: "/logs",
+      linkLabel: "Open logs",
+    }),
   );
 }
 
@@ -435,15 +504,18 @@ export async function notifyAdminsProvisioningFailed(params: {
   error: string;
   hostname?: string;
 }): Promise<void> {
-  const who = escapeTelegramHtml(await getUserLabel(params.userId));
-  const link = panelUrl(`/services/${params.serviceId}`);
+  const who = await getUserLabel(params.userId);
   await notifyHostingAdmins(
-    `🛑 <b>VPS provisioning failed</b>\n` +
-      `<b>${escapeTelegramHtml(params.label)}</b>\n` +
-      (params.hostname ? `Host: ${escapeTelegramHtml(params.hostname)}\n` : "") +
-      `Error: ${escapeTelegramHtml(params.error.slice(0, 500))}\n` +
-      `User: ${who}\n` +
-      `<a href="${link}">Open service</a>`,
+    buildPremiumTelegramMessage({
+      headline: "🛑 VPS provisioning failed",
+      sections: [
+        { label: "Service", value: params.label },
+        ...(params.hostname ? [{ label: "Hostname", value: params.hostname }] : []),
+        { label: "Error", value: params.error.slice(0, 500) },
+        { label: "User", value: who },
+      ],
+      link: `/services/${params.serviceId}`,
+    }),
   );
 }
 
