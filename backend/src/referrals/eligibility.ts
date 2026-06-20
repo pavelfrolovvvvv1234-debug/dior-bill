@@ -1,31 +1,18 @@
 import { prisma, type Prisma } from "@dior/database";
 
-/** Users registered before this date never count as referrals (legacy / migrated accounts). */
-const DEFAULT_REFERRAL_ELIGIBLE_SINCE = "2025-06-01T00:00:00.000Z";
-
-export function getReferralEligibleSince(): Date {
-  const raw = process.env.REFERRAL_ELIGIBLE_SINCE?.trim();
-  if (raw) {
-    const parsed = new Date(raw);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  return new Date(DEFAULT_REFERRAL_ELIGIBLE_SINCE);
-}
-
+/** True only when referrer was attached at account creation (new signup). */
 export function isEligibleReferral(user: {
   referredById?: string | null;
-  createdAt: Date;
+  referralQualifies?: boolean;
 }): boolean {
-  if (!user.referredById) return false;
-  return user.createdAt >= getReferralEligibleSince();
+  return !!user.referredById && user.referralQualifies === true;
 }
 
 /** Prisma filter for referred users that count toward a referrer. */
 export function eligibleReferralWhere(referrerId?: string): Prisma.UserWhereInput {
-  const since = getReferralEligibleSince();
   return {
     ...(referrerId ? { referredById: referrerId } : { referredById: { not: null } }),
-    createdAt: { gte: since },
+    referralQualifies: true,
   };
 }
 
@@ -38,7 +25,7 @@ export async function countEligibleReferralsByReferrer(
     by: ["referredById"],
     where: {
       referredById: { in: referrerIds },
-      createdAt: { gte: getReferralEligibleSince() },
+      referralQualifies: true,
     },
     _count: { _all: true },
   });

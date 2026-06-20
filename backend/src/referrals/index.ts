@@ -10,7 +10,6 @@ import { eligibleReferralWhere, isEligibleReferral } from "./eligibility";
 
 export { resolveReferrerId, type ReferrerResolution } from "./resolve-referrer";
 export {
-  getReferralEligibleSince,
   isEligibleReferral,
   eligibleReferralWhere,
   countEligibleReferralsByReferrer,
@@ -94,7 +93,7 @@ export async function processReferralCommission(
   const db = tx ?? prisma;
   const payer = await db.user.findUnique({
     where: { id: payerUserId },
-    select: { referredById: true, createdAt: true },
+    select: { referredById: true, referralQualifies: true },
   });
   if (!payer?.referredById || !isEligibleReferral(payer)) return;
 

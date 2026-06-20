@@ -149,6 +149,7 @@ export async function register(input: RegisterInput) {
       passwordHash,
       referralCode,
       referredById: referral.referredById,
+      referralQualifies: !!referral.referredById,
       lastOnlineAt: new Date(),
     },
   });
@@ -267,6 +268,7 @@ export async function loginWithTelegram(input: TelegramAuthInput) {
         avatarUrl: input.photo_url,
         referralCode,
         referredById: referral.referredById,
+        referralQualifies: !!referral.referredById,
         lastOnlineAt: new Date(),
       },
     });

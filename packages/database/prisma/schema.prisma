@@ -40,6 +40,8 @@ model User {
   twoFactorSecret   String?    @map("two_factor_secret")
   referralCode      String     @unique @map("referral_code")
   referredById      String?    @map("referred_by_id")
+  /** Set true only when referredById is assigned during first registration */
+  referralQualifies Boolean    @default(false) @map("referral_qualifies")
   referredBy        User?      @relation("Referrals", fields: [referredById], references: [id])
   referrals         User[]     @relation("Referrals")
   balance           Decimal    @default(0) @db.Decimal(12, 2)
@@ -85,6 +87,7 @@ model User {
   @@index([telegramId])
   @@index([referralCode])
   @@index([referredById])
+  @@index([referralQualifies])
   @@index([status])
   @@index([lastOnlineAt])
   @@map("users")
