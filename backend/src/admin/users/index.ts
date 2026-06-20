@@ -4,6 +4,7 @@ import { NotFoundError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
 import { refreshUserDashboardCache } from "../../users";
 import { creditWallet, debitWallet } from "../../payments/wallet";
+import { countEligibleReferralsByReferrer, eligibleReferralWhere } from "../../referrals/eligibility";
 import { requirePermission } from "../rbac";
 
 export type AdminUserDetail = {
@@ -94,7 +95,7 @@ export async function listAdminUsers(
         lastLoginIp: true,
         lastOnlineAt: true,
         createdAt: true,
-        _count: { select: { services: true, referrals: true } },
+        _count: { select: { services: true, tickets: true } },
       },
     }),
     prisma.user.count({ where }),
@@ -115,6 +116,7 @@ export async function listAdminUsers(
         _sum: { amount: true },
       })
     : [];
+  const eligibleReferralCounts = await countEligibleReferralsByReferrer(userIds);
 
   const spentMap = Object.fromEntries(spent.map((s) => [s.userId, Number(s._sum.amount ?? 0)]));
   const refMap = Object.fromEntries(
@@ -126,7 +128,7 @@ export async function listAdminUsers(
       ...u,
       telegramId: u.telegramId?.toString() ?? null,
       activeServices: u._count.services,
-      referralCount: u._count.referrals,
+      referralCount: eligibleReferralCounts[u.id] ?? 0,
       totalSpent: spentMap[u.id] ?? 0,
       referralEarnings: refMap[u.id] ?? 0,
     })),
@@ -155,12 +157,13 @@ export async function getAdminUserDetail(
       createdAt: true,
       lastOnlineAt: true,
       lastLoginAt: true,
-      _count: { select: { services: true, referrals: true, tickets: true } },
+      _count: { select: { services: true, tickets: true } },
     },
   });
   if (!user) throw new NotFoundError("User not found");
 
-  const [totalSpent, referralEarnings, recentAudit, services] = await Promise.all([
+  const [totalSpent, referralEarnings, recentAudit, services, eligibleReferralCount] =
+    await Promise.all([
     prisma.transaction.aggregate({
       where: { userId, type: "PAYMENT" },
       _sum: { amount: true },
@@ -181,6 +184,7 @@ export async function getAdminUserDetail(
       orderBy: { createdAt: "desc" },
       select: { id: true, type: true, status: true, label: true, monthlyPrice: true },
     }),
+    prisma.user.count({ where: eligibleReferralWhere(userId) }),
   ]);
 
   return {
@@ -195,7 +199,7 @@ export async function getAdminUserDetail(
       lastOnlineAt: user.lastOnlineAt?.toISOString() ?? null,
       lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
       serviceCount: user._count.services,
-      referralCount: user._count.referrals,
+      referralCount: eligibleReferralCount,
       ticketCount: user._count.tickets,
     },
     totalSpent: toMoney(totalSpent._sum.amount),

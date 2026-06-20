@@ -12,6 +12,7 @@ import {
   markProvisioningComplete,
   markProvisioningFailed,
 } from "../core/provisioning/engine";
+import { reportOperationalIssue } from "../lib/operational-alerts";
 
 export type ProvisioningPhase =
   | "queued"
@@ -201,9 +202,25 @@ export async function runVpsProvisionPipeline(payload: {
           error: message,
           rollback: true,
         });
+        await reportOperationalIssue({
+          category: "provisioning.pipeline",
+          message: message,
+          severity: "critical",
+          serviceId: payload.serviceId,
+          details: { vpsId: payload.vpsId, jobId: payload.jobId, attempts: String(attempts) },
+          dedupeKey: `pipeline_fail:${payload.serviceId}:${payload.jobId}`,
+        });
         throw err;
       }
 
+      await reportOperationalIssue({
+        category: "provisioning.pipeline",
+        message: `Attempt ${attempts}/${job.maxAttempts} failed: ${message}`,
+        severity: "warning",
+        serviceId: payload.serviceId,
+        details: { vpsId: payload.vpsId, jobId: payload.jobId },
+        dedupeKey: `pipeline_retry:${payload.jobId}:${attempts}`,
+      });
       throw err;
     }
   });

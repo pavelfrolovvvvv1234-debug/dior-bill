@@ -4,6 +4,7 @@ import {
   dispatchInlineJob,
   shouldRunInlineJobInBackground,
 } from "./inline-jobs";
+import { reportOperationalIssue } from "./operational-alerts";
 
 const QUEUE_PREFIX = "dior:queue:";
 const PROCESSING_PREFIX = "dior:processing:";
@@ -72,7 +73,30 @@ export async function failJob(job: QueueJob, error: string): Promise<void> {
       attempts: job.attempts + 1,
     };
     await redis.lpush(`${QUEUE_PREFIX}${job.type}`, JSON.stringify(retry));
+    if (job.type === "vps.provision") {
+      await reportOperationalIssue({
+        category: "queue.vps.provision",
+        message: `Provision job retry ${retry.attempts}/3: ${error}`,
+        severity: "warning",
+        details: { jobId: job.id, serviceId: String(job.payload.serviceId ?? "") },
+        serviceId: job.payload.serviceId as string | undefined,
+        dedupeKey: `job_retry:${job.id}:${retry.attempts}`,
+      });
+    }
   } else {
     await redis.lpush("dior:queue:dead", JSON.stringify({ ...job, error }));
+    const payload = job.payload as Record<string, unknown>;
+    await reportOperationalIssue({
+      category: "queue.dead",
+      message: `Job ${job.type} moved to dead letter queue after 3 failures`,
+      severity: "critical",
+      details: {
+        jobId: job.id,
+        error: error.slice(0, 200),
+        serviceId: String(payload.serviceId ?? ""),
+      },
+      serviceId: payload.serviceId as string | undefined,
+      dedupeKey: `dead:${job.id}`,
+    });
   }
 }

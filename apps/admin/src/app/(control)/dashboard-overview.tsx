@@ -64,6 +64,8 @@ function StatCard({
   return inner;
 }
 
+const FEED_PANEL_FIXED_HEIGHT = "h-[420px]";
+
 function FeedPanel({
   title,
   description,
@@ -71,6 +73,7 @@ function FeedPanel({
   linkLabel,
   children,
   empty,
+  fixedHeight,
 }: {
   title: string;
   description: string;
@@ -78,10 +81,16 @@ function FeedPanel({
   linkLabel: string;
   children: React.ReactNode;
   empty?: boolean;
+  fixedHeight?: boolean;
 }) {
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0f18]/60">
-      <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+    <section
+      className={cn(
+        "flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0f18]/60",
+        fixedHeight && FEED_PANEL_FIXED_HEIGHT,
+      )}
+    >
+      <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
         <div>
           <h2 className="text-sm font-medium">{title}</h2>
           <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{description}</p>
@@ -91,7 +100,15 @@ function FeedPanel({
           <ArrowUpRight className="h-3 w-3" />
         </Link>
       </div>
-      <div className="flex-1">{empty ? <p className="px-5 py-12 text-center text-sm text-[var(--muted-foreground)]">Nothing here yet</p> : children}</div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {empty ? (
+          <p className="flex flex-1 items-center justify-center px-5 py-12 text-center text-sm text-[var(--muted-foreground)]">
+            Nothing here yet
+          </p>
+        ) : (
+          children
+        )}
+      </div>
     </section>
   );
 }
@@ -158,17 +175,17 @@ export function DashboardOverview({ data }: Props) {
       </FeedPanel>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <FeedPanel title="New users" description="Latest registrations" href="/users" linkLabel="All users" empty={data.recentUsers.length === 0}>
+        <FeedPanel title="New users" description="Latest registrations" href="/users" linkLabel="All users" empty={data.recentUsers.length === 0} fixedHeight>
           {data.recentUsers.map((u) => (
             <FeedRow key={u.id} href={`/users/${u.id}`} primary={u.email ?? u.id.slice(0, 8)} meta={formatRelative(u.createdAt)} badge={<Badge>{u.status}</Badge>} />
           ))}
         </FeedPanel>
-        <FeedPanel title="Recent services" description="Newly provisioned" href="/services" linkLabel="All services" empty={data.recentServices.length === 0}>
+        <FeedPanel title="Recent services" description="Newly provisioned" href="/services" linkLabel="All services" empty={data.recentServices.length === 0} fixedHeight>
           {data.recentServices.map((s) => (
             <FeedRow key={s.id} href={`/services/${s.id}`} primary={s.label} secondary={s.user.email ?? "—"} meta={formatRelative(s.createdAt)} badge={<Badge>{s.status}</Badge>} />
           ))}
         </FeedPanel>
-        <FeedPanel title="Support inbox" description="Open tickets" href="/support" linkLabel="Inbox" empty={data.recentTickets.length === 0}>
+        <FeedPanel title="Support inbox" description="Open tickets" href="/support" linkLabel="Inbox" empty={data.recentTickets.length === 0} fixedHeight>
           {data.recentTickets.map((t) => (
             <FeedRow key={t.id} href={`/support/${t.id}`} primary={t.subject} meta={formatRelative(t.updatedAt)} badge={<Badge>{t.priority}</Badge>} />
           ))}

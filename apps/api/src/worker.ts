@@ -19,6 +19,8 @@ import {
   runBillingScheduler,
   handleInvoiceOverdue,
   renewService,
+  resumeAllStuckVpsProvisioning,
+  reportOperationalIssue,
 } from "@dior/backend";
 import { prisma } from "@dior/database";
 import { createNotification, deliverTelegramNotification } from "@dior/backend";
@@ -59,8 +61,14 @@ const BILLING_SCHEDULER_INTERVAL_MS = 60 * 60 * 1000;
 let lastTopUpSync = 0;
 const TOPUP_SYNC_INTERVAL_MS = 90 * 1000;
 
+let lastWorkerErrorAlert = 0;
+const WORKER_ERROR_ALERT_MS = 5 * 60 * 1000;
+
 async function run() {
   console.log("Dior worker started (event-driven control plane)");
+  resumeAllStuckVpsProvisioning().catch((e) =>
+    console.error("Initial stuck VPS resume:", e),
+  );
   runBillingScheduler().catch((e) => console.error("Initial billing scheduler:", e));
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -179,6 +187,15 @@ async function run() {
       }
     } catch (err) {
       console.error("Worker loop error:", err);
+      if (Date.now() - lastWorkerErrorAlert > WORKER_ERROR_ALERT_MS) {
+        lastWorkerErrorAlert = Date.now();
+        reportOperationalIssue({
+          category: "worker.loop",
+          message: err instanceof Error ? err.message : "Unknown worker error",
+          severity: "critical",
+          dedupeKey: `worker_loop:${Math.floor(Date.now() / WORKER_ERROR_ALERT_MS)}`,
+        }).catch(() => {});
+      }
       await new Promise((r) => setTimeout(r, 5000));
     }
   }

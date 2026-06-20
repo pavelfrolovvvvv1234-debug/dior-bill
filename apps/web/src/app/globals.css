@@ -464,11 +464,31 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Cloudflare Turnstile — align with auth form fields */
+/* Cloudflare Turnstile — flush with auth form, no double box */
+.cf-turnstile-wrap {
+  width: 100%;
+}
+
+.cf-turnstile-host {
+  width: 100%;
+  min-height: 65px;
+  line-height: 0;
+  font-size: 0;
+}
+
+.cf-turnstile-host > div {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
 .cf-turnstile-host iframe {
-  display: block;
+  display: block !important;
   width: 100% !important;
   max-width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  vertical-align: top;
 }
 
 

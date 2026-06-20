@@ -2,6 +2,7 @@ import { prisma } from "@dior/database";
 import type { PayoutStatus } from "@dior/database";
 import { NotFoundError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
+import { eligibleReferralWhere } from "../../referrals/eligibility";
 import { requirePermission } from "../rbac";
 
 export async function getReferralOverview(actorId: string) {
@@ -102,6 +103,7 @@ export async function listReferralTree(actorId: string, userId: string) {
       referralCode: true,
       referredBy: { select: { id: true, email: true } },
       referrals: {
+        where: eligibleReferralWhere(userId),
         select: {
           id: true,
           email: true,

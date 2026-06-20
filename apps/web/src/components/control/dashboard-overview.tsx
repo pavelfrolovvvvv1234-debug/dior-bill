@@ -65,6 +65,8 @@ function StatCard({
   return inner;
 }
 
+const FEED_PANEL_FIXED_HEIGHT = "h-[420px]";
+
 function FeedPanel({
   title,
   description,
@@ -73,6 +75,7 @@ function FeedPanel({
   children,
   empty,
   className,
+  fixedHeight,
 }: {
   title: string;
   description: string;
@@ -81,9 +84,17 @@ function FeedPanel({
   children: React.ReactNode;
   empty?: boolean;
   className?: string;
+  /** Keep panel height constant; list scrolls inside */
+  fixedHeight?: boolean;
 }) {
   return (
-    <section className={cn("panel flex h-full min-h-0 flex-col overflow-hidden", className)}>
+    <section
+      className={cn(
+        "panel flex min-h-0 flex-col overflow-hidden",
+        fixedHeight && FEED_PANEL_FIXED_HEIGHT,
+        className,
+      )}
+    >
       <div className="panel-header !flex-row !items-start">
         <div>
           <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
@@ -101,7 +112,7 @@ function FeedPanel({
         {empty ? (
           <EmptyFeed label={description} />
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
         )}
       </div>
     </section>
@@ -110,7 +121,7 @@ function FeedPanel({
 
 function EmptyFeed({ label }: { label: string }) {
   return (
-    <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center px-5 py-12 text-center">
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-muted/30">
         <AlertCircle className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
@@ -227,13 +238,14 @@ export function DashboardOverview({ data }: Props) {
         ))}
       </FeedPanel>
 
-      <div className="grid items-stretch gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <FeedPanel
           title="New users"
           description="Latest account registrations"
           href={controlPath("/users")}
           linkLabel="All users"
           empty={data.recentUsers.length === 0}
+          fixedHeight
         >
           {data.recentUsers.map((u) => (
             <FeedRow
@@ -252,6 +264,7 @@ export function DashboardOverview({ data }: Props) {
           href={controlPath("/services")}
           linkLabel="All services"
           empty={data.recentServices.length === 0}
+          fixedHeight
         >
           {data.recentServices.map((s) => (
             <FeedRow
@@ -271,6 +284,7 @@ export function DashboardOverview({ data }: Props) {
           href={controlPath("/support")}
           linkLabel="Open inbox"
           empty={data.recentTickets.length === 0}
+          fixedHeight
         >
           {data.recentTickets.map((t) => (
             <FeedRow

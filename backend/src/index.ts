@@ -44,4 +44,5 @@ export * from "./audit";
 export * from "./admin";
 export * from "./settings";
 export * from "./search";
+export { reportOperationalIssue } from "./lib/operational-alerts";
 export { AppError, RATE_LIMITS, ADMIN_ROLES } from "@dior/shared";

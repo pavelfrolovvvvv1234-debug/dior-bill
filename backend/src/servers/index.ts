@@ -83,9 +83,45 @@ export async function provisionVps(params: {
   const idempotencyKey =
     params.idempotencyKey ??
     createHash("sha256")
-      .update(`${params.userId}:${params.hostname}:${Date.now()}`)
+      .update(
+        `${params.userId}:${params.hostname}:${params.locationId}:${params.plan.cpuCores}:${params.plan.ramMb}:${params.plan.diskGb}`,
+      )
       .digest("hex")
       .slice(0, 32);
+
+  const existingOrder = await prisma.domainEvent.findUnique({
+    where: { idempotencyKey: `service.created:${idempotencyKey}` },
+  });
+  if (existingOrder) {
+    const serviceId = existingOrder.aggregateId;
+    const vps = await prisma.vpsInstance.findFirst({ where: { serviceId } });
+    if (vps) {
+      const invoiceItem = await prisma.invoiceItem.findFirst({
+        where: { serviceId },
+        include: { invoice: true },
+        orderBy: { invoice: { createdAt: "desc" } },
+      });
+      return {
+        serviceId,
+        vps,
+        invoice: invoiceItem?.invoice ?? null,
+      };
+    }
+  }
+
+  const duplicateHostname = await prisma.service.findFirst({
+    where: {
+      userId: params.userId,
+      type: "VPS",
+      label: params.hostname,
+      status: { in: ["PENDING", "PROVISIONING"] },
+    },
+  });
+  if (duplicateHostname) {
+    throw new ValidationError(
+      "A server with this hostname is already being provisioned. Check My Services.",
+    );
+  }
 
   const node = await selectNodeForProvisioning(params.locationId);
 
@@ -160,6 +196,29 @@ export async function provisionVps(params: {
         }
       } finally {
         await unlockBalance(params.userId, promo.chargeAmount);
+      }
+
+      try {
+        await startProvisioning({
+          serviceId,
+          idempotencyKey: `direct:${idempotencyKey}`,
+        });
+      } catch (err) {
+        if (
+          !(
+            err instanceof ValidationError &&
+            String(err.message).includes("Cannot provision")
+          )
+        ) {
+          const { reportOperationalIssue } = await import("../lib/operational-alerts");
+          await reportOperationalIssue({
+            category: "provisioning.start",
+            message: err instanceof Error ? err.message : "startProvisioning failed",
+            serviceId,
+            userId: params.userId,
+            dedupeKey: `start_fail:${serviceId}`,
+          });
+        }
       }
     } else if (params.prepaid) {
       const { emitPaymentConfirmed } = await import("../core/billing/engine");

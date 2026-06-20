@@ -3,11 +3,12 @@
  * Usage: DATABASE_URL=... [PROXMOX_*] npx tsx scripts/resume-stuck-vps.ts [userEmail]
  */
 import { prisma } from "@dior/database";
-import { resumeStuckVpsProvisioningForUser } from "../src/core/provisioning/engine";
+import { resumeAllStuckVpsProvisioning } from "../src/core/provisioning/engine";
 
 async function main() {
   const email = process.argv[2];
   if (email) {
+    const { resumeStuckVpsProvisioningForUser } = await import("../src/core/provisioning/engine");
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error(`User not found: ${email}`);
     await resumeStuckVpsProvisioningForUser(user.id);
@@ -15,15 +16,8 @@ async function main() {
     return;
   }
 
-  const users = await prisma.service.findMany({
-    where: { type: "VPS", status: { in: ["PENDING", "FAILED"] } },
-    select: { userId: true },
-    distinct: ["userId"],
-  });
-  for (const { userId } of users) {
-    await resumeStuckVpsProvisioningForUser(userId);
-  }
-  console.log(`Processed ${users.length} user(s) with stuck VPS`);
+  const result = await resumeAllStuckVpsProvisioning();
+  console.log(`Processed ${result.usersProcessed} user(s); findings:`, result.findings);
 }
 
 main()

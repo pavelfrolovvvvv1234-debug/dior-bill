@@ -104,10 +104,8 @@ export function TurnstileField({ siteKey, onToken }: TurnstileFieldProps) {
   }, [siteKey, renderWidget]);
 
   return (
-    <div
-      ref={containerRef}
-      className="cf-turnstile-host w-full min-h-[65px] overflow-hidden rounded-md border border-white/8 bg-white/[0.02]"
-      aria-label="Captcha verification"
-    />
+    <div className="cf-turnstile-wrap w-full">
+      <div ref={containerRef} className="cf-turnstile-host" aria-label="Captcha verification" />
+    </div>
   );
 }

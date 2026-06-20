@@ -75,27 +75,29 @@ export function StatisticsOpsPanel({ stats }: { stats: PurchasePeriodStats }) {
               key={item.labelKey}
               href={item.href}
               className={cn(
-                "group card-interactive flex items-center gap-4 rounded-xl border px-4 py-3.5",
+                "group card-interactive grid grid-cols-[auto_1fr_auto] grid-rows-[auto_auto] items-center gap-x-3 gap-y-1 rounded-xl border px-4 py-3.5",
                 active ? toneStyles[item.tone] : "border-border bg-muted/20 opacity-60 hover:opacity-100",
                 "hover:border-border/80 hover:shadow-sm",
               )}
             >
               <div
                 className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-background/60",
+                  "row-span-2 flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-lg border border-border bg-background/60",
                   active && item.tone === "warning" && "border-amber-500/30",
                   active && item.tone === "info" && "border-primary/30",
                 )}
               >
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">{t(item.labelKey)}</p>
-                <p className="text-xl font-semibold tabular-nums tracking-tight">{item.count}</p>
-              </div>
-              <span className="reveal-muted text-xs text-muted-foreground">
+              <p className="min-w-0 self-end text-xs leading-snug text-muted-foreground">
+                {t(item.labelKey)}
+              </p>
+              <span className="shrink-0 self-end whitespace-nowrap text-xs text-muted-foreground">
                 {t("controlStatistics.attention.view")}
               </span>
+              <p className="col-start-2 text-xl font-semibold tabular-nums tracking-tight">
+                {item.count}
+              </p>
             </Link>
           );
         })}

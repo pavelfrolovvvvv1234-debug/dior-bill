@@ -208,7 +208,7 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
 
               {turnstileSiteKey && (
                 <div className="space-y-1.5">
-                  <p className="text-sm font-medium">{t("auth.captchaLabel")}</p>
+                  <label className="text-sm font-medium">{t("auth.captchaLabel")}</label>
                   <TurnstileField
                     key={turnstileKey}
                     siteKey={turnstileSiteKey}

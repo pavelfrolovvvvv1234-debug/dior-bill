@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "crypto";
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { assertSufficientBalance } from "@/app/actions/order";
@@ -54,6 +55,11 @@ export async function deployVpsAction(formData: FormData) {
     }
     await assertSufficientBalance(chargeAmount);
 
+    const idempotencyKey = createHash("sha256")
+      .update(`${session.user.id}:${hostname}:${locationId}:${planId}:${os}`)
+      .digest("hex")
+      .slice(0, 32);
+
     const { vps } = await provisionVps({
       userId: session.user.id,
       hostname,
@@ -68,6 +74,7 @@ export async function deployVpsAction(formData: FormData) {
       os,
       prepaid: true,
       promoCode,
+      idempotencyKey,
     });
 
     revalidatePath("/services");

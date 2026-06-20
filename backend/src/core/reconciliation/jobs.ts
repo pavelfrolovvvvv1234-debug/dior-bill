@@ -1,6 +1,7 @@
 import { prisma } from "@dior/database";
 import { toJsonValue } from "../../lib/json";
 import { reconcileBillingServices } from "../billing/engine";
+import { resumeAllStuckVpsProvisioning } from "../provisioning/engine";
 import { syncNodeCapacityFromDb } from "../inventory/service";
 import { reconcileProvisioningWithProxmox } from "./proxmox-sync";
 
@@ -26,6 +27,11 @@ export async function runReconciliation(
         const r = await reconcileBillingServices();
         fixesApplied = r.fixed;
         findings = r.findings;
+        const resume = await resumeAllStuckVpsProvisioning();
+        if (resume.findings.length) {
+          findings = [...findings, ...resume.findings];
+        }
+        fixesApplied += resume.usersProcessed;
         break;
       }
       case "inventory_capacity": {

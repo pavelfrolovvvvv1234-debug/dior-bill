@@ -395,6 +395,58 @@ export async function notifyAdminsManualTopUpPending(params: {
   });
 }
 
+export async function notifyAdminsOperationalAlert(params: {
+  category: string;
+  message: string;
+  severity?: "warning" | "error" | "critical";
+  details?: Record<string, string | number | undefined>;
+  serviceId?: string;
+  userId?: string;
+}): Promise<void> {
+  const severity = params.severity ?? "error";
+  const icon =
+    severity === "critical" ? "🚨" : severity === "warning" ? "⚠️" : "❗";
+  const who = params.userId
+    ? escapeTelegramHtml(await getUserLabel(params.userId))
+    : undefined;
+  const detailLines = params.details
+    ? Object.entries(params.details)
+        .filter(([, v]) => v !== undefined && v !== "")
+        .map(([k, v]) => `${escapeTelegramHtml(k)}: ${escapeTelegramHtml(String(v))}`)
+        .join("\n")
+    : "";
+
+  const link = params.serviceId ? panelUrl(`/services/${params.serviceId}`) : undefined;
+
+  await notifyHostingAdmins(
+    `${icon} <b>Billing alert</b>\n` +
+      `<b>${escapeTelegramHtml(params.category)}</b>\n` +
+      `${escapeTelegramHtml(params.message)}\n` +
+      (who ? `User: ${who}\n` : "") +
+      (detailLines ? `${detailLines}\n` : "") +
+      (link ? `<a href="${link}">Open service</a>` : ""),
+  );
+}
+
+export async function notifyAdminsProvisioningFailed(params: {
+  serviceId: string;
+  userId: string;
+  label: string;
+  error: string;
+  hostname?: string;
+}): Promise<void> {
+  const who = escapeTelegramHtml(await getUserLabel(params.userId));
+  const link = panelUrl(`/services/${params.serviceId}`);
+  await notifyHostingAdmins(
+    `🛑 <b>VPS provisioning failed</b>\n` +
+      `<b>${escapeTelegramHtml(params.label)}</b>\n` +
+      (params.hostname ? `Host: ${escapeTelegramHtml(params.hostname)}\n` : "") +
+      `Error: ${escapeTelegramHtml(params.error.slice(0, 500))}\n` +
+      `User: ${who}\n` +
+      `<a href="${link}">Open service</a>`,
+  );
+}
+
 export async function notifyAdminsNewService(params: {
   serviceId: string;
   userId: string;

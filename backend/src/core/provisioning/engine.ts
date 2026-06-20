@@ -8,7 +8,8 @@ import { ValidationError, NotFoundError } from "@dior/shared";
 import { appendDomainEvent } from "../events/store";
 import { enqueueJob } from "../../lib/queue";
 import { initProvisioningJob } from "../../provisioning/state-machine";
-import { notifyAdminsNewService } from "../../telegram";
+import { notifyAdminsNewService, notifyAdminsProvisioningFailed } from "../../telegram";
+import { reportOperationalIssue } from "../../lib/operational-alerts";
 import { releaseStuckAbuseRestrictions } from "../abuse/engine";
 
 /**
@@ -271,6 +272,20 @@ export async function markProvisioningFailed(params: {
       where: { idempotencyKey: params.idempotencyKey },
       data: { status: "failed", error: params.error, completedAt: new Date() },
     });
+
+    const service = await prisma.service.findUnique({
+      where: { id: params.serviceId },
+      select: { userId: true, label: true, vpsInstance: { select: { hostname: true } } },
+    });
+    if (service) {
+      await notifyAdminsProvisioningFailed({
+        serviceId: params.serviceId,
+        userId: service.userId,
+        label: service.label,
+        error: params.error,
+        hostname: service.vpsInstance?.hostname,
+      }).catch((err) => console.warn("[telegram] provision failed notify:", err));
+    }
   });
 }
 
@@ -320,6 +335,13 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
         continue;
       }
       console.error(`[resume-provision] service ${service.id}:`, err);
+      await reportOperationalIssue({
+        category: "provisioning.resume",
+        message: err instanceof Error ? err.message : "Resume failed",
+        serviceId: service.id,
+        userId,
+        dedupeKey: `resume_fail:${service.id}`,
+      });
     }
   }
 
@@ -331,13 +353,29 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
     },
   });
 
+  const STALL_MS = 15 * 60 * 1000;
+
   for (const service of stalled) {
     const job = service.provisioningJobs[0];
     const vps = service.vpsInstance;
     if (!job || !vps) continue;
-    if (job.status !== "failed" && job.status !== "queued") continue;
 
-    const idempotencyKey = `resume-job:${job.id}`;
+    const jobAge = Date.now() - (job.startedAt ?? job.createdAt).getTime();
+    const shouldRetry =
+      job.status === "failed" ||
+      job.status === "queued" ||
+      (job.status === "running" && jobAge > STALL_MS);
+
+    if (!shouldRetry) continue;
+
+    if (job.status === "running" && jobAge > STALL_MS) {
+      await prisma.provisioningJob.update({
+        where: { id: job.id },
+        data: { status: "queued", error: "Re-queued after stall" },
+      });
+    }
+
+    const idempotencyKey = `resume-job:${job.id}:${Math.floor(Date.now() / STALL_MS)}`;
     try {
       await enqueueJob("vps.provision", {
         serviceId: service.id,
@@ -347,6 +385,71 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
       });
     } catch (err) {
       console.error(`[resume-provision] retry job ${job.id}:`, err);
+      await reportOperationalIssue({
+        category: "provisioning.retry",
+        message: err instanceof Error ? err.message : "Re-queue failed",
+        serviceId: service.id,
+        userId,
+        dedupeKey: `retry_fail:${job.id}`,
+      });
     }
   }
+}
+
+const PENDING_ALERT_MS = 10 * 60 * 1000;
+
+/**
+ * Global sweep — run from worker reconciliation and on startup.
+ * Fixes VPS stuck after worker outages without requiring the user to open My Services.
+ */
+export async function resumeAllStuckVpsProvisioning(): Promise<{
+  usersProcessed: number;
+  findings: string[];
+}> {
+  const findings: string[] = [];
+
+  const stuckUsers = await prisma.service.findMany({
+    where: {
+      type: "VPS",
+      status: { in: ["PENDING", "FAILED", "PROVISIONING"] },
+    },
+    select: { userId: true },
+    distinct: ["userId"],
+  });
+
+  for (const { userId } of stuckUsers) {
+    try {
+      await resumeStuckVpsProvisioningForUser(userId);
+    } catch (err) {
+      findings.push(
+        `User ${userId}: ${err instanceof Error ? err.message : "unknown error"}`,
+      );
+    }
+  }
+
+  const longPending = await prisma.service.findMany({
+    where: {
+      type: "VPS",
+      status: "PENDING",
+      createdAt: { lt: new Date(Date.now() - PENDING_ALERT_MS) },
+    },
+    include: { invoiceItems: { include: { invoice: true } } },
+    take: 30,
+  });
+
+  for (const svc of longPending) {
+    const paid = svc.invoiceItems.some((i) => i.invoice.status === "PAID");
+    if (!paid) continue;
+    findings.push(`Paid VPS ${svc.id} (${svc.label}) still PENDING`);
+    await reportOperationalIssue({
+      category: "provisioning.stuck",
+      message: `VPS "${svc.label}" is paid but still PENDING after ${Math.round(PENDING_ALERT_MS / 60000)}+ minutes`,
+      severity: "critical",
+      serviceId: svc.id,
+      userId: svc.userId,
+      dedupeKey: `stuck_pending:${svc.id}`,
+    });
+  }
+
+  return { usersProcessed: stuckUsers.length, findings };
 }
