@@ -95,33 +95,35 @@ export async function updatePayoutStatus(
 export async function listReferralTree(actorId: string, userId: string) {
   await requirePermission(actorId, "referrals.read");
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      referralCode: true,
-      referredBy: { select: { id: true, email: true } },
-      referrals: {
-        where: eligibleReferralWhere(userId),
-        select: {
-          id: true,
-          email: true,
-          createdAt: true,
-          status: true,
-        },
-        take: 50,
+  const [user, referrals, earnings] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        referralCode: true,
+        referredBy: { select: { id: true, email: true } },
       },
-    },
-  });
+    }),
+    prisma.user.findMany({
+      where: await eligibleReferralWhere(userId),
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        status: true,
+      },
+      take: 50,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.referralEarning.findMany({
+      where: { earnerId: userId },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      include: { sourceUser: { select: { email: true } } },
+    }),
+  ]);
   if (!user) throw new NotFoundError();
 
-  const earnings = await prisma.referralEarning.findMany({
-    where: { earnerId: userId },
-    orderBy: { createdAt: "desc" },
-    take: 30,
-    include: { sourceUser: { select: { email: true } } },
-  });
-
-  return { user, earnings };
+  return { user: { ...user, referrals }, earnings };
 }

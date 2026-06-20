@@ -6,13 +6,14 @@ import {
   NotFoundError,
   ValidationError,
 } from "@dior/shared";
-import { eligibleReferralWhere, isEligibleReferral } from "./eligibility";
+import { eligibleReferralWhere, hasReferralQualifiesColumn, isEligibleReferral } from "./eligibility";
 
 export { resolveReferrerId, type ReferrerResolution } from "./resolve-referrer";
 export {
   isEligibleReferral,
   eligibleReferralWhere,
   countEligibleReferralsByReferrer,
+  hasReferralQualifiesColumn,
 } from "./eligibility";
 
 export async function getReferralDashboard(userId: string) {
@@ -24,7 +25,7 @@ export async function getReferralDashboard(userId: string) {
 
   const [referrals, earnings, payouts, recentEarnings] = await Promise.all([
     prisma.user.findMany({
-      where: eligibleReferralWhere(userId),
+      where: await eligibleReferralWhere(userId),
       select: {
         id: true,
         displayName: true,
@@ -91,11 +92,15 @@ export async function processReferralCommission(
   tx?: Prisma.TransactionClient,
 ) {
   const db = tx ?? prisma;
+  const hasColumn = await hasReferralQualifiesColumn();
   const payer = await db.user.findUnique({
     where: { id: payerUserId },
-    select: { referredById: true, referralQualifies: true },
+    select: {
+      referredById: true,
+      ...(hasColumn ? { referralQualifies: true } : {}),
+    },
   });
-  if (!payer?.referredById || !isEligibleReferral(payer)) return;
+  if (!payer?.referredById || !isEligibleReferral(payer, hasColumn)) return;
 
   const earner = await db.user.findUnique({
     where: { id: payer.referredById },

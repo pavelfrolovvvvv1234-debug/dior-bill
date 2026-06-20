@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NotFoundError } from "@dior/shared";
 import { getAdminUserDetail, getAdminUserFinancials } from "@dior/backend";
 import { PageHeader } from "@/components/control/page-header";
 import { PageContainer } from "@/components/control/page-container";
@@ -26,8 +27,9 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       getAdminUserDetail(actor.id, id),
       getAdminUserFinancials(actor.id, id),
     ]);
-  } catch {
-    notFound();
+  } catch (err) {
+    if (err instanceof NotFoundError) notFound();
+    throw err;
   }
 
   const { user } = data;

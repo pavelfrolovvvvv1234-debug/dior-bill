@@ -1,9 +1,23 @@
-import { prisma } from "@dior/database";
+import { prisma, type Prisma } from "@dior/database";
 import { requirePermission } from "../rbac";
 import { toIso, toMoney } from "./serialize";
 
 export async function getAdminUserFinancials(actorId: string, userId: string) {
   await requirePermission(actorId, "billing.read");
+
+  const promoRedemptionsPromise = prisma.promoCodeRedemption
+    .findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { promoCode: { select: { code: true, discountType: true } } },
+    })
+    .catch(() => [] as Array<{
+      id: string;
+      credit: Prisma.Decimal;
+      createdAt: Date;
+      promoCode: { code: string; discountType: string };
+    }>);
 
   const [user, invoices, topUps, transactions, redemptions, payouts, referrals] =
     await Promise.all([
@@ -57,12 +71,7 @@ export async function getAdminUserFinancials(actorId: string, userId: string) {
           createdAt: true,
         },
       }),
-      prisma.promoCodeRedemption.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: { promoCode: { select: { code: true, discountType: true } } },
-      }),
+      promoRedemptionsPromise,
       prisma.payoutRequest.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },

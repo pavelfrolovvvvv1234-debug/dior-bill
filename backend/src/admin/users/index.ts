@@ -184,7 +184,7 @@ export async function getAdminUserDetail(
       orderBy: { createdAt: "desc" },
       select: { id: true, type: true, status: true, label: true, monthlyPrice: true },
     }),
-    prisma.user.count({ where: eligibleReferralWhere(userId) }),
+    prisma.user.count({ where: await eligibleReferralWhere(userId) }),
   ]);
 
   return {
