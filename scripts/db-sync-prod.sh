@@ -3,13 +3,17 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DB_DIR="$ROOT/packages/database"
 LOG="$(mktemp)"
 
-cd "$DB_DIR"
+cd "$ROOT"
 
 run_migrate() {
-  dotenv -e ../../.env -- prisma migrate deploy
+  pnpm --filter @dior/database migrate:deploy
+}
+
+resolve_migration() {
+  local name="$1"
+  pnpm --filter @dior/database exec dotenv -e ../../.env -- prisma migrate resolve --applied "$name"
 }
 
 if run_migrate 2>"$LOG"; then
@@ -25,10 +29,10 @@ fi
 
 echo "Database has no migration history — baselining existing schema (one-time)…" >&2
 
-for dir in prisma/migrations/*/; do
+for dir in packages/database/prisma/migrations/*/; do
   name="$(basename "$dir")"
   echo "  mark applied: $name" >&2
-  dotenv -e ../../.env -- prisma migrate resolve --applied "$name"
+  resolve_migration "$name"
 done
 
 run_migrate
