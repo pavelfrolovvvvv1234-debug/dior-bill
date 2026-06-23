@@ -8,19 +8,25 @@ type TurnstileVerifyResponse = {
 };
 
 export function isTurnstileRequired(): boolean {
-  return !!process.env.TURNSTILE_SECRET_KEY?.trim();
+  const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
+  if (!secret) return false;
+  if (process.env.NODE_ENV !== "production" && process.env.TURNSTILE_ENFORCE_IN_DEV !== "true") {
+    return false;
+  }
+  return true;
 }
 
 export async function verifyTurnstileToken(
   token: string | undefined | null,
   remoteIp?: string,
 ): Promise<void> {
+  if (!isTurnstileRequired()) {
+    return;
+  }
+
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new ValidationError("Captcha verification is not configured");
-    }
-    return;
+    throw new ValidationError("Captcha verification is not configured");
   }
 
   if (!token?.trim()) {

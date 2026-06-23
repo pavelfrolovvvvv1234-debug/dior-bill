@@ -4,12 +4,13 @@ import { toJsonValue } from "../lib/json";
 import {
   assertUserHasNotRedeemedPromo,
   computeBalanceCredit,
+  isPromoRedemptionConflict,
   loadActivePromo,
   normalizePromoCode,
   quoteOrderPromo,
 } from "./promo-redeem";
 
-export { applyPromoToOrderTotal, finalizeOrderPromo, quoteOrderPromo } from "./promo-redeem";
+export { applyPromoToOrderTotal, finalizeOrderPromo, quoteOrderPromo, releasePromoRedemption } from "./promo-redeem";
 
 /** Quote discount for checkout — does not consume the promo. */
 export async function applyPromoCode(userId: string, code: string, amount: number) {
@@ -22,11 +23,23 @@ export async function redeemPromoCode(userId: string, code: string) {
   if (!normalized) throw new ValidationError("Enter a promo code");
 
   const promo = await loadActivePromo(normalized);
-  await assertUserHasNotRedeemedPromo(userId, promo.id);
   const credit = computeBalanceCredit(promo);
 
   const credited = await prisma.$transaction(async (tx) => {
-    await assertUserHasNotRedeemedPromo(userId, promo.id, tx);
+    try {
+      await tx.promoCodeRedemption.create({
+        data: {
+          userId,
+          promoCodeId: promo.id,
+          credit,
+        },
+      });
+    } catch (err) {
+      if (isPromoRedemptionConflict(err)) {
+        throw new ValidationError("You have already used this promo code");
+      }
+      throw err;
+    }
 
     const updated = await tx.promoCode.updateMany({
       where: {
@@ -36,15 +49,12 @@ export async function redeemPromoCode(userId: string, code: string) {
       },
       data: { usedCount: { increment: 1 } },
     });
-    if (updated.count === 0) throw new ValidationError("Promo code exhausted");
-
-    await tx.promoCodeRedemption.create({
-      data: {
-        userId,
-        promoCodeId: promo.id,
-        credit,
-      },
-    });
+    if (updated.count === 0) {
+      await tx.promoCodeRedemption.deleteMany({
+        where: { userId, promoCodeId: promo.id },
+      });
+      throw new ValidationError("Promo code exhausted");
+    }
 
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundError();

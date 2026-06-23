@@ -17,6 +17,15 @@ export function normalizePromoCode(code: string): string {
   return code.trim().toUpperCase();
 }
 
+export function isPromoRedemptionConflict(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: string }).code === "P2002"
+  );
+}
+
 export function validatePromoForUse(promo: PromoRow, now = new Date()): void {
   if (!promo.active) throw new NotFoundError("Invalid promo code");
   if (promo.maxUses != null && promo.usedCount >= promo.maxUses) {
@@ -88,10 +97,20 @@ export async function finalizeOrderPromo(
   tx?: Prisma.TransactionClient,
 ): Promise<void> {
   const run = async (db: Prisma.TransactionClient) => {
-    await assertUserHasNotRedeemedPromo(userId, promoId, db);
     const promo = await db.promoCode.findUnique({ where: { id: promoId } });
     if (!promo) throw new NotFoundError("Invalid promo code");
     validatePromoForUse(promo);
+
+    try {
+      await db.promoCodeRedemption.create({
+        data: { userId, promoCodeId: promoId, credit: discount },
+      });
+    } catch (err) {
+      if (isPromoRedemptionConflict(err)) {
+        throw new ValidationError("You have already used this promo code");
+      }
+      throw err;
+    }
 
     const updated = await db.promoCode.updateMany({
       where: {
@@ -101,11 +120,34 @@ export async function finalizeOrderPromo(
       },
       data: { usedCount: { increment: 1 } },
     });
-    if (updated.count === 0) throw new ValidationError("Promo code exhausted");
+    if (updated.count === 0) {
+      await db.promoCodeRedemption.deleteMany({
+        where: { userId, promoCodeId: promoId },
+      });
+      throw new ValidationError("Promo code exhausted");
+    }
+  };
 
-    await db.promoCodeRedemption.create({
-      data: { userId, promoCodeId: promoId, credit: discount },
+  if (tx) await run(tx);
+  else await prisma.$transaction(run);
+}
+
+/** Undo a promo claim when payment fails after reservation. */
+export async function releasePromoRedemption(
+  userId: string,
+  promoCodeId: string,
+  tx?: Prisma.TransactionClient,
+): Promise<void> {
+  const run = async (db: Prisma.TransactionClient) => {
+    const deleted = await db.promoCodeRedemption.deleteMany({
+      where: { userId, promoCodeId },
     });
+    if (deleted.count > 0) {
+      await db.promoCode.updateMany({
+        where: { id: promoCodeId, usedCount: { gt: 0 } },
+        data: { usedCount: { decrement: 1 } },
+      });
+    }
   };
 
   if (tx) await run(tx);

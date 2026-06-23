@@ -123,6 +123,7 @@ export {
   finalizeOrderPromo,
   quoteOrderPromo,
   redeemPromoCode,
+  releasePromoRedemption,
   topUpBalance,
 } from "./legacy-helpers";
 export { getBillingOverview, type BillingOverviewData } from "./overview";

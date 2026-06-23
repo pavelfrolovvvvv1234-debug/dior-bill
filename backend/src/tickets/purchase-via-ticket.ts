@@ -6,6 +6,7 @@ import {
   createInvoice,
   finalizeOrderPromo,
   payInvoiceFromBalance,
+  releasePromoRedemption,
 } from "../billing";
 import { createTicketRecord } from "./create-ticket";
 
@@ -56,10 +57,18 @@ export async function purchaseViaSupportTicket(params: {
     idempotencyKey: `ticket-order:${params.productLine}:${params.userId}:${Date.now()}`,
   });
 
-  await payInvoiceFromBalance(invoice.id, params.userId);
-
-  if (promo.promoId && promo.discount > 0) {
-    await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+  let promoClaimed = false;
+  try {
+    if (promo.promoId && promo.discount > 0) {
+      await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+      promoClaimed = true;
+    }
+    await payInvoiceFromBalance(invoice.id, params.userId);
+  } catch (err) {
+    if (promoClaimed && promo.promoId) {
+      await releasePromoRedemption(params.userId, promo.promoId).catch(() => undefined);
+    }
+    throw err;
   }
 
   const ticket = await createTicketRecord({

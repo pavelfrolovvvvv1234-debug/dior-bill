@@ -5,7 +5,9 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">Loading…</div>
+        <div className="auth-cereller flex min-h-screen items-center justify-center text-sm text-[var(--auth-muted)]">
+          Loading…
+        </div>
       }
     >
       <LoginForm />

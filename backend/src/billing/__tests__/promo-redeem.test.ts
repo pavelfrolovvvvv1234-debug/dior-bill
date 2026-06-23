@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   computeBalanceCredit,
   computeOrderDiscount,
+  isPromoRedemptionConflict,
 } from "../promo-redeem";
 
 describe("promo-redeem", () => {
@@ -32,5 +33,10 @@ describe("promo-redeem", () => {
       () => computeOrderDiscount({ discountType: "fixed", discountValue: 5 }, 50),
       /balance/i,
     );
+  });
+
+  it("detects promo redemption unique conflicts", () => {
+    assert.equal(isPromoRedemptionConflict({ code: "P2002" }), true);
+    assert.equal(isPromoRedemptionConflict(new Error("nope")), false);
   });
 });

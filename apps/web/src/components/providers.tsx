@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
+import { DiorPreloader } from "@/components/auth/dior-preloader";
 import { LocaleHtmlLang } from "@/components/i18n/locale-html-lang";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" disableTransitionOnChange>
         <LocaleHtmlLang />
+        <DiorPreloader />
         {children}
       </ThemeProvider>
     </QueryClientProvider>

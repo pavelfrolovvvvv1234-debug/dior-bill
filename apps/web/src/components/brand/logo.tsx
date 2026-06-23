@@ -9,10 +9,15 @@ interface LogoProps {
   priority?: boolean;
 }
 
-/** High-res brand mark — plain img avoids Next image optimizer 400 on local PNGs */
+const BRAND_ORIGIN = (process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://dior.host").replace(
+  /\/$/,
+  "",
+);
+
+/** Remote brand icon — works on local dev without generated public assets */
 const srcByVariant: Record<LogoVariant, string> = {
-  mark: "/logo-mark.png",
-  icon: "/logo-icon.png",
+  mark: `${BRAND_ORIGIN}/favicon.ico`,
+  icon: `${BRAND_ORIGIN}/favicon.ico`,
 };
 
 export function Logo({ variant = "mark", size = 32, className, priority }: LogoProps) {

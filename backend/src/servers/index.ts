@@ -9,6 +9,7 @@ import {
   createInvoice,
   finalizeOrderPromo,
   payInvoiceFromBalance,
+  releasePromoRedemption,
 } from "../billing";
 import { assertBillingAllowed } from "../billing/guards";
 import { getWallet, lockBalance, unlockBalance } from "../payments/wallet";
@@ -189,11 +190,18 @@ export async function provisionVps(params: {
     const wallet = await getWallet(params.userId);
     if (wallet.spendable >= promo.chargeAmount) {
       await lockBalance(params.userId, promo.chargeAmount);
+      let promoClaimed = false;
       try {
-        await payInvoiceFromBalance(invoice.id, params.userId);
         if (promo.promoId && promo.discount > 0) {
           await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+          promoClaimed = true;
         }
+        await payInvoiceFromBalance(invoice.id, params.userId);
+      } catch (err) {
+        if (promoClaimed && promo.promoId) {
+          await releasePromoRedemption(params.userId, promo.promoId).catch(() => undefined);
+        }
+        throw err;
       } finally {
         await unlockBalance(params.userId, promo.chargeAmount);
       }
@@ -222,15 +230,15 @@ export async function provisionVps(params: {
       }
     } else if (params.prepaid) {
       const { emitPaymentConfirmed } = await import("../core/billing/engine");
+      if (promo.promoId && promo.discount > 0) {
+        await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
+      }
       await emitPaymentConfirmed({
         userId: params.userId,
         invoiceId: invoice.id,
         amount: promo.chargeAmount,
         idempotencyKey: `prepaid:${idempotencyKey}`,
       });
-      if (promo.promoId && promo.discount > 0) {
-        await finalizeOrderPromo(params.userId, promo.promoId, promo.discount);
-      }
     }
   }
 

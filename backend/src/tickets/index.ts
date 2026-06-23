@@ -6,13 +6,16 @@ import { notifyAdminsTicketReply } from "../telegram";
 import { NOTIFICATION_TYPES } from "@dior/shared";
 import { redactStaffAuthorForCustomer } from "../lib/staff-privacy";
 import { createTicketRecord } from "./create-ticket";
+import { assertSupportTicketDailyLimit } from "./limits";
 
 export { purchaseViaSupportTicket } from "./purchase-via-ticket";
 export type { TicketPurchaseProductLine } from "./purchase-via-ticket";
+export { SUPPORT_TICKETS_PER_DAY } from "./limits";
 
 export async function createTicket(
   params: Parameters<typeof createTicketRecord>[0],
 ) {
+  await assertSupportTicketDailyLimit(params.userId);
   return createTicketRecord(params);
 }
 
