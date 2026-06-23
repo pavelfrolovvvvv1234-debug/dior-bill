@@ -10,6 +10,7 @@
     "db:migrate": "pnpm --filter @dior/database migrate",
     "db:migrate:deploy": "pnpm --filter @dior/database migrate:deploy",
     "db:sync:prod": "bash scripts/db-sync-prod.sh",
+    "fix:prod-auth": "bash scripts/fix-prod-auth.sh",
     "db:seed": "pnpm --filter @dior/database seed",
     "db:set-password": "pnpm --filter @dior/database set-password",
     "db:verify-password": "pnpm --filter @dior/database verify-password",

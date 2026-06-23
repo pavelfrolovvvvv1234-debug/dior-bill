@@ -35,5 +35,8 @@ for dir in packages/database/prisma/migrations/*/; do
   resolve_migration "$name"
 done
 
+echo "→ Applying any missing columns/tables (baseline does not run SQL)…" >&2
+pnpm --filter @dior/database push
+
 run_migrate
 rm -f "$LOG"
