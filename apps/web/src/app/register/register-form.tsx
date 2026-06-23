@@ -13,7 +13,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { TurnstileField } from "@/components/auth/turnstile-field";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePreloaderStore } from "@/stores/preloader-store";
-import { useI18n } from "@/lib/i18n/store";
+import { authT } from "@/lib/i18n/auth";
 import { readReferralCookieClient } from "@/lib/referral-client";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,6 @@ type RegisterFormProps = {
 export function RegisterForm({ initialReferralCode, turnstileSiteKey }: RegisterFormProps) {
   const router = useRouter();
   const params = useSearchParams();
-  const { t } = useI18n();
   const setUser = useAuthStore((s) => s.setUser);
   const showPreloader = usePreloaderStore((s) => s.show);
   const finishAuthTransition = usePreloaderStore((s) => s.finishAuthTransition);
@@ -45,8 +44,8 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
 
   function validateEmailField(value: string) {
     const normalized = normalizeRegistrationEmail(value);
-    if (!normalized) return t("auth.emailRequired");
-    if (!isValidRegistrationEmail(normalized)) return t("auth.emailInvalid");
+    if (!normalized) return authT("auth.emailRequired");
+    if (!isValidRegistrationEmail(normalized)) return authT("auth.emailInvalid");
     return null;
   }
 
@@ -79,15 +78,15 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
 
     const normalized = normalizeRegistrationEmail(emailRaw);
     if (!normalized || !isValidRegistrationEmail(normalized)) {
-      setError(t("auth.emailInvalid"));
+      setError(authT("auth.emailInvalid"));
       return;
     }
     if (!analyzePassword(passwordRaw).strongEnough) {
-      setError(t("auth.passwordTooWeak"));
+      setError(authT("auth.passwordTooWeak"));
       return;
     }
     if (captchaRequired && !turnstileToken) {
-      setError(t("auth.captchaRequired"));
+      setError(authT("auth.captchaRequired"));
       return;
     }
 
@@ -112,7 +111,7 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
       router.refresh();
     } catch (err) {
       cancelPreloader();
-      setError(err instanceof Error ? err.message : t("auth.registerFailed"));
+      setError(err instanceof Error ? err.message : authT("auth.registerFailed"));
       resetTurnstile();
     } finally {
       authInFlight.current = false;
@@ -124,7 +123,7 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
     <AuthShell mode="register" alternateHref={loginHref}>
       {autoReferral && (
         <p className="mb-4 rounded-lg border border-[color-mix(in_srgb,var(--auth-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--auth-primary)_10%,transparent)] px-3 py-2 text-sm text-[var(--auth-primary)]">
-          {t("auth.referralInvite")}
+          {authT("auth.referralInvite")}
         </p>
       )}
 
@@ -135,7 +134,7 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder={t("auth.emailPlaceholder")}
+          placeholder={authT("auth.emailPlaceholder")}
           onBlur={(e) => setEmailError(validateEmailField(e.target.value))}
           required
           className={cn("auth-cereller-input", emailError && "auth-cereller-input-error")}
@@ -148,7 +147,7 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
           name="password"
           type="password"
           autoComplete="new-password"
-          placeholder={t("auth.passwordPlaceholder")}
+          placeholder={authT("auth.passwordPlaceholder")}
           required
           className="auth-cereller-input"
         />
@@ -158,7 +157,7 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
         ) : (
           <input
             name="referralCode"
-            placeholder={t("auth.referralCodeOptional")}
+            placeholder={authT("auth.referralCodeOptional")}
             className="auth-cereller-input"
           />
         )}
@@ -176,7 +175,7 @@ export function RegisterForm({ initialReferralCode, turnstileSiteKey }: Register
         {error && <p className="text-sm text-[var(--auth-danger)]">{error}</p>}
 
         <button type="submit" className="auth-cereller-submit" disabled={loading}>
-          {loading ? t("auth.creating") : t("auth.continue")}
+          {loading ? authT("auth.creating") : authT("auth.continue")}
         </button>
       </form>
     </AuthShell>

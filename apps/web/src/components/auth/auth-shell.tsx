@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { DiorWordmark } from "@/components/brand/dior-wordmark";
-import { useI18n } from "@/lib/i18n/store";
+import { authT } from "@/lib/i18n/auth";
 
 const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@dior.host";
 
@@ -13,11 +14,18 @@ type AuthShellProps = {
 };
 
 export function AuthShell({ mode, alternateHref, children }: AuthShellProps) {
-  const { t } = useI18n();
-  const title = mode === "login" ? t("auth.heroLogin") : t("auth.heroRegister");
-  const subtitle = mode === "login" ? t("auth.heroLoginSub") : t("auth.heroRegisterSub");
-  const switchPrompt = mode === "login" ? t("auth.noAccount") : t("auth.hasAccount");
-  const switchLabel = mode === "login" ? t("auth.register") : t("auth.signInLink");
+  useEffect(() => {
+    const previous = document.documentElement.lang;
+    document.documentElement.lang = "en";
+    return () => {
+      document.documentElement.lang = previous;
+    };
+  }, []);
+
+  const title = mode === "login" ? authT("auth.heroLogin") : authT("auth.heroRegister");
+  const subtitle = mode === "login" ? authT("auth.heroLoginSub") : authT("auth.heroRegisterSub");
+  const switchPrompt = mode === "login" ? authT("auth.noAccount") : authT("auth.hasAccount");
+  const switchLabel = mode === "login" ? authT("auth.register") : authT("auth.signInLink");
 
   return (
     <div className="auth-cereller flex min-h-screen items-center justify-center px-4 py-10">
