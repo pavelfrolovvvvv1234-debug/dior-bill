@@ -9,13 +9,14 @@
     "db:push": "pnpm --filter @dior/database push",
     "db:migrate": "pnpm --filter @dior/database migrate",
     "db:migrate:deploy": "pnpm --filter @dior/database migrate:deploy",
+    "db:sync:prod": "bash scripts/db-sync-prod.sh",
     "db:seed": "pnpm --filter @dior/database seed",
     "db:set-password": "pnpm --filter @dior/database set-password",
     "db:verify-password": "pnpm --filter @dior/database verify-password",
     "db:sql:last-online": "pnpm --filter @dior/database sql:last-online",
     "worker": "pnpm --filter @dior/api worker",
     "brand:assets": "node scripts/generate-brand-assets.mjs",
-    "deploy:prod": "pnpm db:generate && pnpm db:migrate:deploy && pnpm build"
+    "deploy:prod": "pnpm db:generate && pnpm db:sync:prod && pnpm build"
   },
   "devDependencies": {
     "png-to-ico": "^2.1.8",
