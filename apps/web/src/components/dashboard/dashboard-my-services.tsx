@@ -88,7 +88,7 @@ export function DashboardMyServices({ services }: { services: RawService[] }) {
                     </DataTableTd>
                     <DataTableTd align="right" mono>
                       {formatMoney(price)}
-                      <span className="text-muted-foreground">/mo</span>
+                      <span className="text-muted-foreground">{t("plans.perMonth")}</span>
                     </DataTableTd>
                     <DataTableTd>
                       <InvoiceStatusBadge status={badgeStatus} />

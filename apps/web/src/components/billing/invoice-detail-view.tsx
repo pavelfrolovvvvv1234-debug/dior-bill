@@ -85,7 +85,7 @@ export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
           {canPay && (
             <Button size="sm" className="h-8 gap-1.5" onClick={handlePay} disabled={pending}>
               <Wallet className="h-3.5 w-3.5" />
-              Pay {formatMoney(invoice.remaining)}
+              {t("billing.invoiceDetail.payAmount", { amount: formatMoney(invoice.remaining) })}
             </Button>
           )}
         </div>
@@ -95,8 +95,8 @@ export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
         {[
           { label: t("common.status"), value: <InvoiceStatusBadge status={invoice.status} /> },
           { label: t("common.amount"), value: formatMoney(invoice.total) },
-          { label: "Paid", value: formatMoney(invoice.amountPaid) },
-          { label: "Due", value: invoice.dueAt ? formatDate(invoice.dueAt) : "—" },
+          { label: t("billing.invoiceDetail.paid"), value: formatMoney(invoice.amountPaid) },
+          { label: t("billing.invoiceDetail.due"), value: invoice.dueAt ? formatDate(invoice.dueAt) : "—" },
         ].map((k) => (
           <div key={String(k.label)} className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">{k.label}</p>
@@ -126,22 +126,22 @@ export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
         </ul>
         <div className="border-t border-border px-4 py-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
+            <span className="text-muted-foreground">{t("billing.invoiceDetail.subtotal")}</span>
             <span className="font-mono tabular-nums">{formatMoney(invoice.subtotal)}</span>
           </div>
           {invoice.tax > 0 && (
             <div className="mt-1 flex justify-between">
-              <span className="text-muted-foreground">Tax</span>
+              <span className="text-muted-foreground">{t("billing.invoiceDetail.tax")}</span>
               <span className="font-mono tabular-nums">{formatMoney(invoice.tax)}</span>
             </div>
           )}
           <div className="mt-2 flex justify-between font-semibold">
-            <span>Total</span>
+            <span>{t("billing.invoiceDetail.total")}</span>
             <span className="font-mono tabular-nums">{formatMoney(invoice.total)}</span>
           </div>
           {invoice.remaining > 0 && (
             <div className="mt-1 flex justify-between text-primary">
-              <span>Balance due</span>
+              <span>{t("billing.invoiceDetail.balanceDue")}</span>
               <span className="font-mono tabular-nums">{formatMoney(invoice.remaining)}</span>
             </div>
           )}
@@ -149,13 +149,15 @@ export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
       </Panel>
 
       {invoice.notes && (
-        <Panel title="Notes">
+        <Panel title={t("billing.invoiceDetail.notes")}>
           <p className="text-sm text-muted-foreground">{invoice.notes}</p>
         </Panel>
       )}
 
       {invoice.paidAt && (
-        <p className="text-sm text-muted-foreground">Paid on {formatDate(invoice.paidAt)}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("billing.invoiceDetail.paidOn", { date: formatDate(invoice.paidAt) })}
+        </p>
       )}
     </div>
   );

@@ -312,6 +312,17 @@
       "EXPIRED": "Истёк",
       "REFUNDED": "Возврат",
       "MANUAL_REVIEW": "Ручная проверка"
+    },
+    "invoiceDetail": {
+      "paid": "Оплачено",
+      "due": "Срок",
+      "subtotal": "Подытог",
+      "tax": "Налог",
+      "total": "Итого",
+      "balanceDue": "К оплате",
+      "notes": "Примечания",
+      "paidOn": "Оплачен {date}",
+      "payAmount": "Оплатить {amount}"
     }
   },
   "dashboard": {
@@ -342,7 +353,21 @@
     "catalogBulletproof": "Bulletproof",
     "catalogStandard": "Стандарт",
     "catalogConfigure": "Настроить",
-    "colName": "Название"
+    "colName": "Название",
+    "tags": {
+      "instantDeploy": "Мгновенная выдача",
+      "offshore": "Офшор",
+      "bareMetal": "Bare metal",
+      "abuseReview": "Abuse review",
+      "registration": "Регистрация",
+      "dns": "DNS",
+      "kvm": "KVM",
+      "multiRegion": "Мультирегион",
+      "sla": "SLA 99.9%",
+      "ddosReady": "DDoS ready",
+      "hiCpu": "Hi-CPU",
+      "nvme": "NVMe"
+    }
   },
   "plans": {
     "productNav": "Линейки продуктов",
@@ -416,12 +441,36 @@
       "badgeSla": "SLA 99.9%"
     },
     "lines": {
-      "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "Офшорный DMCA-ignored хостинг" },
-      "bulletproof-dedicated": { "label": "Bulletproof dedicated", "short": "BP Dedicated", "desc": "Bare metal с bulletproof политикой" },
-      "bulletproof-domains": { "label": "Bulletproof домены", "short": "BP Domains", "desc": "Bulletproof регистрация и DNS" },
-      "vps": { "label": "VPS/VDS", "short": "VPS", "desc": "Стандартные VPS с быстрым провижинингом" },
-      "dedicated": { "label": "Dedicated", "short": "Dedicated", "desc": "Стандартная bare-metal инфраструктура" },
-      "turbovds": { "label": "Turbovds", "short": "Turbovds", "desc": "Высокочастотные вычисления для чувствительных к задержке задач" }
+      "bulletproof-vps": {
+        "label": "Bulletproof VPS/VDS",
+        "short": "BP VPS",
+        "desc": "Офшорный DMCA-ignored хостинг"
+      },
+      "bulletproof-dedicated": {
+        "label": "Bulletproof dedicated",
+        "short": "BP Dedicated",
+        "desc": "Bare metal с bulletproof политикой"
+      },
+      "bulletproof-domains": {
+        "label": "Bulletproof домены",
+        "short": "BP Domains",
+        "desc": "Bulletproof регистрация и DNS"
+      },
+      "vps": {
+        "label": "VPS/VDS",
+        "short": "VPS",
+        "desc": "Стандартные VPS с быстрым провижинингом"
+      },
+      "dedicated": {
+        "label": "Dedicated",
+        "short": "Dedicated",
+        "desc": "Стандартная bare-metal инфраструктура"
+      },
+      "turbovds": {
+        "label": "Turbovds",
+        "short": "Turbovds",
+        "desc": "Высокочастотные вычисления для чувствительных к задержке задач"
+      }
     }
   },
   "services": {

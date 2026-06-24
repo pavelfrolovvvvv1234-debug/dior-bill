@@ -7,18 +7,18 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/store";
 import type { PlanProductLine, PlanTab } from "@/lib/plan-catalog";
 
-const LINE_TAGS: Partial<Record<PlanTab, string[]>> = {
-  "bulletproof-vps": ["Instant deploy", "Offshore"],
-  "bulletproof-dedicated": ["Bare metal", "Abuse review"],
-  "bulletproof-domains": ["Registration", "DNS"],
-  vps: ["KVM", "Multi-region"],
-  dedicated: ["99.9% SLA", "DDoS ready"],
-  turbovds: ["Hi-CPU", "NVMe"],
+const LINE_TAG_KEYS: Partial<Record<PlanTab, string[]>> = {
+  "bulletproof-vps": ["dashboard.tags.instantDeploy", "dashboard.tags.offshore"],
+  "bulletproof-dedicated": ["dashboard.tags.bareMetal", "dashboard.tags.abuseReview"],
+  "bulletproof-domains": ["dashboard.tags.registration", "dashboard.tags.dns"],
+  vps: ["dashboard.tags.kvm", "dashboard.tags.multiRegion"],
+  dedicated: ["dashboard.tags.sla", "dashboard.tags.ddosReady"],
+  turbovds: ["dashboard.tags.hiCpu", "dashboard.tags.nvme"],
 };
 
 function ServiceCard({ line, bulletproof }: { line: PlanProductLine; bulletproof?: boolean }) {
   const { t } = useI18n();
-  const tags = LINE_TAGS[line.id] ?? [];
+  const tagKeys = LINE_TAG_KEYS[line.id] ?? [];
 
   return (
     <FastLink
@@ -56,12 +56,12 @@ function ServiceCard({ line, bulletproof }: { line: PlanProductLine; bulletproof
 
       <div className="mt-5 flex items-end justify-between gap-3 border-t border-border/80 pt-4">
         <div className="flex min-w-0 flex-wrap gap-1.5">
-          {tags.map((tag) => (
+          {tagKeys.map((tagKey) => (
             <span
-              key={tag}
+              key={tagKey}
               className="rounded-md border border-border/80 bg-background/50 px-2 py-0.5 text-[11px] text-muted-foreground"
             >
-              {tag}
+              {t(tagKey)}
             </span>
           ))}
         </div>

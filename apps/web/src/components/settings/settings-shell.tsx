@@ -32,7 +32,7 @@ export function SettingsShell({
         title={t("settings.title")}
         description={t("settings.subtitle")}
         breadcrumbs={[
-          { label: "Overview", href: "/dashboard" },
+          { label: t("breadcrumbs.overview"), href: "/dashboard" },
           { label: t("settings.title") },
         ]}
       />

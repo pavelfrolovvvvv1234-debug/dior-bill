@@ -82,7 +82,7 @@ export function ToastHost() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed right-4 top-4 z-[100] flex w-full max-w-sm flex-col gap-2"
+      className="pointer-events-none fixed right-4 top-20 z-[100] flex w-full max-w-sm flex-col gap-2 sm:right-6"
     >
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} onDismiss={dismiss} />

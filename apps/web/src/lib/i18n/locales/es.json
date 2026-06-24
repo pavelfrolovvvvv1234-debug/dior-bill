@@ -23,7 +23,8 @@
     "analytics": "Analítica",
     "notifications": "Notificaciones",
     "statistics": "Estadísticas",
-    "openPanel": "Abrir DiorHost Control →"
+    "openPanel": "Abrir DiorHost Control →",
+    "settings": "Ajustes"
   },
   "common": {
     "cancel": "Cancelar",
@@ -250,6 +251,17 @@
       "EXPIRED": "Expirado",
       "REFUNDED": "Reembolsado",
       "MANUAL_REVIEW": "Revisión manual"
+    },
+    "invoiceDetail": {
+      "paid": "Pagado",
+      "due": "Vence",
+      "subtotal": "Subtotal",
+      "tax": "Impuesto",
+      "total": "Total",
+      "balanceDue": "Saldo pendiente",
+      "notes": "Notas",
+      "paidOn": "Pagado el {date}",
+      "payAmount": "Pagar {amount}"
     }
   },
   "dashboard": {
@@ -270,7 +282,31 @@
     "orderPlan": "Comprar",
     "manage": "Gestionar",
     "renewal": "Renueva {date}",
-    "servicesCount": "{count} servicios"
+    "servicesCount": "{count} servicios",
+    "noServicesHint": "Aún no hay servicios — elige un plan abajo para empezar",
+    "myServices": "Mis servicios",
+    "myServicesDesc": "Infraestructura activa en tu cuenta",
+    "addService": "Añadir servicio",
+    "addServiceDesc": "Elige una línea de producto y configura tu plan",
+    "browseAllPlans": "Ver todos los planes",
+    "catalogBulletproof": "Bulletproof",
+    "catalogStandard": "Estándar",
+    "catalogConfigure": "Configurar",
+    "colName": "Nombre",
+    "tags": {
+      "instantDeploy": "Despliegue instantáneo",
+      "offshore": "Offshore",
+      "bareMetal": "Bare metal",
+      "abuseReview": "Revisión de abuso",
+      "registration": "Registro",
+      "dns": "DNS",
+      "kvm": "KVM",
+      "multiRegion": "Multi-región",
+      "sla": "SLA 99.9%",
+      "ddosReady": "Anti-DDoS",
+      "hiCpu": "Hi-CPU",
+      "nvme": "NVMe"
+    }
   },
   "plans": {
     "productNav": "Líneas de producto",
@@ -472,7 +508,27 @@
     "hasAccount": "¿Ya tienes cuenta?",
     "signInLink": "Iniciar sesión",
     "captchaLabel": "Verificación",
-    "captchaRequired": "Completa la verificación captcha"
+    "captchaRequired": "Completa la verificación captcha",
+    "or": "o",
+    "referralInvite": "Llegaste desde un enlace de referido — tu referidor se vinculará automáticamente",
+    "referralCodeOptional": "Código de referido (opcional)",
+    "emailRequired": "Introduce tu dirección de email",
+    "emailInvalid": "Introduce un email válido con dominio real (p. ej. name@company.com)",
+    "passwordTooWeak": "Elige una contraseña más fuerte — mínimo 8 caracteres con mayúsculas, minúsculas y un número",
+    "passwordStrengthTitle": "Fortaleza de la contraseña",
+    "passwordStrength": {
+      "weak": "Débil",
+      "fair": "Regular",
+      "good": "Buena",
+      "strong": "Fuerte"
+    },
+    "passwordRule": {
+      "length": "Al menos 8 caracteres",
+      "lower": "Letra minúscula",
+      "upper": "Letra mayúscula",
+      "number": "Número",
+      "special": "Carácter especial (recomendado)"
+    }
   },
   "promo": {
     "title": "Código promocional",
@@ -621,5 +677,99 @@
     "title": "Algo salió mal",
     "description": "No se pudo cargar la página",
     "retry": "Reintentar"
+  },
+  "controlStatistics": {
+    "title": "Estadísticas",
+    "description": "Cifras clave de facturación, crecimiento y soporte",
+    "kpi": {
+      "revenue30": "Ingresos · 30 días",
+      "revenue7Hint": "{amount} en los últimos 7 días",
+      "netCredited30": "Neto acreditado · 30 días",
+      "paidTopUpsHint": "{count} recargas pagadas",
+      "newUsers30": "Usuarios nuevos · 30 días",
+      "newUsersWeekHint": "{count} esta semana",
+      "newServices30": "Servicios nuevos · 30 días",
+      "activeServicesHint": "{count} activos"
+    },
+    "comparison": {
+      "title": "Comparación por período",
+      "description": "Métricas principales por rango de tiempo",
+      "metric": "Métrica",
+      "period24h": "Últimas 24 horas",
+      "period7d": "Últimos 7 días",
+      "period30d": "Últimos 30 días",
+      "periodAll": "Todo el tiempo",
+      "period24hShort": "24h",
+      "period7dShort": "7d",
+      "period30dShort": "30d",
+      "periodAllShort": "Todo",
+      "topUps": "Recargas",
+      "topUpsPaid": "pagadas",
+      "grossVolume": "Volumen bruto",
+      "netCredited": "Neto acreditado",
+      "newUsers": "Usuarios nuevos",
+      "newServices": "Servicios nuevos",
+      "invoicesPaid": "Facturas pagadas",
+      "invoiceVolume": "Volumen de facturas",
+      "tickets": "Tickets",
+      "ticketsOpened": "abiertos"
+    },
+    "attention": {
+      "title": "Requiere atención",
+      "description": "Últimos 30 días — clic para abrir",
+      "empty": "Nada requiere atención en los últimos 30 días.",
+      "manualReview": "Revisión manual",
+      "pendingTopUps": "Recargas pendientes",
+      "failedPayments": "Pagos fallidos",
+      "ticketsOpened": "Tickets abiertos",
+      "view": "Ver →"
+    },
+    "allTime": {
+      "title": "Resumen histórico",
+      "description": "Recargas y crecimiento de la plataforma desde el inicio",
+      "totalTopUps": "Total de recargas",
+      "grossVolume": "Volumen bruto",
+      "usersRegistered": "Usuarios registrados",
+      "servicesCreated": "Servicios creados"
+    },
+    "updated": "Actualizado {date}"
+  },
+  "controlLogs": {
+    "title": "Registros",
+    "description": "Historial de acciones del panel de control",
+    "recentEvents": "Eventos recientes"
+  },
+  "domains": {
+    "exactAvailableTitle": "{domain} está disponible",
+    "exactAvailableDesc": "Este dominio está libre — puedes registrarlo ahora.",
+    "exactTakenTitle": "{domain} no está disponible",
+    "exactTakenDesc": "Esta extensión ya está registrada. Revisa otros TLD abajo.",
+    "registerNow": "Comprar",
+    "otherExtensions": "Otras extensiones",
+    "registerSuccessTitle": "Dominio registrado",
+    "registerSuccessDesc": "{domain} ya está en tu cuenta.",
+    "registerFailed": "Error al registrar",
+    "insufficientBalance": "Necesitas {required} en tu saldo (disponible: {available}). Recarga primero.",
+    "addFunds": "Añadir fondos",
+    "balanceHint": "Saldo disponible: {balance}. El registro de dominios se cobra al instante desde facturación.",
+    "findTitle": "Encuentra tu dominio",
+    "findDesc": "Introduce un nombre con o sin extensión",
+    "searchPlaceholder": "Introduce un dominio, p. ej. mybrand.com",
+    "search": "Buscar",
+    "searching": "Buscando…",
+    "searchHint": "Escribe mybrand para comprobar extensiones populares, o mybrand.io para un TLD concreto.",
+    "available": "Disponible",
+    "taken": "Ocupado",
+    "yearRegistration": "Registro de 1 año",
+    "premium": "premium",
+    "notInCatalog": "no en catálogo",
+    "resultsFor": "Resultados para {name}",
+    "availableExtensions": "{count} extensión(es) disponible(s) en nuestro catálogo",
+    "noAvailableExtensions": "No hay extensiones disponibles en nuestro catálogo",
+    "allExtensions": "Todas las extensiones admitidas",
+    "annualPricing": "Precio anual por TLD",
+    "invalidDomain": "Introduce un dominio válido — solo letras, números y guiones.",
+    "noExtensions": "No se encontraron extensiones admitidas para este nombre.",
+    "checkFailed": "No se pudo comprobar la disponibilidad"
   }
 }

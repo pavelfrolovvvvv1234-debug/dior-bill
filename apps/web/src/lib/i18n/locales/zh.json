@@ -23,7 +23,8 @@
     "analytics": "分析",
     "notifications": "通知",
     "statistics": "统计",
-    "openPanel": "打开 DiorHost Control →"
+    "openPanel": "打开 DiorHost Control →",
+    "settings": "设置"
   },
   "common": {
     "cancel": "取消",
@@ -250,6 +251,17 @@
       "EXPIRED": "已过期",
       "REFUNDED": "已退款",
       "MANUAL_REVIEW": "人工审核"
+    },
+    "invoiceDetail": {
+      "paid": "已支付",
+      "due": "到期",
+      "subtotal": "小计",
+      "tax": "税费",
+      "total": "合计",
+      "balanceDue": "待付余额",
+      "notes": "备注",
+      "paidOn": "已于 {date} 支付",
+      "payAmount": "支付 {amount}"
     }
   },
   "dashboard": {
@@ -270,7 +282,31 @@
     "orderPlan": "购买",
     "manage": "管理",
     "renewal": "续费 {date}",
-    "servicesCount": "{count} 个服务"
+    "servicesCount": "{count} 个服务",
+    "noServicesHint": "暂无服务 — 请在下方选择套餐开始",
+    "myServices": "我的服务",
+    "myServicesDesc": "您账户上的活跃基础设施",
+    "addService": "添加服务",
+    "addServiceDesc": "选择产品线并配置套餐",
+    "browseAllPlans": "浏览全部套餐",
+    "catalogBulletproof": "Bulletproof",
+    "catalogStandard": "标准",
+    "catalogConfigure": "配置",
+    "colName": "名称",
+    "tags": {
+      "instantDeploy": "即时部署",
+      "offshore": "离岸",
+      "bareMetal": "裸金属",
+      "abuseReview": "Abuse 审核",
+      "registration": "注册",
+      "dns": "DNS",
+      "kvm": "KVM",
+      "multiRegion": "多区域",
+      "sla": "99.9% SLA",
+      "ddosReady": "DDoS 防护",
+      "hiCpu": "高主频",
+      "nvme": "NVMe"
+    }
   },
   "plans": {
     "productNav": "产品线",
@@ -505,7 +541,27 @@
     "hasAccount": "已有账户？",
     "signInLink": "登录",
     "captchaLabel": "人机验证",
-    "captchaRequired": "请完成人机验证"
+    "captchaRequired": "请完成人机验证",
+    "or": "或",
+    "referralInvite": "您通过推荐链接访问 — 推荐人将自动关联",
+    "referralCodeOptional": "推荐码（可选）",
+    "emailRequired": "请输入邮箱地址",
+    "emailInvalid": "请输入有效邮箱及真实域名（例如 name@company.com）",
+    "passwordTooWeak": "请使用更强密码 — 至少 8 位，含大小写字母和数字",
+    "passwordStrengthTitle": "密码强度",
+    "passwordStrength": {
+      "weak": "弱",
+      "fair": "一般",
+      "good": "良好",
+      "strong": "强"
+    },
+    "passwordRule": {
+      "length": "至少 8 个字符",
+      "lower": "小写字母",
+      "upper": "大写字母",
+      "number": "数字",
+      "special": "特殊字符（推荐）"
+    }
   },
   "promo": {
     "title": "优惠码",
@@ -654,5 +710,66 @@
     "title": "出错了",
     "description": "无法加载页面",
     "retry": "重试"
+  },
+  "controlStatistics": {
+    "title": "统计",
+    "description": "账单、增长与支持的关键数据",
+    "kpi": {
+      "revenue30": "收入 · 30 天",
+      "revenue7Hint": "近 7 天 {amount}",
+      "netCredited30": "净入账 · 30 天",
+      "paidTopUpsHint": "{count} 笔已支付充值",
+      "newUsers30": "新用户 · 30 天",
+      "newUsersWeekHint": "本周 {count}",
+      "newServices30": "新服务 · 30 天",
+      "activeServicesHint": "{count} 个活跃"
+    },
+    "comparison": {
+      "title": "周期对比",
+      "description": "各时间范围的核心指标",
+      "metric": "指标",
+      "period24h": "最近 24 小时",
+      "period7d": "最近 7 天",
+      "period30d": "最近 30 天",
+      "periodAll": "全部时间",
+      "period24hShort": "24h",
+      "period7dShort": "7d",
+      "period30dShort": "30d",
+      "periodAllShort": "全部",
+      "topUps": "充值",
+      "topUpsPaid": "已支付",
+      "grossVolume": "总交易额",
+      "netCredited": "净入账",
+      "newUsers": "新用户",
+      "newServices": "新服务",
+      "invoicesPaid": "已付发票",
+      "invoiceVolume": "发票金额",
+      "tickets": "工单",
+      "ticketsOpened": "已打开"
+    },
+    "attention": {
+      "title": "需要关注",
+      "description": "最近 30 天 — 点击打开",
+      "empty": "最近 30 天无需处理的事项。",
+      "manualReview": "人工审核",
+      "pendingTopUps": "待处理充值",
+      "failedPayments": "失败付款",
+      "ticketsOpened": "新开工单",
+      "view": "查看 →"
+    },
+    "allTime": {
+      "title": "历史概览",
+      "description": "自上线以来的充值与平台增长",
+      "totalTopUps": "充值总数",
+      "grossVolume": "总交易额",
+      "usersRegistered": "注册用户",
+      "servicesCreated": "创建的服务"
+    },
+    "updated": "更新于 {date}"
+  },
+  "controlLogs": {
+    "title": "日志",
+    "description": "控制面板操作历史",
+    "recentEvents": "最近事件"
   }
 }

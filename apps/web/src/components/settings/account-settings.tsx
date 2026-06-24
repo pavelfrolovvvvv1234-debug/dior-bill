@@ -7,16 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/store";
 import { changePasswordAction, updateProfileAction } from "@/app/actions/settings";
-import { formatDate } from "@/lib/utils";
 import type { SettingsProfile } from "./types";
 
-export function AccountSettings({
-  profile,
-  loginHistory,
-}: {
-  profile: SettingsProfile;
-  loginHistory: { id: string; ipAddress: string; success: boolean; createdAt: Date }[];
-}) {
+export function AccountSettings({ profile }: { profile: SettingsProfile }) {
   const { t } = useI18n();
   const [email, setEmail] = useState(profile.email ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -96,19 +89,6 @@ export function AccountSettings({
           <Button onClick={savePassword} disabled={loading || !currentPassword}>
             {t("settings.account.updatePassword")}
           </Button>
-        </div>
-      </SettingsPanel>
-
-      <SettingsPanel title={t("settings.account.loginHistory")}>
-        <div className="space-y-1">
-          {loginHistory.map((h) => (
-            <div key={h.id} className="flex justify-between py-1.5 text-sm">
-              <span className="font-mono text-xs">{h.ipAddress}</span>
-              <span className={h.success ? "text-emerald-400" : "text-destructive"}>
-                {h.success ? "OK" : "Failed"} · {formatDate(h.createdAt)}
-              </span>
-            </div>
-          ))}
         </div>
       </SettingsPanel>
 

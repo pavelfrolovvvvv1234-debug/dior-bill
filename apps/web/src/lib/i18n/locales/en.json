@@ -312,6 +312,17 @@
       "EXPIRED": "Expired",
       "REFUNDED": "Refunded",
       "MANUAL_REVIEW": "Manual review"
+    },
+    "invoiceDetail": {
+      "paid": "Paid",
+      "due": "Due",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total",
+      "balanceDue": "Balance due",
+      "notes": "Notes",
+      "paidOn": "Paid on {date}",
+      "payAmount": "Pay {amount}"
     }
   },
   "dashboard": {
@@ -342,7 +353,21 @@
     "catalogBulletproof": "Bulletproof",
     "catalogStandard": "Standard",
     "catalogConfigure": "Configure",
-    "colName": "Name"
+    "colName": "Name",
+    "tags": {
+      "instantDeploy": "Instant deploy",
+      "offshore": "Offshore",
+      "bareMetal": "Bare metal",
+      "abuseReview": "Abuse review",
+      "registration": "Registration",
+      "dns": "DNS",
+      "kvm": "KVM",
+      "multiRegion": "Multi-region",
+      "sla": "99.9% SLA",
+      "ddosReady": "DDoS ready",
+      "hiCpu": "Hi-CPU",
+      "nvme": "NVMe"
+    }
   },
   "plans": {
     "productNav": "Product lines",
@@ -416,12 +441,36 @@
       "badgeSla": "99.9% SLA"
     },
     "lines": {
-      "bulletproof-vps": { "label": "Bulletproof VPS/VDS", "short": "BP VPS", "desc": "DMCA-ignored offshore hosting" },
-      "bulletproof-dedicated": { "label": "Bulletproof dedicated servers", "short": "BP Dedicated", "desc": "Bare metal with bulletproof policy" },
-      "bulletproof-domains": { "label": "Bulletproof domains", "short": "BP Domains", "desc": "Bulletproof registration & DNS" },
-      "vps": { "label": "VPS/VDS", "short": "VPS", "desc": "Standard virtual servers with instant provisioning" },
-      "dedicated": { "label": "Dedicated servers", "short": "Dedicated", "desc": "Standard bare-metal infrastructure" },
-      "turbovds": { "label": "Turbovds", "short": "Turbovds", "desc": "High-frequency compute for latency-sensitive workloads" }
+      "bulletproof-vps": {
+        "label": "Bulletproof VPS/VDS",
+        "short": "BP VPS",
+        "desc": "DMCA-ignored offshore hosting"
+      },
+      "bulletproof-dedicated": {
+        "label": "Bulletproof dedicated servers",
+        "short": "BP Dedicated",
+        "desc": "Bare metal with bulletproof policy"
+      },
+      "bulletproof-domains": {
+        "label": "Bulletproof domains",
+        "short": "BP Domains",
+        "desc": "Bulletproof registration & DNS"
+      },
+      "vps": {
+        "label": "VPS/VDS",
+        "short": "VPS",
+        "desc": "Standard virtual servers with instant provisioning"
+      },
+      "dedicated": {
+        "label": "Dedicated servers",
+        "short": "Dedicated",
+        "desc": "Standard bare-metal infrastructure"
+      },
+      "turbovds": {
+        "label": "Turbovds",
+        "short": "Turbovds",
+        "desc": "High-frequency compute for latency-sensitive workloads"
+      }
     }
   },
   "services": {
