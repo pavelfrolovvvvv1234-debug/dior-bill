@@ -90,13 +90,13 @@ export function StatisticsOpsPanel({ stats }: { stats: PurchasePeriodStats }) {
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 text-xs leading-snug text-muted-foreground">{t(item.labelKey)}</p>
-                  <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                <p className="text-xs leading-snug text-muted-foreground">{t(item.labelKey)}</p>
+                <div className="mt-1 flex items-end justify-between gap-3">
+                  <p className="text-xl font-semibold tabular-nums tracking-tight">{item.count}</p>
+                  <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground transition-colors group-hover:text-primary">
                     {t("controlStatistics.attention.view")}
                   </span>
                 </div>
-                <p className="mt-1 text-xl font-semibold tabular-nums tracking-tight">{item.count}</p>
               </div>
             </Link>
           );

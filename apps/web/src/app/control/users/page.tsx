@@ -19,6 +19,9 @@ import { controlPath } from "@/lib/control-paths";
 import { formatMoney } from "@/lib/utils";
 import { formatLastOnline, formatLastOnlineTitle } from "@/lib/format-last-online";
 import { UserRowDelete } from "@/components/control/user-row-delete";
+import { ControlTablePagination } from "@/components/control/control-table-pagination";
+
+const USERS_PAGE_SIZE = 100;
 
 export default async function UsersPage({
   searchParams,
@@ -28,7 +31,11 @@ export default async function UsersPage({
   const actor = await requireControlSession();
   const params = await searchParams;
   const page = Number(params.page ?? 1);
-  const data = await listAdminUsers(actor.id, { q: params.q, page });
+  const data = await listAdminUsers(actor.id, {
+    q: params.q,
+    page,
+    pageSize: USERS_PAGE_SIZE,
+  });
 
   return (
     <>
@@ -37,7 +44,11 @@ export default async function UsersPage({
         <form method="get" className="max-w-md">
           <Input name="q" placeholder="Search email, telegram, referral code…" defaultValue={params.q} />
         </form>
-        <Panel title="All users" description={`${data.total} total`} noPadding>
+        <Panel
+          title="All users"
+          description={`${data.items.length} shown · ${data.total} total`}
+          noPadding
+        >
           <DataTable>
             <DataTableHead>
               <DataTableTh>User</DataTableTh>
@@ -89,6 +100,12 @@ export default async function UsersPage({
               )}
             </DataTableBody>
           </DataTable>
+          <ControlTablePagination
+            page={data.page}
+            totalPages={data.totalPages}
+            basePath={controlPath("/users")}
+            params={{ q: params.q }}
+          />
         </Panel>
       </PageContainer>
     </>

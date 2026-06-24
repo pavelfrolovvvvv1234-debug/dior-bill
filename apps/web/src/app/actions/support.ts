@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { createTicket, replyToTicket } from "@dior/backend";
+import { isCustomerTicketPriority } from "@dior/shared";
 import { rethrowServerActionError } from "@/lib/server-action-error";
 
 export async function createTicketAction(formData: FormData) {
@@ -11,6 +12,8 @@ export async function createTicketAction(formData: FormData) {
 
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
+  const priorityRaw = String(formData.get("priority") ?? "NORMAL");
+  const priority = isCustomerTicketPriority(priorityRaw) ? priorityRaw : "NORMAL";
   if (!subject || !body) throw new Error("Subject and message are required");
 
   try {
@@ -18,6 +21,7 @@ export async function createTicketAction(formData: FormData) {
       userId: session.user.id,
       subject,
       body,
+      priority,
     });
 
     revalidatePath("/support");

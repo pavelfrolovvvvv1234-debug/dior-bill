@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { RowDeleteContext } from "@/components/control/row-delete-context";
 
 export function DataTableClickableRow({
   href,
@@ -11,16 +12,21 @@ export function DataTableClickableRow({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const [removed, setRemoved] = useState(false);
+
+  if (removed) return null;
 
   return (
-    <tr
-      className="cursor-pointer transition-colors hover:bg-white/[0.04]"
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest("a, button, select, input, label")) return;
-        router.push(href);
-      }}
-    >
-      {children}
-    </tr>
+    <RowDeleteContext.Provider value={{ removeRow: () => setRemoved(true) }}>
+      <tr
+        className="cursor-pointer transition-all duration-200 hover:bg-white/[0.04]"
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("a, button, select, input, label, [role='dialog']")) return;
+          router.push(href);
+        }}
+      >
+        {children}
+      </tr>
+    </RowDeleteContext.Provider>
   );
 }

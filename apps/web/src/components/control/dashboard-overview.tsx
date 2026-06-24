@@ -8,8 +8,9 @@ import {
   Wallet,
 } from "lucide-react";
 import type { ControlDashboard } from "@dior/backend";
-import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { Badge } from "@/components/ui/badge";
+import { BillingStatusBadge } from "@/components/control/billing/status-badge";
+import { TicketPriorityBadge } from "@/components/support/ticket-priority-badge";
 import { controlPath } from "@/lib/control-paths";
 import { cn, formatCompact, formatMoney, formatRelative } from "@/lib/utils";
 
@@ -292,11 +293,7 @@ export function DashboardOverview({ data }: Props) {
               href={controlPath(`/support/${t.id}`)}
               primary={t.subject}
               meta={formatRelative(t.updatedAt)}
-              badge={
-                <Badge variant={t.priority === "HIGH" || t.priority === "URGENT" ? "destructive" : "warning"}>
-                  {t.priority}
-                </Badge>
-              }
+              badge={<TicketPriorityBadge priority={t.priority} />}
             />
           ))}
         </FeedPanel>

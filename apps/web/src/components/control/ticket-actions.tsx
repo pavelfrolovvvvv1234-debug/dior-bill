@@ -4,19 +4,23 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { CheckCircle2, RotateCcw, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { deleteTicketAction, ticketStatusAction } from "@/app/actions/control";
+import { deleteTicketAction, ticketPriorityAction, ticketStatusAction } from "@/app/actions/control";
 import { AdminDeleteButton } from "@/components/control/admin-delete-button";
+import { TicketPriorityBadge } from "@/components/support/ticket-priority-badge";
 import { controlPath } from "@/lib/control-paths";
+import { ALL_TICKET_PRIORITIES } from "@dior/shared";
 
 const STATUSES = ["OPEN", "AWAITING_STAFF", "AWAITING_CUSTOMER", "RESOLVED", "CLOSED"] as const;
 
 export function TicketActions({
   ticketId,
   status,
+  priority,
   subject,
 }: {
   ticketId: string;
   status: string;
+  priority: string;
   subject?: string;
 }) {
   const router = useRouter();
@@ -30,8 +34,29 @@ export function TicketActions({
     });
   }
 
+  function setPriority(next: (typeof ALL_TICKET_PRIORITIES)[number]) {
+    start(async () => {
+      await ticketPriorityAction(ticketId, next);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <TicketPriorityBadge priority={priority} />
+      <select
+        className="h-8 rounded-md border border-white/10 bg-white/[0.03] px-2 text-xs"
+        value={priority}
+        disabled={pending}
+        onChange={(e) => setPriority(e.target.value as (typeof ALL_TICKET_PRIORITIES)[number])}
+        aria-label="Ticket priority"
+      >
+        {ALL_TICKET_PRIORITIES.map((p) => (
+          <option key={p} value={p}>
+            {p}
+          </option>
+        ))}
+      </select>
       <select
         className="h-8 rounded-md border border-white/10 bg-white/[0.03] px-2 text-xs"
         value={status}
@@ -88,7 +113,9 @@ export function TicketActions({
 
       <AdminDeleteButton
         label="Delete ticket"
-        confirmMessage={`Permanently delete ticket "${subject ?? ticketId}"? All messages will be removed. This cannot be undone.`}
+        title="Delete ticket?"
+        description="The full conversation and all messages in this ticket will be permanently removed."
+        entityName={subject ?? ticketId}
         onDelete={() => deleteTicketAction(ticketId)}
         redirectTo={controlPath("/support")}
       />

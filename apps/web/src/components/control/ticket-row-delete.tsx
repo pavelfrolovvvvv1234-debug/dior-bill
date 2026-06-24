@@ -8,7 +8,9 @@ export function TicketRowDelete({ ticketId, subject }: { ticketId: string; subje
     <AdminDeleteButton
       label=""
       variant="ghost"
-      confirmMessage={`Delete ticket "${subject}" permanently?`}
+      title="Delete ticket?"
+      description="The full conversation and all messages in this ticket will be permanently removed."
+      entityName={subject}
       onDelete={() => deleteTicketAction(ticketId)}
     />
   );

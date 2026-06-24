@@ -508,7 +508,31 @@
     "describeIssue": "描述问题",
     "conversation": "对话",
     "reply": "回复",
-    "ticketPrefix": "工单 #{id}"
+    "ticketPrefix": "工单 #{id}",
+    "subject": "主题",
+    "subjectPlaceholder": "简要描述问题",
+    "message": "消息",
+    "messagePlaceholder": "请包含 IP、服务 ID 和复现步骤…",
+    "submitTicket": "提交工单",
+    "empty": "暂无工单",
+    "openTicket": "创建工单",
+    "messageCount": "{count} 条消息",
+    "priority": "优先级",
+    "priorityHint": "紧急程度？",
+    "priorityLow": "低",
+    "priorityLowDesc": "一般问题 — 不紧急",
+    "priorityNormal": "普通",
+    "priorityNormalDesc": "标准问题 — 常规响应时间",
+    "priorityHigh": "高",
+    "priorityHighDesc": "服务受影响 — 将优先处理",
+    "priorityUrgent": "紧急",
+    "status": {
+      "OPEN": "待处理",
+      "AWAITING_STAFF": "等待客服",
+      "AWAITING_CUSTOMER": "等待您回复",
+      "RESOLVED": "已解决",
+      "CLOSED": "已关闭"
+    }
   },
   "auth": {
     "heroLogin": "登录",

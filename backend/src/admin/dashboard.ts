@@ -126,7 +126,7 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
     }),
     prisma.ticket.findMany({
       where: { status: { in: ["OPEN", "AWAITING_STAFF"] } },
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
       take: 8,
       select: { id: true, subject: true, priority: true, status: true, updatedAt: true },
     }),

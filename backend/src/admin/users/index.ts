@@ -58,7 +58,7 @@ export async function listAdminUsers(
   await requirePermission(actorId, "users.read");
 
   const page = options.page ?? 1;
-  const pageSize = Math.min(options.pageSize ?? 20, 100);
+  const pageSize = Math.min(options.pageSize ?? 100, 500);
   const q = options.q?.trim() ?? "";
 
   const where = {

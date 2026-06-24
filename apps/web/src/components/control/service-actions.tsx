@@ -67,7 +67,9 @@ export function ServiceActions({
       </select>
       <AdminDeleteButton
         label="Delete service"
-        confirmMessage={`Permanently delete "${label ?? "this service"}"? VPS/domain/CDN data will be removed. This cannot be undone.`}
+        title="Delete service?"
+        description="VPS, domain, or CDN records for this service will be permanently removed."
+        entityName={label ?? serviceId}
         onDelete={() => deleteServiceAction(serviceId)}
         redirectTo={controlPath("/services")}
       />

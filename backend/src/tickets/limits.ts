@@ -12,7 +12,6 @@ export async function assertSupportTicketDailyLimit(userId: string): Promise<voi
     where: {
       userId,
       createdAt: { gte: since },
-      priority: "NORMAL",
     },
   });
 

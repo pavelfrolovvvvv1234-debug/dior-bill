@@ -302,7 +302,9 @@ export function UserActions({
 
       <AdminDeleteButton
         label="Delete user"
-        confirmMessage={`Permanently delete ${email ?? "this user"}? All services, tickets, invoices and sessions will be removed. This cannot be undone.`}
+        title="Delete user?"
+        description="All services, tickets, invoices, and sessions linked to this account will be removed."
+        entityName={email ?? userId}
         onDelete={() => deleteUserAction(userId)}
         redirectTo={controlPath("/users")}
         className="h-9"

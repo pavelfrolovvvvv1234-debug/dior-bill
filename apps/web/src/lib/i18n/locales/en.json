@@ -569,7 +569,31 @@
     "describeIssue": "Describe your issue",
     "conversation": "Conversation",
     "reply": "Reply",
-    "ticketPrefix": "Ticket #{id}"
+    "ticketPrefix": "Ticket #{id}",
+    "subject": "Subject",
+    "subjectPlaceholder": "Brief summary of the issue",
+    "message": "Message",
+    "messagePlaceholder": "Include IPs, service IDs, and steps to reproduce…",
+    "submitTicket": "Submit ticket",
+    "empty": "No tickets yet",
+    "openTicket": "Open a ticket",
+    "messageCount": "{count} messages",
+    "priority": "Priority",
+    "priorityHint": "How urgent is this?",
+    "priorityLow": "Low",
+    "priorityLowDesc": "General question — no rush",
+    "priorityNormal": "Normal",
+    "priorityNormalDesc": "Standard issue — typical response time",
+    "priorityHigh": "High",
+    "priorityHighDesc": "Service impacted — we'll prioritize",
+    "priorityUrgent": "Urgent",
+    "status": {
+      "OPEN": "Open",
+      "AWAITING_STAFF": "Awaiting support",
+      "AWAITING_CUSTOMER": "Awaiting you",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    }
   },
   "auth": {
     "heroLogin": "sign in",

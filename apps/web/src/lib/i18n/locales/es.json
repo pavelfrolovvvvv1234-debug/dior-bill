@@ -475,7 +475,31 @@
     "describeIssue": "Describe el problema",
     "conversation": "Conversación",
     "reply": "Responder",
-    "ticketPrefix": "Ticket #{id}"
+    "ticketPrefix": "Ticket #{id}",
+    "subject": "Asunto",
+    "subjectPlaceholder": "Resumen breve del problema",
+    "message": "Mensaje",
+    "messagePlaceholder": "Incluye IPs, IDs de servicio y pasos para reproducir…",
+    "submitTicket": "Enviar ticket",
+    "empty": "Aún no hay tickets",
+    "openTicket": "Abrir un ticket",
+    "messageCount": "{count} mensajes",
+    "priority": "Prioridad",
+    "priorityHint": "¿Qué tan urgente es?",
+    "priorityLow": "Baja",
+    "priorityLowDesc": "Pregunta general — sin prisa",
+    "priorityNormal": "Normal",
+    "priorityNormalDesc": "Problema estándar — tiempo de respuesta habitual",
+    "priorityHigh": "Alta",
+    "priorityHighDesc": "Servicio afectado — lo priorizaremos",
+    "priorityUrgent": "Urgente",
+    "status": {
+      "OPEN": "Abierto",
+      "AWAITING_STAFF": "Esperando soporte",
+      "AWAITING_CUSTOMER": "Esperando tu respuesta",
+      "RESOLVED": "Resuelto",
+      "CLOSED": "Cerrado"
+    }
   },
   "auth": {
     "heroLogin": "iniciar sesión",

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatDate } from "@/lib/utils";
+import { TicketPriorityBadge } from "@/components/support/ticket-priority-badge";
 import { TicketRowDelete } from "@/components/control/ticket-row-delete";
 
 export default async function SupportPage() {
@@ -46,7 +47,9 @@ export default async function SupportPage() {
                       <p className="font-medium">{t.subject}</p>
                     </DataTableTd>
                     <DataTableTd>{t.user.email}</DataTableTd>
-                    <DataTableTd>{t.priority}</DataTableTd>
+                    <DataTableTd>
+                      <TicketPriorityBadge priority={t.priority} />
+                    </DataTableTd>
                     <DataTableTd>
                       <Badge>{t.status}</Badge>
                     </DataTableTd>

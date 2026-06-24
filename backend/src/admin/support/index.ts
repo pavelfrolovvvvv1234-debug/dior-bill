@@ -29,12 +29,13 @@ export async function getAdminTicket(actorId: string, ticketId: string) {
 export async function adminUpdateTicket(
   actorId: string,
   ticketId: string,
-  data: { status?: TicketStatus; assignedTo?: string | null },
+  data: { status?: TicketStatus; assignedTo?: string | null; priority?: TicketPriority },
 ) {
   await requirePermission(actorId, "support.write");
 
   const updates: Record<string, unknown> = {};
   if (data.assignedTo !== undefined) updates.assignedTo = data.assignedTo;
+  if (data.priority !== undefined) updates.priority = data.priority;
 
   const ticket = await prisma.ticket.update({
     where: { id: ticketId },

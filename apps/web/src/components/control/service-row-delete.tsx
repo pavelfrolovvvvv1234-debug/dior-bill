@@ -8,7 +8,9 @@ export function ServiceRowDelete({ serviceId, label }: { serviceId: string; labe
     <AdminDeleteButton
       label=""
       variant="ghost"
-      confirmMessage={`Delete service "${label}" permanently?`}
+      title="Delete service?"
+      description="VPS, domain, or CDN records for this service will be permanently removed."
+      entityName={label}
       onDelete={() => deleteServiceAction(serviceId)}
     />
   );

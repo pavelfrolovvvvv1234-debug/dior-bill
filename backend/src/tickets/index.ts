@@ -22,7 +22,7 @@ export async function createTicket(
 export async function getUserTickets(userId: string, status?: TicketStatus) {
   return prisma.ticket.findMany({
     where: { userId, ...(status && { status }) },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
     include: {
       messages: { orderBy: { createdAt: "desc" }, take: 1 },
       _count: { select: { messages: true } },
@@ -151,7 +151,7 @@ export async function getAllTickets(filters: {
   const [items, total] = await Promise.all([
     prisma.ticket.findMany({
       where,
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {

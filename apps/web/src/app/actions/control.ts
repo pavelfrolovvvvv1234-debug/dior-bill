@@ -25,7 +25,8 @@ import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 
 function revalidateControl(...paths: string[]) {
-  for (const p of paths) {
+  const unique = new Set([controlPath(), ...paths]);
+  for (const p of unique) {
     revalidatePath(p);
   }
 }
@@ -106,6 +107,15 @@ export async function ticketStatusAction(ticketId: string, status: import("@dior
   revalidateControl(controlPath("/support"), controlPath(`/support/${ticketId}`));
 }
 
+export async function ticketPriorityAction(
+  ticketId: string,
+  priority: import("@dior/database").TicketPriority,
+) {
+  const actor = await requireControlSession();
+  await adminUpdateTicket(actor.id, ticketId, { priority });
+  revalidateControl(controlPath("/support"), controlPath(`/support/${ticketId}`));
+}
+
 export async function adminReplyTicketAction(ticketId: string, formData: FormData) {
   const actor = await requireControlSession();
   const body = String(formData.get("body") ?? "").trim();
@@ -141,17 +151,17 @@ export async function adminRefreshDomainNameserversAction(serviceId: string) {
 export async function deleteUserAction(userId: string) {
   const actor = await requireControlSession();
   await deleteAdminUser(actor.id, userId);
-  revalidateControl(controlPath("/users"));
+  revalidateControl(controlPath("/users"), controlPath(`/users/${userId}`));
 }
 
 export async function deleteServiceAction(serviceId: string) {
   const actor = await requireControlSession();
   await deleteAdminService(actor.id, serviceId);
-  revalidateControl(controlPath("/services"));
+  revalidateControl(controlPath("/services"), controlPath(`/services/${serviceId}`));
 }
 
 export async function deleteTicketAction(ticketId: string) {
   const actor = await requireControlSession();
   await deleteAdminTicket(actor.id, ticketId);
-  revalidateControl(controlPath("/support"));
+  revalidateControl(controlPath("/support"), controlPath(`/support/${ticketId}`));
 }

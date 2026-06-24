@@ -569,7 +569,31 @@
     "describeIssue": "Опишите проблему",
     "conversation": "Переписка",
     "reply": "Ответить",
-    "ticketPrefix": "Тикет #{id}"
+    "ticketPrefix": "Тикет #{id}",
+    "subject": "Тема",
+    "subjectPlaceholder": "Кратко опишите проблему",
+    "message": "Сообщение",
+    "messagePlaceholder": "Укажите IP, ID услуг и шаги воспроизведения…",
+    "submitTicket": "Отправить тикет",
+    "empty": "Тикетов пока нет",
+    "openTicket": "Создать тикет",
+    "messageCount": "{count} сообщ.",
+    "priority": "Приоритет",
+    "priorityHint": "Насколько срочно?",
+    "priorityLow": "Низкий",
+    "priorityLowDesc": "Общий вопрос — без спешки",
+    "priorityNormal": "Обычный",
+    "priorityNormalDesc": "Стандартная проблема — обычное время ответа",
+    "priorityHigh": "Высокий",
+    "priorityHighDesc": "Услуга затронута — приоритетная обработка",
+    "priorityUrgent": "Срочный",
+    "status": {
+      "OPEN": "Открыт",
+      "AWAITING_STAFF": "Ждёт поддержку",
+      "AWAITING_CUSTOMER": "Ждёт вас",
+      "RESOLVED": "Решён",
+      "CLOSED": "Закрыт"
+    }
   },
   "auth": {
     "heroLogin": "вход",

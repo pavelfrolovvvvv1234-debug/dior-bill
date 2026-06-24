@@ -5,7 +5,8 @@ import { ADMIN_ROLES, STAFF_TICKET_AUTHOR_LABEL } from "@dior/shared";
 import { PageHeader } from "@/components/ui/enterprise/page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { Panel } from "@/components/ui/enterprise/panel";
-import { Badge } from "@/components/ui/badge";
+import { TicketPriorityBadge } from "@/components/support/ticket-priority-badge";
+import { TicketStatusBadge } from "@/components/support/ticket-status-badge";
 import { replyTicketAction } from "@/app/actions/support";
 import { Button } from "@/components/ui/button";
 import { formatRelative } from "@/lib/utils";
@@ -37,7 +38,12 @@ export default async function SupportTicketPage({
           { label: "Support", href: "/support" },
           { label: ticket.subject },
         ]}
-        actions={<Badge variant="muted">{ticket.status}</Badge>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <TicketPriorityBadge priority={ticket.priority} />
+            <TicketStatusBadge status={ticket.status} />
+          </div>
+        }
       />
       <PageContainer className="max-w-3xl space-y-6">
         <Panel title="Conversation" noPadding>
