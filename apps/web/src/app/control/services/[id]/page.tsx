@@ -38,7 +38,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
       <PageHeader
         title={service.label}
         description={`${service.type} · ${service.id}`}
-        actions={<ServiceActions serviceId={service.id} status={service.status} />}
+        actions={<ServiceActions serviceId={service.id} status={service.status} label={service.label} />}
       />
       <PageContainer>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

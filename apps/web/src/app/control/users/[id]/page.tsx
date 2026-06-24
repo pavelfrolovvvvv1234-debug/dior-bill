@@ -39,7 +39,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       <PageHeader
         title={user.email ?? "User"}
         description={user.id}
-        actions={<UserActions userId={user.id} status={user.status} role={user.role} />}
+        actions={<UserActions userId={user.id} status={user.status} role={user.role} email={user.email} />}
       />
       <PageContainer className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney } from "@/lib/utils";
+import { ServiceRowDelete } from "@/components/control/service-row-delete";
 
 export default async function ServicesPage({
   searchParams,
@@ -66,12 +67,15 @@ export default async function ServicesPage({
                     <DataTableTd><Badge>{s.status}</Badge></DataTableTd>
                     <DataTableTd align="right" mono>{formatMoney(Number(s.monthlyPrice))}</DataTableTd>
                     <DataTableTd align="right">
-                      <Link
-                        href={controlPath(`/services/${s.id}`)}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Manage
-                      </Link>
+                      <div className="flex items-center justify-end gap-1">
+                        <ServiceRowDelete serviceId={s.id} label={s.label} />
+                        <Link
+                          href={controlPath(`/services/${s.id}`)}
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          Manage
+                        </Link>
+                      </div>
                     </DataTableTd>
                   </DataTableClickableRow>
                 ))

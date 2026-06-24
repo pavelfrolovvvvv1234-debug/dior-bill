@@ -18,6 +18,7 @@ import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney } from "@/lib/utils";
 import { formatLastOnline, formatLastOnlineTitle } from "@/lib/format-last-online";
+import { UserRowDelete } from "@/components/control/user-row-delete";
 
 export default async function UsersPage({
   searchParams,
@@ -73,12 +74,15 @@ export default async function UsersPage({
                       {formatLastOnline(u.lastOnlineAt, u.lastLoginAt)}
                     </DataTableTd>
                     <DataTableTd align="right">
-                      <Link
-                        href={controlPath(`/users/${u.id}`)}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Manage
-                      </Link>
+                      <div className="flex items-center justify-end gap-1">
+                        <UserRowDelete userId={u.id} email={u.email} />
+                        <Link
+                          href={controlPath(`/users/${u.id}`)}
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          Manage
+                        </Link>
+                      </div>
                     </DataTableTd>
                   </DataTableClickableRow>
                 ))

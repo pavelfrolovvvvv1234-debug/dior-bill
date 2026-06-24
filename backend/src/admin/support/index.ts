@@ -1,4 +1,6 @@
 import type { TicketPriority, TicketStatus } from "@dior/database";
+import { prisma } from "@dior/database";
+import { NotFoundError } from "@dior/shared";
 import { getAllTickets, getTicketById, replyToTicket, updateTicketStatus } from "../../tickets";
 import { createAuditLog } from "../../audit";
 import { requirePermission } from "../rbac";
@@ -34,7 +36,6 @@ export async function adminUpdateTicket(
   const updates: Record<string, unknown> = {};
   if (data.assignedTo !== undefined) updates.assignedTo = data.assignedTo;
 
-  const { prisma } = await import("@dior/database");
   const ticket = await prisma.ticket.update({
     where: { id: ticketId },
     data: updates,
@@ -77,4 +78,24 @@ export async function adminReplyToTicket(
   });
 
   return message;
+}
+
+export async function deleteAdminTicket(actorId: string, ticketId: string) {
+  await requirePermission(actorId, "support.write");
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { id: true, subject: true, userId: true, user: { select: { email: true } } },
+  });
+  if (!ticket) throw new NotFoundError("Ticket not found");
+
+  await prisma.ticket.delete({ where: { id: ticketId } });
+
+  await createAuditLog({
+    actorId,
+    action: "ticket.delete",
+    entityType: "ticket",
+    entityId: ticketId,
+    metadata: { subject: ticket.subject, userId: ticket.userId, userEmail: ticket.user.email },
+  });
 }

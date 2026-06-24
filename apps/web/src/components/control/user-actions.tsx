@@ -7,7 +7,10 @@ import {
   activateUserAction,
   suspendUserAction,
   updateRoleAction,
+  deleteUserAction,
 } from "@/app/actions/control";
+import { AdminDeleteButton } from "@/components/control/admin-delete-button";
+import { controlPath } from "@/lib/control-paths";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -116,10 +119,12 @@ export function UserActions({
   userId,
   status,
   role,
+  email,
 }: {
   userId: string;
   status: string;
   role: string;
+  email?: string | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -294,6 +299,14 @@ export function UserActions({
           Reactivate
         </Button>
       )}
+
+      <AdminDeleteButton
+        label="Delete user"
+        confirmMessage={`Permanently delete ${email ?? "this user"}? All services, tickets, invoices and sessions will be removed. This cannot be undone.`}
+        onDelete={() => deleteUserAction(userId)}
+        redirectTo={controlPath("/users")}
+        className="h-9"
+      />
     </div>
   );
 }

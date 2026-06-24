@@ -27,7 +27,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
       <PageHeader
         title={ticket.subject}
         description={`${ticket.user.email} · ${ticket.status}`}
-        actions={<TicketActions ticketId={ticket.id} status={ticket.status} />}
+        actions={<TicketActions ticketId={ticket.id} status={ticket.status} subject={ticket.subject} />}
       />
       <PageContainer className="max-w-3xl space-y-6">
         <Panel title="Клиент">

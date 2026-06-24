@@ -1,9 +1,11 @@
 "use client";
 
+import { deleteServiceAction, updateServiceStatusAction } from "@/app/actions/control";
+import { AdminDeleteButton } from "@/components/control/admin-delete-button";
+import { controlPath } from "@/lib/control-paths";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { updateServiceStatusAction } from "@/app/actions/control";
 
 const STATUSES = [
   "ACTIVE",
@@ -18,9 +20,11 @@ const STATUSES = [
 export function ServiceActions({
   serviceId,
   status,
+  label,
 }: {
   serviceId: string;
   status: string;
+  label?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -61,6 +65,12 @@ export function ServiceActions({
           </option>
         ))}
       </select>
+      <AdminDeleteButton
+        label="Delete service"
+        confirmMessage={`Permanently delete "${label ?? "this service"}"? VPS/domain/CDN data will be removed. This cannot be undone.`}
+        onDelete={() => deleteServiceAction(serviceId)}
+        redirectTo={controlPath("/services")}
+      />
     </div>
   );
 }

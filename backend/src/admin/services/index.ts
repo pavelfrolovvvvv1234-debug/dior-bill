@@ -164,3 +164,28 @@ export async function adminExtendServiceRenewal(
 
   return updated;
 }
+
+export async function deleteAdminService(actorId: string, serviceId: string) {
+  await requirePermission(actorId, "services.write");
+
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { id: true, label: true, type: true, userId: true, user: { select: { email: true } } },
+  });
+  if (!service) throw new NotFoundError("Service not found");
+
+  await prisma.service.delete({ where: { id: serviceId } });
+
+  await createAuditLog({
+    actorId,
+    action: "service.delete",
+    entityType: "service",
+    entityId: serviceId,
+    metadata: {
+      label: service.label,
+      type: service.type,
+      userId: service.userId,
+      userEmail: service.user.email,
+    },
+  });
+}

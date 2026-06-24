@@ -12,6 +12,9 @@ import {
   createPromoCode,
   togglePromoCode,
   deletePromoCode,
+  deleteAdminUser,
+  deleteAdminService,
+  deleteAdminTicket,
   updateAdminUserRole,
   updateAdminUserStatus,
   updatePayoutStatus,
@@ -133,4 +136,22 @@ export async function adminRefreshDomainNameserversAction(serviceId: string) {
   const result = await adminGetDomainNameservers(actor.id, serviceId, { refresh: true });
   revalidateControl(controlPath(`/services/${serviceId}`));
   return result.nameservers;
+}
+
+export async function deleteUserAction(userId: string) {
+  const actor = await requireControlSession();
+  await deleteAdminUser(actor.id, userId);
+  revalidateControl(controlPath("/users"));
+}
+
+export async function deleteServiceAction(serviceId: string) {
+  const actor = await requireControlSession();
+  await deleteAdminService(actor.id, serviceId);
+  revalidateControl(controlPath("/services"));
+}
+
+export async function deleteTicketAction(ticketId: string) {
+  const actor = await requireControlSession();
+  await deleteAdminTicket(actor.id, ticketId);
+  revalidateControl(controlPath("/support"));
 }

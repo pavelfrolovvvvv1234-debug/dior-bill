@@ -4,11 +4,21 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { CheckCircle2, RotateCcw, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ticketStatusAction } from "@/app/actions/control";
+import { deleteTicketAction, ticketStatusAction } from "@/app/actions/control";
+import { AdminDeleteButton } from "@/components/control/admin-delete-button";
+import { controlPath } from "@/lib/control-paths";
 
 const STATUSES = ["OPEN", "AWAITING_STAFF", "AWAITING_CUSTOMER", "RESOLVED", "CLOSED"] as const;
 
-export function TicketActions({ ticketId, status }: { ticketId: string; status: string }) {
+export function TicketActions({
+  ticketId,
+  status,
+  subject,
+}: {
+  ticketId: string;
+  status: string;
+  subject?: string;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const isClosed = status === "CLOSED" || status === "RESOLVED";
@@ -75,6 +85,13 @@ export function TicketActions({ ticketId, status }: { ticketId: string; status: 
           Reopen
         </Button>
       )}
+
+      <AdminDeleteButton
+        label="Delete ticket"
+        confirmMessage={`Permanently delete ticket "${subject ?? ticketId}"? All messages will be removed. This cannot be undone.`}
+        onDelete={() => deleteTicketAction(ticketId)}
+        redirectTo={controlPath("/support")}
+      />
     </div>
   );
 }

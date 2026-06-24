@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatDate } from "@/lib/utils";
+import { TicketRowDelete } from "@/components/control/ticket-row-delete";
 
 export default async function SupportPage() {
   const actor = await requireControlSession();
@@ -53,12 +54,15 @@ export default async function SupportPage() {
                       {formatDate(t.updatedAt)}
                     </DataTableTd>
                     <DataTableTd align="right">
-                      <Link
-                        href={controlPath(`/support/${t.id}`)}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Open
-                      </Link>
+                      <div className="flex items-center justify-end gap-1">
+                        <TicketRowDelete ticketId={t.id} subject={t.subject} />
+                        <Link
+                          href={controlPath(`/support/${t.id}`)}
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          Open
+                        </Link>
+                      </div>
                     </DataTableTd>
                   </DataTableClickableRow>
                 ))

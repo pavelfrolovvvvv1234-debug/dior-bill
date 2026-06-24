@@ -1,11 +1,11 @@
 import { prisma } from "@dior/database";
 import type { Prisma, UserRole, UserStatus } from "@dior/database";
-import { NotFoundError } from "@dior/shared";
+import { ForbiddenError, NotFoundError, ValidationError } from "@dior/shared";
 import { createAuditLog } from "../../audit";
 import { refreshUserDashboardCache } from "../../users";
 import { creditWallet, debitWallet } from "../../payments/wallet";
 import { countEligibleReferralsByReferrer, eligibleReferralWhere } from "../../referrals/eligibility";
-import { requirePermission } from "../rbac";
+import { getActorRole, requirePermission } from "../rbac";
 
 export type AdminUserDetail = {
   user: {
@@ -348,4 +348,42 @@ export async function updateReferralPercent(
   });
 
   return updated;
+}
+
+export async function deleteAdminUser(actorId: string, userId: string) {
+  await requirePermission(actorId, "users.write");
+
+  if (actorId === userId) {
+    throw new ValidationError("You cannot delete your own account");
+  }
+
+  const [actorRole, target] = await Promise.all([
+    getActorRole(actorId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true },
+    }),
+  ]);
+
+  if (!target) throw new NotFoundError("User not found");
+
+  if (target.role === "SUPER_ADMIN" && actorRole !== "SUPER_ADMIN") {
+    throw new ForbiddenError("Only super admins can delete super admin accounts");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.updateMany({
+      where: { referredById: userId },
+      data: { referredById: null, referralQualifies: false },
+    });
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  await createAuditLog({
+    actorId,
+    action: "user.delete",
+    entityType: "user",
+    entityId: userId,
+    metadata: { email: target.email, role: target.role },
+  });
 }
