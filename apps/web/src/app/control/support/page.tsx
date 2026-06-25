@@ -15,6 +15,9 @@ import { DataTableClickableRow } from "@/components/control/data-table-clickable
 import { TicketPriorityBadge } from "@/components/support/ticket-priority-badge";
 import { TicketStatusBadge } from "@/components/support/ticket-status-badge";
 import { TicketRowDelete } from "@/components/control/ticket-row-delete";
+import { LocalDateTime } from "@/components/ui/local-datetime";
+import { requireControlSession } from "@/lib/auth";
+import { controlPath } from "@/lib/control-paths";
 
 export default async function SupportPage() {
   const actor = await requireControlSession();
