@@ -8,7 +8,8 @@ import { PromoRowActions } from "@/components/control/billing/promo-row-actions"
 import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { notFound } from "next/navigation";
 
 export default async function PromoDetailPage({
@@ -37,8 +38,8 @@ export default async function PromoDetailPage({
         <div className="grid gap-4 sm:grid-cols-4">
           <Stat label="Uses" value={`${promo.usedCount}${promo.maxUses ? ` / ${promo.maxUses}` : ""}`} />
           <Stat label="Status" value={<BillingStatusBadge status={promo.active ? "ACTIVE" : "CANCELLED"} />} />
-          <Stat label="Valid until" value={promo.validUntil ? formatDate(promo.validUntil) : "No expiry"} />
-          <Stat label="Created" value={formatDate(promo.createdAt)} />
+          <Stat label="Valid until" value={promo.validUntil ? <LocalDateTime value={promo.validUntil} mode="date" /> : "No expiry"} />
+          <Stat label="Created" value={<LocalDateTime value={promo.createdAt} />} />
         </div>
         <Panel title="Redemption history">
           <ul className="space-y-2 text-sm">
@@ -48,7 +49,7 @@ export default async function PromoDetailPage({
                   {r.user.email ?? r.user.id.slice(0, 8)}
                 </Link>
                 <span className="font-mono tabular-nums">{formatMoney(r.credit)}</span>
-                <span className="text-xs text-[var(--muted-foreground)]">{formatDate(r.createdAt)}</span>
+                <span className="text-xs text-[var(--muted-foreground)]"><LocalDateTime value={r.createdAt} /></span>
               </li>
             ))}
             {promo.redemptions.length === 0 && (

@@ -6,7 +6,8 @@ import { InvoiceActions } from "@/components/control/billing/invoice-actions";
 import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { isNotFoundError } from "@/lib/app-errors";
 import { notFound } from "next/navigation";
 
@@ -39,11 +40,11 @@ export default async function InvoiceDetailPage({
           { label: "Total", value: formatMoney(invoice.total) },
           { label: "Paid", value: formatMoney(invoice.amountPaid) },
           { label: "Status", value: invoice.status },
-          { label: "Due", value: invoice.dueAt ? formatDate(invoice.dueAt) : "—" },
+          { label: "Due", value: invoice.dueAt ? <LocalDateTime value={invoice.dueAt} mode="date" /> : "—" },
         ].map((k) => (
           <div key={k.label} className="panel p-4">
             <p className="text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">{k.label}</p>
-            <p className="mt-1 text-lg font-semibold">{k.label === "Status" ? <BillingStatusBadge status={k.value} /> : k.value}</p>
+            <p className="mt-1 text-lg font-semibold">{k.label === "Status" ? <BillingStatusBadge status={String(k.value)} /> : k.value}</p>
           </div>
         ))}
       </div>
@@ -74,7 +75,7 @@ export default async function InvoiceDetailPage({
           <dl className="space-y-2 text-sm">
             <Row label="Email" value={invoice.user.email ?? "—"} />
             <Row label="Balance" value={formatMoney(invoice.user.balance)} />
-            <Row label="Created" value={formatDate(invoice.createdAt)} />
+            <Row label="Created" value={<LocalDateTime value={invoice.createdAt} />} />
             {invoice.notes && <Row label="Notes" value={invoice.notes} />}
           </dl>
           <Link href={controlPath(`/users/${invoice.user.id}`)} className="mt-4 inline-block text-xs text-primary">
@@ -100,7 +101,7 @@ export default async function InvoiceDetailPage({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-[var(--muted-foreground)]">{label}</dt>

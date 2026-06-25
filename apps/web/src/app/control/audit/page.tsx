@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/control/page-container";
 import { Panel } from "@/components/control/panel";
 import { requireControlSession } from "@/lib/auth";
 import { getServerT } from "@/lib/i18n/server";
-import { formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 
 export default async function AuditPage() {
   const actor = await requireControlSession();
@@ -24,7 +24,9 @@ export default async function AuditPage() {
           <ul className="space-y-2 font-mono text-xs">
             {data.items.map((a) => (
               <li key={a.id} className="border-b border-white/6 py-2">
-                <span className="text-[var(--muted-foreground)]">{formatDate(a.createdAt)}</span>
+                <span className="text-[var(--muted-foreground)]">
+                  <LocalDateTime value={a.createdAt} />
+                </span>
                 {" · "}
                 <span className="text-primary">{a.action}</span>
                 {" · "}

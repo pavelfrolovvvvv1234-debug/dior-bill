@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/enterprise/panel";
 import { InvoiceStatusBadge } from "@/components/billing/invoice-status-badge";
 import { payInvoiceAction, downloadInvoiceAction } from "@/app/actions/invoice";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { useI18n } from "@/lib/i18n/store";
 import { ArrowLeft, Download, Wallet } from "lucide-react";
 
@@ -36,7 +38,7 @@ interface InvoiceDetailViewProps {
 }
 
 export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [pending, startTransition] = useTransition();
   const canPay =
     invoice.remaining > 0 &&
@@ -75,7 +77,7 @@ export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-mono text-2xl font-semibold tracking-tight">{invoice.number}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{formatDate(invoice.createdAt)}</p>
+          <p className="mt-1 text-sm text-muted-foreground"><LocalDateTime value={invoice.createdAt} /></p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={handleDownload} disabled={pending}>
@@ -96,7 +98,7 @@ export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
           { label: t("common.status"), value: <InvoiceStatusBadge status={invoice.status} /> },
           { label: t("common.amount"), value: formatMoney(invoice.total) },
           { label: t("billing.invoiceDetail.paid"), value: formatMoney(invoice.amountPaid) },
-          { label: t("billing.invoiceDetail.due"), value: invoice.dueAt ? formatDate(invoice.dueAt) : "—" },
+          { label: t("billing.invoiceDetail.due"), value: invoice.dueAt ? <LocalDateTime value={invoice.dueAt} mode="date" /> : "—" },
         ].map((k) => (
           <div key={String(k.label)} className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">{k.label}</p>
@@ -156,7 +158,9 @@ export function InvoiceDetailView({ invoice }: InvoiceDetailViewProps) {
 
       {invoice.paidAt && (
         <p className="text-sm text-muted-foreground">
-          {t("billing.invoiceDetail.paidOn", { date: formatDate(invoice.paidAt) })}
+          {t("billing.invoiceDetail.paidOn", {
+            date: formatLocalDateTime(invoice.paidAt, { locale }),
+          })}
         </p>
       )}
     </div>

@@ -15,7 +15,8 @@ import { TransactionLedgerCard } from "@/components/billing/billing-mobile-cards
 import { TopUpStatusBadge } from "@/components/billing/topup-status-badge";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/store";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/utils";
 
 export type LedgerEntryView = {
   id: string;
@@ -41,7 +42,7 @@ export function TransactionsView({
   totalPages: number;
   search?: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   return (
     <>
@@ -87,7 +88,7 @@ export function TransactionsView({
                       {entry.referenceCode ?? "—"}
                     </DataTableTd>
                     <DataTableTd className="text-muted-foreground">
-                      {formatDate(entry.createdAt)}
+                      {formatLocalDateTime(entry.createdAt, { locale })}
                     </DataTableTd>
                     <DataTableTd>
                       {entry.kind === "topup" ? (

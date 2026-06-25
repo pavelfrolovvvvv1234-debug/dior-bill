@@ -12,7 +12,7 @@ import {
 import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { ReconciliationActions } from "@/components/control/billing/reconciliation-actions";
 import { requireControlSession } from "@/lib/auth";
-import { formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 
 export default async function ReconciliationPage() {
   const actor = await requireControlSession();
@@ -42,9 +42,9 @@ export default async function ReconciliationPage() {
                 <DataTableTd mono className="text-xs">{run.domain}</DataTableTd>
                 <DataTableTd><BillingStatusBadge status={run.status.toUpperCase()} /></DataTableTd>
                 <DataTableTd>{run.fixesApplied}</DataTableTd>
-                <DataTableTd className="text-[var(--muted-foreground)]">{formatDate(run.startedAt)}</DataTableTd>
+                <DataTableTd className="text-[var(--muted-foreground)]"><LocalDateTime value={run.startedAt} /></DataTableTd>
                 <DataTableTd className="text-[var(--muted-foreground)]">
-                  {run.completedAt ? formatDate(run.completedAt) : "—"}
+                  {run.completedAt ? <LocalDateTime value={run.completedAt} /> : "—"}
                 </DataTableTd>
               </DataTableRow>
             ))}

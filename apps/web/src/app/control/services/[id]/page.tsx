@@ -7,7 +7,8 @@ import { ServiceActions } from "@/components/control/service-actions";
 import { Badge } from "@/components/ui/badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { notFound } from "next/navigation";
 import { AdminDomainNameservers } from "@/components/control/admin-domain-nameservers";
 
@@ -49,7 +50,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               label: "Auto renew",
               value: service.autoRenew ? "Yes" : "No",
             },
-            { label: "Created", value: formatDate(service.createdAt) },
+            { label: "Created", value: <LocalDateTime value={service.createdAt} /> },
           ].map((k) => (
             <div key={k.label} className="panel p-4">
               <p className="text-xs text-[var(--muted-foreground)]">{k.label}</p>
@@ -113,7 +114,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                 <div className="flex justify-between">
                   <dt className="text-[var(--muted-foreground)]">Expires</dt>
                   <dd>
-                    {service.domain.expiresAt ? formatDate(service.domain.expiresAt) : "—"}
+                    {service.domain.expiresAt ? <LocalDateTime value={service.domain.expiresAt} mode="date" /> : "—"}
                   </dd>
                 </div>
               )}
@@ -135,7 +136,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
           <ul className="space-y-2 text-xs text-[var(--muted-foreground)]">
             {service.events.map((e) => (
               <li key={e.id}>
-                {formatDate(e.createdAt)} — {e.type} · {e.title}
+                <LocalDateTime value={e.createdAt} /> — {e.type} · {e.title}
               </li>
             ))}
             {service.events.length === 0 && <p>No events</p>}

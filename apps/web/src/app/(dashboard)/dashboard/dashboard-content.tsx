@@ -13,7 +13,7 @@ import {
   DataTableTh,
 } from "@/components/ui/enterprise/data-table";
 import { toServiceRow, sortServices } from "@/lib/service-catalog";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/store";
 import { ArrowUpRight, Plus, Wallet } from "lucide-react";
 import type { DashboardStats } from "@dior/shared";

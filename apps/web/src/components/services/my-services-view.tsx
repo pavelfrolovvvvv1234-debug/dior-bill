@@ -22,7 +22,7 @@ import {
   groupServicesByType,
   sortServices,
 } from "@/lib/service-catalog";
-import { formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { Plus, Server } from "lucide-react";
 import type { ServiceType, ServiceStatus } from "@dior/database";
 import { useI18n } from "@/lib/i18n/store";
@@ -167,7 +167,7 @@ function ServiceTypeSection({
                 <DataTableTd>{row.region}</DataTableTd>
                 <DataTableTd className="text-muted-foreground">{row.plan}</DataTableTd>
                 <DataTableTd className="text-muted-foreground">
-                  {row.renewsAt ? formatDate(row.renewsAt) : "—"}
+                  {row.renewsAt ? <LocalDateTime value={row.renewsAt} mode="date" /> : "—"}
                 </DataTableTd>
                 <DataTableTd align="right">
                   <ServiceQuickActions manageHref={row.manageHref} />

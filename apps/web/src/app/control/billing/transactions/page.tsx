@@ -14,7 +14,8 @@ import {
 import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { Input } from "@/components/ui/input";
 
 export default async function TransactionsPage({
@@ -88,7 +89,9 @@ export default async function TransactionsPage({
                     ) : "—"}
                   </DataTableTd>
                   <DataTableTd align="right" mono>{formatMoney(tx.amount)}</DataTableTd>
-                  <DataTableTd className="text-[var(--muted-foreground)]">{formatDate(tx.createdAt)}</DataTableTd>
+                  <DataTableTd className="text-[var(--muted-foreground)]">
+                    <LocalDateTime value={tx.createdAt} />
+                  </DataTableTd>
                 </DataTableRow>
               ))
             )}

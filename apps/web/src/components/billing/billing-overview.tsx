@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/enterprise/data-table";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
 import { RecentLedgerCard, InvoiceCard } from "./billing-mobile-cards";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/utils";
 
 interface Wallet {
   available: number;
@@ -48,7 +49,7 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ wallet, invoices, transactions }: BillingOverviewProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   return (
     <div className="space-y-6">
@@ -138,7 +139,7 @@ export function BillingOverview({ wallet, invoices, transactions }: BillingOverv
                     <DataTableRow key={tx.id}>
                       <DataTableTd>
                         <p className="font-medium">{tx.description}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</p>
+                        <p className="text-xs text-muted-foreground">{formatLocalDateTime(tx.createdAt, { locale })}</p>
                       </DataTableTd>
                       <DataTableTd align="right" mono>
                         <span className={tx.type === "CREDIT" ? "text-success" : ""}>
@@ -201,7 +202,7 @@ export function BillingOverview({ wallet, invoices, transactions }: BillingOverv
                         {inv.number}
                       </FastLink>
                     </DataTableTd>
-                    <DataTableTd className="text-muted-foreground">{formatDate(inv.createdAt)}</DataTableTd>
+                    <DataTableTd className="text-muted-foreground">{formatLocalDateTime(inv.createdAt, { locale })}</DataTableTd>
                     <DataTableTd>
                       <InvoiceStatusBadge status={inv.status} />
                     </DataTableTd>

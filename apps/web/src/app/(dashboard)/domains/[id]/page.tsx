@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { getDomainById, getDomainNameservers, parseNameserversFromDb } from "@dior/backend";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { CustomerDomainNameservers } from "@/components/domains/customer-domain-nameservers";
 import { Globe } from "lucide-react";
 
@@ -68,7 +68,7 @@ export default async function DomainDetailPage({
               {[
                 ["Registrar", domain.registrar],
                 ["Status", domain.status],
-                ["Expires", domain.expiresAt ? formatDate(domain.expiresAt) : "—"],
+                ["Expires", domain.expiresAt ? <LocalDateTime value={domain.expiresAt} mode="date" /> : "—"],
                 [
                   "Auto renew",
                   domain.service.autoRenew ? "Enabled" : "Disabled",

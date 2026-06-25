@@ -10,12 +10,11 @@ export function formatMoney(amount: number | string, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
 }
 
-export function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
+import { formatLocalDateTime, type DateTimeMode } from "./datetime";
+
+/** Prefer `<LocalDateTime />` in UI — uses the visitor's local timezone when rendered in the browser. */
+export function formatDate(date: Date | string, mode: DateTimeMode = "datetime") {
+  return formatLocalDateTime(date, { mode });
 }
 
 export function formatCompact(n: number) {

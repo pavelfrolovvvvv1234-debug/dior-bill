@@ -7,7 +7,8 @@ import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { EventTimeline } from "@/components/control/billing/event-timeline";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { isNotFoundError } from "@/lib/app-errors";
 import { notFound } from "next/navigation";
 
@@ -55,9 +56,9 @@ export default async function TopUpDetailPage({
         <Panel title="Payment details">
           <dl className="space-y-2 text-sm">
             <Row label="External ID" value={topUp.externalId ?? "—"} />
-            <Row label="Created" value={formatDate(topUp.createdAt)} />
-            <Row label="Paid at" value={topUp.paidAt ? formatDate(topUp.paidAt) : "—"} />
-            <Row label="Expires" value={topUp.expiresAt ? formatDate(topUp.expiresAt) : "—"} />
+            <Row label="Created" value={<LocalDateTime value={topUp.createdAt} />} />
+            <Row label="Paid at" value={topUp.paidAt ? <LocalDateTime value={topUp.paidAt} /> : "—"} />
+            <Row label="Expires" value={topUp.expiresAt ? <LocalDateTime value={topUp.expiresAt} /> : "—"} />
             {topUp.failureReason && <Row label="Failure" value={topUp.failureReason} />}
             {topUp.adminNotes && <Row label="Admin notes" value={topUp.adminNotes} />}
             {topUp.paymentUrl && (
@@ -91,7 +92,7 @@ export default async function TopUpDetailPage({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-[var(--muted-foreground)]">{label}</dt>

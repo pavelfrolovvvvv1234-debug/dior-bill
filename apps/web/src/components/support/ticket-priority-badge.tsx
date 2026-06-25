@@ -1,8 +1,6 @@
-"use client";
-
 import type { TicketPriorityLevel } from "@dior/shared";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
-import { useI18n } from "@/lib/i18n/store";
+import { ticketPriorityLabel } from "@/lib/ticket-labels";
 import { cn } from "@/lib/utils";
 
 const DOT_CLASS: Record<TicketPriorityLevel, string> = {
@@ -19,12 +17,7 @@ const VARIANT: Record<TicketPriorityLevel, NonNullable<BadgeProps["variant"]>> =
   URGENT: "destructive",
 };
 
-const LABEL_KEY: Record<TicketPriorityLevel, string> = {
-  LOW: "support.priorityLow",
-  NORMAL: "support.priorityNormal",
-  HIGH: "support.priorityHigh",
-  URGENT: "support.priorityUrgent",
-};
+const LEVELS = new Set<string>(["LOW", "NORMAL", "HIGH", "URGENT"]);
 
 export function TicketPriorityBadge({
   priority,
@@ -35,13 +28,12 @@ export function TicketPriorityBadge({
   className?: string;
   showDot?: boolean;
 }) {
-  const { t } = useI18n();
-  const level = (priority in LABEL_KEY ? priority : "NORMAL") as TicketPriorityLevel;
+  const level = (LEVELS.has(priority) ? priority : "NORMAL") as TicketPriorityLevel;
 
   return (
     <Badge variant={VARIANT[level]} className={cn("gap-1.5", className)}>
       {showDot ? <span className={cn("h-1.5 w-1.5 rounded-full", DOT_CLASS[level])} /> : null}
-      {t(LABEL_KEY[level])}
+      {ticketPriorityLabel(priority)}
     </Badge>
   );
 }

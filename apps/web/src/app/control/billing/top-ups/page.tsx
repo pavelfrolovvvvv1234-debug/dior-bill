@@ -15,7 +15,8 @@ import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { TopUpStatusControl } from "@/components/control/billing/topup-status-control";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { Input } from "@/components/ui/input";
 
 export default async function TopUpsPage({
@@ -54,7 +55,7 @@ export default async function TopUpsPage({
             <DataTableTh>Provider</DataTableTh>
             <DataTableTh>Amount</DataTableTh>
             <DataTableTh>Status</DataTableTh>
-            <DataTableTh>Created</DataTableTh>
+            <DataTableTh>Time</DataTableTh>
             <DataTableTh align="right">Actions</DataTableTh>
           </DataTableHead>
           <DataTableBody>
@@ -72,7 +73,11 @@ export default async function TopUpsPage({
                   <DataTableTd>{t.provider}</DataTableTd>
                   <DataTableTd mono>{formatMoney(Number(t.amount))}</DataTableTd>
                   <DataTableTd><BillingStatusBadge status={t.status} /></DataTableTd>
-                  <DataTableTd className="text-[var(--muted-foreground)]">{formatDate(t.createdAt)}</DataTableTd>
+                  <DataTableTd className="text-[var(--muted-foreground)]">
+                    <LocalDateTime
+                      value={t.status === "PAID" && t.paidAt ? t.paidAt : t.createdAt}
+                    />
+                  </DataTableTd>
                   <DataTableTd align="right">
                     <TopUpStatusControl topUpId={t.id} status={t.status} compact />
                   </DataTableTd>

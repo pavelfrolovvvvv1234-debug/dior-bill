@@ -13,7 +13,8 @@ import {
   DataTableTh,
 } from "@/components/ui/enterprise/data-table";
 import { toServiceRow, sortServices } from "@/lib/service-catalog";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { useI18n } from "@/lib/i18n/store";
 import { ArrowUpRight, Plus } from "lucide-react";
 
@@ -94,7 +95,7 @@ export function DashboardMyServices({ services }: { services: RawService[] }) {
                       <InvoiceStatusBadge status={badgeStatus} />
                     </DataTableTd>
                     <DataTableTd className="text-muted-foreground">
-                      {row.renewsAt ? formatDate(row.renewsAt) : "—"}
+                      {row.renewsAt ? <LocalDateTime value={row.renewsAt} mode="date" /> : "—"}
                     </DataTableTd>
                   </DataTableRow>
                 );

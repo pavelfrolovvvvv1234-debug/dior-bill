@@ -5,7 +5,7 @@ import { Panel } from "@/components/control/panel";
 import { ReviewActions } from "@/components/control/review-actions";
 import { Badge } from "@/components/ui/badge";
 import { requireControlSession } from "@/lib/auth";
-import { formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 
 export default async function SecurityPage() {
   const actor = await requireControlSession();
@@ -34,7 +34,7 @@ export default async function SecurityPage() {
             {feed.failedTopUps.map((t) => (
               <li key={t.id} className="flex justify-between">
                 <span>{t.user.email}</span>
-                <span className="text-[var(--muted-foreground)]">{t.provider} · {formatDate(t.createdAt)}</span>
+                <span className="text-[var(--muted-foreground)]">{t.provider} · <LocalDateTime value={t.createdAt} /></span>
               </li>
             ))}
           </ul>

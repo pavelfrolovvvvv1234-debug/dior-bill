@@ -8,7 +8,9 @@ import { TicketReplyForm } from "@/components/control/ticket-reply-form";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { ADMIN_ROLES } from "@dior/shared";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { ticketStatusLabel } from "@/lib/ticket-labels";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { notFound } from "next/navigation";
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +28,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     <>
       <PageHeader
         title={ticket.subject}
-        description={`${ticket.user.email} · ${ticket.status}`}
+        description={`${ticket.user.email} · ${ticketStatusLabel(ticket.status)}`}
         actions={
           <TicketActions
             ticketId={ticket.id}
@@ -100,7 +102,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
                 >
                   <p className="text-xs text-[var(--muted-foreground)]">
                     {isStaff ? "Support" : "Customer"} · {m.author.email ?? "—"} ·{" "}
-                    {formatDate(m.createdAt)}
+                    <LocalDateTime value={m.createdAt} />
                     {m.internal && " · internal note"}
                   </p>
                   <p className="mt-2 whitespace-pre-wrap">{m.body}</p>

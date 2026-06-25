@@ -1,4 +1,5 @@
-import { formatDate, formatRelative } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/datetime";
+import { formatRelative } from "@/lib/utils";
 
 const RECENT_ONLINE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -11,6 +12,7 @@ export function resolveLastOnlineAt(
   return null;
 }
 
+/** @deprecated Prefer `<LocalLastOnline />` in UI for correct browser timezone. */
 export function formatLastOnline(
   lastOnlineAt?: Date | string | null,
   lastLoginAt?: Date | string | null,
@@ -22,14 +24,15 @@ export function formatLastOnline(
     return formatRelative(at);
   }
 
-  return formatDate(at);
+  return formatLocalDateTime(at);
 }
 
+/** @deprecated Prefer `<LocalLastOnline />` in UI for correct browser timezone. */
 export function formatLastOnlineTitle(
   lastOnlineAt?: Date | string | null,
   lastLoginAt?: Date | string | null,
 ): string | undefined {
   const at = resolveLastOnlineAt(lastOnlineAt, lastLoginAt);
   if (!at || Number.isNaN(at.getTime())) return undefined;
-  return formatDate(at);
+  return formatLocalDateTime(at);
 }

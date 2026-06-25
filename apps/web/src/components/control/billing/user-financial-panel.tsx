@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { controlPath } from "@/lib/control-paths";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/store";
 import { BillingStatusBadge } from "./status-badge";
 import { Panel } from "@/components/control/panel";
 
@@ -11,6 +13,8 @@ type Financials = Awaited<
 >;
 
 export function UserFinancialPanel({ data, userId }: { data: Financials; userId: string }) {
+  const locale = useI18n((s) => s.locale);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-4">
@@ -57,7 +61,7 @@ export function UserFinancialPanel({ data, userId }: { data: Financials; userId:
             href: controlPath(`/billing/transactions?q=${userId}`),
             primary: t.type,
             secondary: formatMoney(t.amount),
-            badge: formatDate(t.createdAt),
+            badge: formatLocalDateTime(t.createdAt, { locale }),
           }))}
         />
         <MiniTable

@@ -1,7 +1,8 @@
 import { Panel } from "@/components/ui/enterprise/panel";
 import { Badge } from "@/components/ui/badge";
 import { ReferralCopy } from "@/app/(dashboard)/referrals/referral-copy";
-import { cn, formatDate, formatMoney } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 
 type ReferralRow = {
   id: string;
@@ -160,7 +161,7 @@ export function AffiliateDashboard({
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium">{displayReferralName(r)}</p>
-                      <p className="text-xs text-muted-foreground">Joined {formatDate(r.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground">Joined <LocalDateTime value={r.createdAt} /></p>
                     </div>
                     <p className="shrink-0 font-mono text-sm tabular-nums text-success">
                       +{formatMoney(r.totalEarned)}
@@ -178,7 +179,7 @@ export function AffiliateDashboard({
                   <div key={e.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                     <div className="min-w-0">
                       <p className="truncate text-sm">{displaySourceName(e)}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(e.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground"><LocalDateTime value={e.createdAt} /></p>
                     </div>
                     <span className="shrink-0 font-mono text-sm tabular-nums text-success">
                       +{formatMoney(Number(e.amount))}
@@ -255,7 +256,7 @@ export function AffiliateDashboard({
                     <div className="min-w-0">
                       <p className="font-medium tabular-nums">{formatMoney(Number(p.amount))}</p>
                       <p className="truncate text-xs capitalize text-muted-foreground">
-                        {p.method} · {formatDate(p.createdAt)}
+                        {p.method} · <LocalDateTime value={p.createdAt} />
                       </p>
                     </div>
                     <Badge

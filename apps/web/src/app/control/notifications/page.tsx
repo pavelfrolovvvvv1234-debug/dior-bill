@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/control/page-container";
 import { Panel } from "@/components/control/panel";
 import { BroadcastForm } from "@/components/control/broadcast-form";
 import { requireControlSession } from "@/lib/auth";
-import { formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 
 export default async function NotificationsPage() {
   const actor = await requireControlSession();
@@ -21,7 +21,7 @@ export default async function NotificationsPage() {
               <li key={b.id} className="border-b border-white/6 pb-3">
                 <p className="font-medium">{b.title}</p>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {b.type} · {b.sentAt ? `Sent ${formatDate(b.sentAt)}` : "Draft"}
+                  {b.type} · {b.sentAt ? <>Sent <LocalDateTime value={b.sentAt} /></> : "Draft"}
                 </p>
               </li>
             ))}

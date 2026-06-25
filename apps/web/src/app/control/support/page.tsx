@@ -12,11 +12,8 @@ import {
   DataTableTh,
 } from "@/components/control/data-table";
 import { DataTableClickableRow } from "@/components/control/data-table-clickable-row";
-import { Badge } from "@/components/ui/badge";
-import { requireControlSession } from "@/lib/auth";
-import { controlPath } from "@/lib/control-paths";
-import { formatDate } from "@/lib/utils";
 import { TicketPriorityBadge } from "@/components/support/ticket-priority-badge";
+import { TicketStatusBadge } from "@/components/support/ticket-status-badge";
 import { TicketRowDelete } from "@/components/control/ticket-row-delete";
 
 export default async function SupportPage() {
@@ -51,10 +48,10 @@ export default async function SupportPage() {
                       <TicketPriorityBadge priority={t.priority} />
                     </DataTableTd>
                     <DataTableTd>
-                      <Badge>{t.status}</Badge>
+                      <TicketStatusBadge status={t.status} />
                     </DataTableTd>
                     <DataTableTd className="text-[var(--muted-foreground)]">
-                      {formatDate(t.updatedAt)}
+                      <LocalDateTime value={t.updatedAt} />
                     </DataTableTd>
                     <DataTableTd align="right">
                       <div className="flex items-center justify-end gap-1">

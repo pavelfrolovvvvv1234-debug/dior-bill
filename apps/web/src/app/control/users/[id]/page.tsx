@@ -12,8 +12,9 @@ import { ReferralPercentForm } from "@/components/control/billing/referral-perce
 import { UserFinancialPanel } from "@/components/control/billing/user-financial-panel";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatMoney, formatDate } from "@/lib/utils";
-import { formatLastOnline, formatLastOnlineTitle } from "@/lib/format-last-online";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
+import { LocalLastOnline } from "@/components/ui/local-last-online";
 import { notFound } from "next/navigation";
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -79,11 +80,11 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Email</dt><dd>{user.email ?? "—"}</dd></div>
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Telegram</dt><dd>{user.telegramUsername ?? "—"}</dd></div>
               <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Role</dt><dd><Badge variant="outline">{user.role.replace(/_/g, " ")}</Badge></dd></div>
-              <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Created</dt><dd>{formatDate(user.createdAt)}</dd></div>
+              <div className="flex justify-between"><dt className="text-[var(--muted-foreground)]">Created</dt><dd><LocalDateTime value={user.createdAt} /></dd></div>
               <div className="flex justify-between">
                 <dt className="text-[var(--muted-foreground)]">Last online</dt>
-                <dd title={formatLastOnlineTitle(user.lastOnlineAt, user.lastLoginAt)}>
-                  {formatLastOnline(user.lastOnlineAt, user.lastLoginAt)}
+                <dd>
+                  <LocalLastOnline lastOnlineAt={user.lastOnlineAt} lastLoginAt={user.lastLoginAt} />
                 </dd>
               </div>
             </dl>
@@ -105,7 +106,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           <ul className="space-y-2 text-xs text-[var(--muted-foreground)]">
             {data.recentAudit.map((a) => (
               <li key={a.id}>
-                {formatDate(a.createdAt)} — {a.action} {a.actorEmail ? `by ${a.actorEmail}` : ""}
+                <LocalDateTime value={a.createdAt} /> — {a.action} {a.actorEmail ? `by ${a.actorEmail}` : ""}
               </li>
             ))}
           </ul>

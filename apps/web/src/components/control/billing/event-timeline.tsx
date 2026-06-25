@@ -1,4 +1,7 @@
+"use client";
+
 import { Timeline, TimelineEmpty } from "@/components/ui/timeline";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 
 export function EventTimeline({
   events,
@@ -16,7 +19,7 @@ export function EventTimeline({
       items={events.map((event) => ({
         id: event.id,
         title: event.event,
-        meta: new Date(event.createdAt).toLocaleString(),
+        meta: <LocalDateTime value={event.createdAt} />,
       }))}
     />
   );

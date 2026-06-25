@@ -5,7 +5,9 @@ import { useI18n } from "@/lib/i18n/store";
 import { Button } from "@/components/ui/button";
 import { TopUpStatusBadge } from "./topup-status-badge";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
+import { formatLocalDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export function RecentLedgerCard({
@@ -24,7 +26,7 @@ export function RecentLedgerCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium leading-snug">{description}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{formatDate(createdAt)}</p>
+          <p className="mt-1 text-xs text-muted-foreground"><LocalDateTime value={createdAt} /></p>
         </div>
         <p
           className={cn(
@@ -58,7 +60,7 @@ export function InvoiceCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-mono text-sm font-medium">{number}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{formatDate(createdAt)}</p>
+          <p className="mt-1 text-xs text-muted-foreground"><LocalDateTime value={createdAt} /></p>
         </div>
         <p className="shrink-0 font-mono text-sm font-medium tabular-nums">{formatMoney(total)}</p>
       </div>
@@ -83,7 +85,7 @@ export function TransactionLedgerCard({
     netAmount: number;
   };
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const amountPositive = entry.status === "PAID" || entry.status === "CREDIT";
 
   return (
@@ -99,7 +101,7 @@ export function TransactionLedgerCard({
               {entry.referenceCode}
             </p>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">{formatDate(entry.createdAt)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{formatLocalDateTime(entry.createdAt, { locale })}</p>
         </div>
         <p
           className={cn(

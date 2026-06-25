@@ -17,7 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Timeline } from "@/components/ui/timeline";
 import { syncTopUpAction } from "@/app/actions/topup";
 import { isExternalPaymentUrl, openPaymentUrl } from "@/lib/payment-url";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { formatLocalDateTime } from "@/lib/datetime";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { MANUAL_SUPPORT_TELEGRAM } from "@dior/shared";
 import { useI18n } from "@/lib/i18n/store";
 import { useTopUpProviderLabel } from "@/lib/i18n/use-topup-providers";
@@ -41,7 +43,7 @@ interface TopUpDetailProps {
 }
 
 export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [topUp, setTopUp] = useState(initial);
   const providerName = useTopUpProviderLabel(topUp.provider as import("@dior/shared").TopUpProviderId);
   const [copied, setCopied] = useState<string | null>(null);
@@ -141,9 +143,9 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
             <Stat label={t("common.amount")} value={formatMoney(Number(topUp.amount))} />
             <Stat label={t("common.fee")} value={formatMoney(Number(topUp.fee))} />
             <Stat label={t("billing.detail.youReceive")} value={formatMoney(Number(topUp.netAmount))} highlight />
-            <Stat label={t("billing.detail.created")} value={formatDate(topUp.createdAt)} />
+            <Stat label={t("billing.detail.created")} value={<LocalDateTime value={topUp.createdAt} />} />
             {topUp.expiresAt && (
-              <Stat label={t("billing.detail.expires")} value={formatDate(topUp.expiresAt)} />
+              <Stat label={t("billing.detail.expires")} value={<LocalDateTime value={topUp.expiresAt} />} />
             )}
           </div>
 
@@ -210,7 +212,7 @@ export function TopUpDetail({ topUp: initial }: TopUpDetailProps) {
             items={topUp.events.map((ev) => ({
               id: `${ev.event}-${ev.createdAt.toISOString()}`,
               title: ev.event.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-              meta: formatDate(ev.createdAt),
+              meta: formatLocalDateTime(ev.createdAt, { locale }),
             }))}
           />
         </CardContent>
@@ -225,7 +227,7 @@ function Stat({
   highlight,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   highlight?: boolean;
 }) {
   return (

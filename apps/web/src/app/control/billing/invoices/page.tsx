@@ -14,7 +14,8 @@ import {
 import { BillingStatusBadge } from "@/components/control/billing/status-badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
-import { formatMoney, formatDate } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { Input } from "@/components/ui/input";
 
 export default async function InvoicesPage({
@@ -73,7 +74,7 @@ export default async function InvoicesPage({
                     </Link>
                   </DataTableTd>
                   <DataTableTd><BillingStatusBadge status={inv.status} /></DataTableTd>
-                  <DataTableTd>{inv.dueAt ? formatDate(inv.dueAt) : "—"}</DataTableTd>
+                  <DataTableTd>{inv.dueAt ? <LocalDateTime value={inv.dueAt} mode="date" /> : "—"}</DataTableTd>
                   <DataTableTd align="right" mono>{formatMoney(Number(inv.total))}</DataTableTd>
                 </DataTableRow>
               ))

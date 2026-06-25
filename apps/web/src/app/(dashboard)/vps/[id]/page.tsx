@@ -13,7 +13,7 @@ import { ServiceTimeline } from "@/components/service-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { formatDate } from "@/lib/utils";
+import { LocalDateTime } from "@/components/ui/local-datetime";
 import { VpsDetailPanel } from "./vps-detail-panel";
 import { Terminal } from "lucide-react";
 
@@ -76,9 +76,9 @@ export default async function VpsDetailPage({
                     `${vps.cpuCores} vCPU · ${vps.ramMb / 1024} GB RAM · ${vps.diskGb} GB disk`,
                   ],
                   ["Bandwidth", `${vps.bandwidthTb} TB / mo`],
-                  ["Renews", vps.service.renewsAt ? formatDate(vps.service.renewsAt) : "—"],
+                  ["Renews", vps.service.renewsAt ? <LocalDateTime value={vps.service.renewsAt} mode="date" /> : "—"],
                 ].map(([k, v]) => (
-                  <div key={k}>
+                  <div key={String(k)}>
                     <p className="text-xs text-muted-foreground">{k}</p>
                     <p className="font-medium">{v}</p>
                   </div>

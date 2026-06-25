@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
 import { formatMoney } from "@/lib/utils";
-import { formatLastOnline, formatLastOnlineTitle } from "@/lib/format-last-online";
+import { LocalLastOnline } from "@/components/ui/local-last-online";
 import { UserRowDelete } from "@/components/control/user-row-delete";
 import { ControlTablePagination } from "@/components/control/control-table-pagination";
 
@@ -78,11 +78,8 @@ export default async function UsersPage({
                     <DataTableTd>
                       <Badge variant={u.status === "ACTIVE" ? "success" : "warning"}>{u.status}</Badge>
                     </DataTableTd>
-                    <DataTableTd
-                      className="text-muted-foreground"
-                      title={formatLastOnlineTitle(u.lastOnlineAt, u.lastLoginAt)}
-                    >
-                      {formatLastOnline(u.lastOnlineAt, u.lastLoginAt)}
+                    <DataTableTd className="text-muted-foreground">
+                      <LocalLastOnline lastOnlineAt={u.lastOnlineAt} lastLoginAt={u.lastLoginAt} />
                     </DataTableTd>
                     <DataTableTd align="right">
                       <div className="flex items-center justify-end gap-1">
