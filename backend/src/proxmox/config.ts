@@ -81,3 +81,8 @@ export function getProxmoxConfig(): ProxmoxRuntimeConfig | null {
 export function isProxmoxConfigured(): boolean {
   return getProxmoxConfig() !== null;
 }
+
+/** Cloud-init login user pushed to Proxmox (must match Access credentials username). */
+export function getProxmoxCiUser(): string {
+  return process.env.PROXMOX_CIUSER?.trim() || "root";
+}

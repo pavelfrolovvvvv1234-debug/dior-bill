@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import https from "node:https";
 import { URL } from "node:url";
 import type { ProxmoxRuntimeConfig } from "./config";
-import { getProxmoxConfig } from "./config";
+import { getProxmoxCiUser, getProxmoxConfig } from "./config";
 
 export interface VmSpec {
   vmid: number;
@@ -219,7 +219,7 @@ export class ProxmoxClient {
     if (spec.primaryIp) {
       fields.net0 = `virtio,bridge=${spec.bridge}`;
       fields.boot = "order=scsi0";
-      fields.ciuser = "root";
+      fields.ciuser = getProxmoxCiUser();
       fields.nameserver = "1.1.1.1";
       fields.searchdomain = "local";
       const gw = spec.gateway ?? guessGateway(spec.primaryIp);
@@ -242,6 +242,18 @@ export class ProxmoxClient {
 
   async getVmConfig(node: string, vmid: number): Promise<Record<string, string>> {
     return this.request("GET", `/api2/json/nodes/${node}/qemu/${vmid}/config`);
+  }
+
+  /** Update cloud-init login (requires reboot inside guest to apply password change). */
+  async updateVmCloudInitCredentials(
+    node: string,
+    vmid: number,
+    password: string,
+  ): Promise<void> {
+    await this.requestForm("PUT", `/api2/json/nodes/${node}/qemu/${vmid}/config`, {
+      ciuser: getProxmoxCiUser(),
+      cipassword: password,
+    });
   }
 
   async pingGuestAgent(node: string, vmid: number): Promise<boolean> {

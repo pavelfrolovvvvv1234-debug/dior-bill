@@ -18,7 +18,7 @@ export {
   getProxmoxClient,
   getProxmoxNodeName,
 } from "./client";
-export { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint } from "./config";
+export { getProxmoxConfig, isProxmoxConfigured, getProxmoxCiUser, proxmoxTlsHint } from "./config";
 export { resolveTemplateVmid } from "./os-templates";
 export {
   isPlaceholderIp,

@@ -1,4 +1,5 @@
 import { prisma } from "@dior/database";
+import { ValidationError } from "@dior/shared";
 import { toJsonValue } from "../lib/json";
 import {
   destroyProxmoxVmIfExists,
@@ -187,6 +188,19 @@ export async function runVpsProvisionPipeline(payload: {
 
       if (vmid && !assignedIp) {
         await enqueueJob("vps.sync_ip", { vpsId: payload.vpsId }).catch(() => {});
+      }
+
+      if (isProxmoxConfigured()) {
+        const fresh = await prisma.vpsInstance.findUnique({ where: { id: payload.vpsId } });
+        if (!assignedIp || isPlaceholderIp(assignedIp)) {
+          throw new ValidationError("Provision incomplete: no routable IP assigned");
+        }
+        if (!vmid) {
+          throw new ValidationError("Provision incomplete: Proxmox VM not created");
+        }
+        if (!fresh?.rootPasswordEnc) {
+          throw new ValidationError("Provision incomplete: root password not stored");
+        }
       }
 
       await markProvisioningComplete({

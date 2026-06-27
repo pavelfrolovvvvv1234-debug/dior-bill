@@ -20,8 +20,10 @@ import {
   reinstallVpsOnProxmox,
   startVpsOnProxmox,
   stopVpsOnProxmox,
+  getProxmoxClient,
+  getProxmoxNodeName,
 } from "../proxmox";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import {
   BP_NETWORK_BASE_MBPS,
   calcBpNetworkMonthlyAddon,
@@ -62,8 +64,8 @@ export async function refreshVpsLiveMetrics(vpsId: string, userId: string): Prom
   ]);
 }
 
-export { getVpsAccessInfo, formatVpsOsLabel, resolveVpsLoginUser } from "./vps-access";
-export type { VpsAccessInfo } from "./vps-access";
+export { getVpsAccessInfo, formatVpsOsLabel, resolveVpsLoginUser, validateVpsBillingCredentials, assessVpsCredentialFields } from "./vps-access";
+export type { VpsAccessInfo, VpsCredentialValidation } from "./vps-access";
 
 /**
  * Order VPS — billing decoupled. Provisioning starts ONLY after payment.confirmed event.
@@ -303,11 +305,20 @@ export async function vpsAction(
       });
       break;
     case "reset_password": {
-      const password = Math.random().toString(36).slice(-12) + "A1!";
+      const password =
+        randomBytes(10).toString("base64url").slice(0, 16) + "A1!";
       await prisma.vpsInstance.update({
         where: { id: vpsId },
         data: { rootPasswordEnc: encrypt(password) },
       });
+      if (isProxmoxConfigured() && vps.proxmoxVmid) {
+        const client = getProxmoxClient();
+        const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+        if (client) {
+          await client.updateVmCloudInitCredentials(node, vps.proxmoxVmid, password);
+          await rebootVpsOnProxmox(vpsId, userId);
+        }
+      }
       return { password };
     }
   }
