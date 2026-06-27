@@ -3,7 +3,7 @@
 import { PageHeader, type BreadcrumbItem } from "@/components/ui/enterprise/page-header";
 import { useI18n } from "@/lib/i18n/store";
 
-type BreadcrumbKey = { labelKey: string; href?: string };
+type BreadcrumbKey = { labelKey?: string; label?: string; href?: string };
 
 interface I18nPageHeaderProps {
   titleKey: string;
@@ -29,7 +29,7 @@ export function I18nPageHeader({
   const { t } = useI18n();
 
   const resolvedBreadcrumbs: BreadcrumbItem[] | undefined = breadcrumbs?.map((b) => ({
-    label: t(b.labelKey),
+    label: b.label ?? t(b.labelKey ?? ""),
     href: b.href,
   }));
 
