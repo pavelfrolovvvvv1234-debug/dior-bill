@@ -21,6 +21,7 @@ const PROMO_ERROR_KEYS: Record<string, string> = {
     "plans.hostnameProvisioning",
   "Account is not active": "plans.accountInactive",
   "Billing is frozen on this account": "plans.billingFrozen",
+  "Insufficient available balance": "toast.insufficientBalance.title",
 };
 
 export function getPromoErrorMessage(message: string, t: (key: string) => string): string {

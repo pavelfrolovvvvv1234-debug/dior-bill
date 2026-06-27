@@ -210,7 +210,10 @@ export async function provisionVps(params: {
   if (params.prepaid || process.env.BILLING_AUTO_PROVISION === "true") {
     const wallet = await getWallet(params.userId);
     if (wallet.spendable >= promo.chargeAmount) {
-      await lockBalance(params.userId, promo.chargeAmount);
+      const balanceLockAmount = Math.max(0, promo.chargeAmount - wallet.credits);
+      if (balanceLockAmount > 0) {
+        await lockBalance(params.userId, balanceLockAmount);
+      }
       let promoClaimed = false;
       try {
         if (promo.promoId && promo.discount > 0) {
@@ -225,7 +228,9 @@ export async function provisionVps(params: {
         }
         throw err;
       } finally {
-        await unlockBalance(params.userId, promo.chargeAmount);
+        if (balanceLockAmount > 0) {
+          await unlockBalance(params.userId, balanceLockAmount);
+        }
       }
     } else if (params.prepaid) {
       const { emitPaymentConfirmed } = await import("../core/billing/engine");
