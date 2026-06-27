@@ -80,8 +80,10 @@ export function AdminVpsSourceBadge({ source }: { source: string }) {
     source === "billing"
       ? "default"
       : source === "telegram_bot"
-        ? "secondary"
-        : "outline";
+        ? "outline"
+        : source === "manual"
+          ? "muted"
+          : "warning";
 
-  return <Badge variant={variant as "default" | "secondary" | "outline"}>{label}</Badge>;
+  return <Badge variant={variant}>{label}</Badge>;
 }

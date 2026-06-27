@@ -110,7 +110,7 @@ export default async function ServicesPage({
                         )}
                       </DataTableTd>
                       <DataTableTd>
-                        <Badge variant={vm.proxmoxStatus === "running" ? "default" : "secondary"}>
+                        <Badge variant={vm.proxmoxStatus === "running" ? "success" : "muted"}>
                           {vm.billingStatus ?? vm.proxmoxStatus}
                         </Badge>
                       </DataTableTd>
