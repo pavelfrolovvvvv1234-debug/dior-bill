@@ -182,17 +182,21 @@ export async function runVpsProvisionPipeline(payload: {
       const raw = err instanceof Error ? err.message : "Provision failed";
       const hint = proxmoxTlsHint(raw);
       const message = hint ? `${raw}. ${hint}` : raw;
+      const isLifecycleError =
+        err instanceof Error &&
+        (raw.includes("Invalid lifecycle transition") ||
+          raw.includes("Cannot activate service"));
       await updateJob(payload.jobId, {
         status: attempts < job.maxAttempts ? "queued" : "failed",
         error: message,
         rollbackState: { assignedIp, vmid },
       });
 
-      if (vmid) {
+      if (vmid && !isLifecycleError) {
         await destroyProxmoxVmIfExists(proxmoxNode, vmid);
       }
 
-      if (attempts >= job.maxAttempts) {
+      if (attempts >= job.maxAttempts && !isLifecycleError) {
         await rollbackProvision({
           vpsId: payload.vpsId,
           ip: assignedIp,
@@ -205,6 +209,30 @@ export async function runVpsProvisionPipeline(payload: {
           rollback: true,
         });
         throw err;
+      }
+
+      if (isLifecycleError && vmid) {
+        try {
+          await markProvisioningComplete({
+            serviceId: payload.serviceId,
+            idempotencyKey: `${idemKey}:lifecycle-recover`,
+            ip: assignedIp ?? undefined,
+            vmid,
+          });
+          await updateJob(payload.jobId, {
+            status: "completed",
+            progress: 100,
+            currentStep: "completed",
+            error: null,
+          });
+          await prisma.provisioningJob.update({
+            where: { id: payload.jobId },
+            data: { completedAt: new Date() },
+          });
+          return;
+        } catch (recoverErr) {
+          console.error("[provision] lifecycle recovery failed:", recoverErr);
+        }
       }
 
       throw err;

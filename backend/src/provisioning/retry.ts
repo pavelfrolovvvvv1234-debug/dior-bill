@@ -90,12 +90,13 @@ export async function retryVpsProvisioningForInstance(params: {
   await prisma.provisioningJob.update({
     where: { id: job.id },
     data: {
-      status: "queued",
+      status: "running",
       error: null,
       attempts: 0,
       progress: 0,
       currentStep: null,
       completedAt: null,
+      maxAttempts: Math.max(job.maxAttempts, 5),
     },
   });
 

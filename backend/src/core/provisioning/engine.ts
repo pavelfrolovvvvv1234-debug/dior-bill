@@ -293,11 +293,31 @@ export async function markProvisioningComplete(params: {
   vmid?: number;
 }): Promise<void> {
   await withProvisioningIdempotency(`complete:${params.idempotencyKey}`, async () => {
-    await transitionServiceLifecycle({
-      serviceId: params.serviceId,
-      to: "ACTIVE",
-      idempotencyKey: `lifecycle:active:${params.idempotencyKey}`,
-    });
+    const service = await prisma.service.findUnique({ where: { id: params.serviceId } });
+    if (!service) throw new NotFoundError("Service not found");
+
+    let status = service.status as ServiceLifecycleState;
+    if (status !== "PROVISIONING" && status !== "ACTIVE") {
+      if (status === "ROLLBACK" || status === "FAILED" || status === "PENDING") {
+        await transitionServiceLifecycle({
+          serviceId: params.serviceId,
+          to: "PROVISIONING",
+          reason: "Provision succeeded — normalizing state before activation",
+          idempotencyKey: `lifecycle:normalize:${params.idempotencyKey}`,
+        });
+        status = "PROVISIONING";
+      } else {
+        throw new ValidationError(`Cannot activate service from status ${status}`);
+      }
+    }
+
+    if (status !== "ACTIVE") {
+      await transitionServiceLifecycle({
+        serviceId: params.serviceId,
+        to: "ACTIVE",
+        idempotencyKey: `lifecycle:active:${params.idempotencyKey}`,
+      });
+    }
 
     await prisma.provisioningOperation.updateMany({
       where: { idempotencyKey: params.idempotencyKey },
