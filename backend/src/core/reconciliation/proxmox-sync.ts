@@ -1,5 +1,5 @@
 import { prisma } from "@dior/database";
-import { getProxmoxClient } from "../../proxmox/client";
+import { getProxmoxClient, getProxmoxNodeName } from "../../proxmox/client";
 import { markProvisioningFailed } from "../provisioning/engine";
 
 export async function reconcileProvisioningWithProxmox(): Promise<{
@@ -23,7 +23,7 @@ export async function reconcileProvisioningWithProxmox(): Promise<{
   for (const svc of stuckProvisioning) {
     const vps = svc.vpsInstance;
     const job = svc.provisioningJobs[0];
-    if (!vps?.proxmoxVmid || !vps.node?.proxmoxNode) {
+    if (!vps?.proxmoxVmid) {
       const age = Date.now() - svc.updatedAt.getTime();
       if (age > 30 * 60 * 1000) {
         findings.push(`Service ${svc.id} stuck provisioning >30m without VMID`);
@@ -41,7 +41,8 @@ export async function reconcileProvisioningWithProxmox(): Promise<{
     }
 
     try {
-      const status = await client.getVmStatus(vps.node.proxmoxNode, vps.proxmoxVmid);
+      const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+      const status = await client.getVmStatus(node, vps.proxmoxVmid);
       if (status.status === "running" && svc.status === "PROVISIONING") {
         findings.push(`Service ${svc.id} VM running but still PROVISIONING — needs completion event`);
       }

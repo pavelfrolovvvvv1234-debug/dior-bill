@@ -29,6 +29,14 @@ async function main() {
 
   const result = await verifyProxmoxIntegration();
   console.log("Nodes:", result.nodes.map((n) => `${n.node} (${n.status})`).join(", "));
+  const configuredNode = config.node;
+  const nodeNames = result.nodes.map((n) => n.node);
+  if (!nodeNames.includes(configuredNode)) {
+    console.error(
+      `PROXMOX_NODE=${configuredNode} is not in cluster. Available: ${nodeNames.join(", ")}`,
+    );
+    process.exit(1);
+  }
   console.log("Next VMID:", result.nextVmid);
   console.log("OK — Proxmox API is reachable");
 }

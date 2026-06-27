@@ -316,7 +316,10 @@ export function getProxmoxClient(): ProxmoxClient | null {
 }
 
 export function getProxmoxNodeName(dbNode?: string | null): string {
+  // Real cluster node from .env (e.g. pve01) wins over logical DB labels (e.g. pve-nl-ams).
+  const configured = getProxmoxConfig()?.node?.trim();
+  if (configured) return configured;
   const fromDb = dbNode?.trim();
   if (fromDb) return fromDb;
-  return getProxmoxConfig()?.node?.trim() || "pve01";
+  return "pve01";
 }

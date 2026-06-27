@@ -1,4 +1,12 @@
 import { prisma } from "@dior/database";
+import { getProxmoxConfig } from "../proxmox/config";
+
+/** Proxmox API node name — use PROXMOX_NODE from .env when set (single cluster). */
+function resolveProxmoxNodeForLocation(locCode: string): string {
+  const fromEnv = getProxmoxConfig()?.node?.trim();
+  if (fromEnv) return fromEnv;
+  return `pve-${locCode}`;
+}
 
 /** Bulletproof VPS regions — upserted so Elite/Mega plans always have full geo list */
 const BULLETPROOF_VPS_LOCATIONS = [
@@ -85,7 +93,11 @@ export async function ensureBulletproofVpsLocations() {
 
     const node = await prisma.node.upsert({
       where: { hostname: `node-${loc.code}-01` },
-      update: { locationId: location.id, status: "online" },
+      update: {
+        locationId: location.id,
+        status: "online",
+        proxmoxNode: resolveProxmoxNodeForLocation(loc.code),
+      },
       create: {
         name: `${loc.name} Node 01`,
         hostname: `node-${loc.code}-01`,
@@ -96,7 +108,7 @@ export async function ensureBulletproofVpsLocations() {
         diskGb: 4000,
         loadPercent: 35,
         activeVps: 0,
-        proxmoxNode: `pve-${loc.code}`,
+        proxmoxNode: resolveProxmoxNodeForLocation(loc.code),
         ipv4Total: 256,
         ipv4Available: 200,
         capacityPercent: 40,
@@ -135,7 +147,11 @@ export async function ensureStandardVpsLocations() {
 
     const node = await prisma.node.upsert({
       where: { hostname: `node-${loc.code}-01` },
-      update: { locationId: location.id, status: "online" },
+      update: {
+        locationId: location.id,
+        status: "online",
+        proxmoxNode: resolveProxmoxNodeForLocation(loc.code),
+      },
       create: {
         name: `${loc.name} Node 01`,
         hostname: `node-${loc.code}-01`,
@@ -146,7 +162,7 @@ export async function ensureStandardVpsLocations() {
         diskGb: 4000,
         loadPercent: 35,
         activeVps: 0,
-        proxmoxNode: `pve-${loc.code}`,
+        proxmoxNode: resolveProxmoxNodeForLocation(loc.code),
         ipv4Total: 256,
         ipv4Available: 200,
         capacityPercent: 40,
