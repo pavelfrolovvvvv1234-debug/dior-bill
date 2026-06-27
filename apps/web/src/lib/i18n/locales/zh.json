@@ -65,6 +65,36 @@
     "searchPlaceholder": "搜索服务、IP、发票…",
     "topUp": "充值"
   },
+  "notificationBell": {
+    "ariaLabel": "通知",
+    "title": "通知",
+    "markAllRead": "全部标为已读",
+    "newCount": "{count} 条新消息",
+    "loading": "加载中…",
+    "empty": "暂无通知",
+    "viewAll": "全部通知",
+    "relativeMinutes": "{count} 分钟前",
+    "relativeHours": "{count} 小时前",
+    "relativeDays": "{count} 天前",
+    "messages": {
+      "vpsDeployedTitle": "VPS 已部署",
+      "vpsDeployedBody": "{label} 已在 {ip} 上线",
+      "paymentFailedTitle": "付款失败",
+      "paymentFailedBody": "{reason}",
+      "paymentFailedByAdmin": "管理员标记为失败",
+      "balanceCreditedTitle": "余额已到账",
+      "balanceCreditedBody": "已向钱包添加 ${amount}",
+      "invoiceCreatedTitle": "付款账单已创建",
+      "invoiceCreatedBody": "${amount} — 完成付款以充值余额",
+      "manualTransferTitle": "已创建手动转账请求",
+      "manualTransferBody": "参考号 {reference} — 等待客服确认",
+      "transferDeclinedTitle": "转账请求被拒绝",
+      "transferDeclinedBody": "{reason}",
+      "invoiceOverdueTitle": "账单逾期",
+      "invoiceOverdueBody": "{detail}",
+      "ticketUpdateTitle": "工单更新"
+    }
+  },
   "search": {
     "pages": "页面",
     "services": "服务",

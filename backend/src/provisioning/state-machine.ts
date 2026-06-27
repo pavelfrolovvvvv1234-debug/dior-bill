@@ -13,7 +13,12 @@ import {
 } from "../proxmox";
 import { withIdempotency } from "../core/events/idempotency";
 import { enqueueJob } from "../lib/queue";
-import { allocateIpTransactional, releaseIpTransactional } from "../core/inventory/service";
+import { allocateIpTransactional } from "../core/inventory/service";
+import {
+  activateSharedRegistryIp,
+  isSharedIpRegistryEnabled,
+} from "../proxmox/shared-ip-registry";
+import { teardownVpsNetworkResources } from "../proxmox/vps-network-teardown";
 import {
   markProvisioningComplete,
   markProvisioningFailed,
@@ -183,6 +188,15 @@ export async function runVpsProvisionPipeline(payload: {
       });
       await markStep(steps, 3, "done", 90, payload.jobId);
 
+      if (assignedIp && vmid && isSharedIpRegistryEnabled()) {
+        await activateSharedRegistryIp({
+          ip: assignedIp,
+          vmid,
+          vpsId: payload.vpsId,
+          hostname: vps.hostname,
+        });
+      }
+
       await markStep(steps, 4, "running", 95, payload.jobId);
       await markStep(steps, 4, "done", 100, payload.jobId);
 
@@ -254,6 +268,14 @@ export async function runVpsProvisionPipeline(payload: {
 
       if (isLifecycleError && vmid) {
         try {
+          if (assignedIp && isSharedIpRegistryEnabled()) {
+            await activateSharedRegistryIp({
+              ip: assignedIp,
+              vmid,
+              vpsId: payload.vpsId,
+              hostname: vps.hostname,
+            });
+          }
           await markProvisioningComplete({
             serviceId: payload.serviceId,
             idempotencyKey: `${idemKey}:lifecycle-recover`,
@@ -286,12 +308,11 @@ async function rollbackProvision(ctx: {
   ip: string | null;
   idempotencyKey: string;
 }): Promise<void> {
-  if (ctx.ip) {
-    await releaseIpTransactional({
-      address: ctx.ip,
-      idempotencyKey: `${ctx.idempotencyKey}:rollback`,
-    });
-  }
+  await teardownVpsNetworkResources({
+    vpsId: ctx.vpsId,
+    destroyVm: false,
+    idempotencyKey: `${ctx.idempotencyKey}:rollback`,
+  });
   await prisma.vpsInstance.update({
     where: { id: ctx.vpsId },
     data: { primaryIp: null, proxmoxVmid: null },

@@ -55,6 +55,20 @@ export async function transitionServiceLifecycle(params: {
     idempotencyKey: params.idempotencyKey ?? `lifecycle:${params.serviceId}:${params.to}`,
     correlationId: params.correlationId,
   });
+
+  if (params.to === "DELETED" || params.to === "CANCELLED") {
+    const { teardownVpsNetworkResourcesForService } = await import("../../proxmox/vps-network-teardown");
+    await teardownVpsNetworkResourcesForService({
+      serviceId: params.serviceId,
+      destroyVm: true,
+      idempotencyKey: `lifecycle:teardown:${params.serviceId}:${params.idempotencyKey ?? params.to}`,
+    }).catch((err) =>
+      console.warn(
+        "[lifecycle] VPS network teardown:",
+        err instanceof Error ? err.message : err,
+      ),
+    );
+  }
 }
 
 function lifecycleToEventType(to: ServiceLifecycleState) {

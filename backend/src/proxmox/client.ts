@@ -244,6 +244,16 @@ export class ProxmoxClient {
     return this.request("GET", `/api2/json/nodes/${node}/qemu/${vmid}/config`);
   }
 
+  async listLxc(
+    node: string,
+  ): Promise<Array<{ vmid: number; name?: string; status?: string; template?: number }>> {
+    return this.request("GET", `/api2/json/nodes/${node}/lxc`);
+  }
+
+  async getLxcConfig(node: string, vmid: number): Promise<Record<string, string>> {
+    return this.request("GET", `/api2/json/nodes/${node}/lxc/${vmid}/config`);
+  }
+
   /** Update cloud-init login (requires reboot inside guest to apply password change). */
   async updateVmCloudInitCredentials(
     node: string,
@@ -312,6 +322,40 @@ export class ProxmoxClient {
     const ipconfig0 = config.ipconfig0 ?? config.ipconfig1 ?? "";
     const match = ipconfig0.match(/ip=([0-9.]+)/);
     return match?.[1] ?? null;
+  }
+
+  /** Extract routable IPv4s from full VM/LXC config (ipconfig*, net*, description, notes). */
+  parseIpsFromVmConfig(config: Record<string, string>, subnetPrefix?: string): string[] {
+    const ips = new Set<string>();
+    const ipv4InText = /\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g;
+
+    const addIp = (ip: string) => {
+      if (ip.startsWith("127.") || ip.startsWith("169.254.") || ip.endsWith(".0") || ip.endsWith(".255")) {
+        return;
+      }
+      if (subnetPrefix && !ip.startsWith(`${subnetPrefix}.`)) return;
+      ips.add(ip);
+    };
+
+    for (const [key, value] of Object.entries(config)) {
+      if (!value) continue;
+      if (key.startsWith("ipconfig")) {
+        const fromCfg = this.parseIpFromConfig({ ipconfig0: value });
+        if (fromCfg) addIp(fromCfg);
+      }
+      if (key.startsWith("net")) {
+        const netIp = value.match(/(?:^|,|\s)ip=([0-9.]+)/)?.[1];
+        if (netIp) addIp(netIp);
+      }
+      if (key === "description" || key === "notes" || key === "name") {
+        let match: RegExpExecArray | null;
+        ipv4InText.lastIndex = 0;
+        while ((match = ipv4InText.exec(value)) !== null) {
+          addIp(match[1]);
+        }
+      }
+    }
+    return [...ips];
   }
 
   async startVm(node: string, vmid: number): Promise<void> {
@@ -422,37 +466,109 @@ export class ProxmoxClient {
   }
 
   /**
-   * All IPv4s already in use on this node (cloud-init config + guest-agent on running VMs).
-   * Includes TG-bot VMs that are not in billing DB.
+   * All IPv4s on one node — QEMU + LXC, cloud-init, net*, guest-agent, description.
+   * Primary source for TG-bot + web billing IP conflict avoidance (no bot DB needed).
    */
-  async collectUsedIpsOnNode(node: string, subnetPrefix?: string): Promise<Set<string>> {
-    const used = new Set<string>();
+  async collectUsedIpsOnNode(
+    node: string,
+    subnetPrefix?: string,
+  ): Promise<{ ips: Set<string>; scanned: number; noIpDetected: number }> {
+    const ips = new Set<string>();
+    let scanned = 0;
+    let noIpDetected = 0;
+
+    const absorb = (found: string[]) => {
+      scanned++;
+      if (found.length === 0) noIpDetected++;
+      for (const ip of found) ips.add(ip);
+    };
+
     let vms: Array<{ vmid: number; name?: string; status?: string; template?: number }>;
     try {
       vms = await this.listVms(node);
     } catch {
-      return used;
+      vms = [];
     }
 
     for (const vm of vms) {
       if (vm.template === 1) continue;
+      const found: string[] = [];
       try {
         const cfg = await this.getVmConfig(node, vm.vmid);
-        const fromCfg = this.parseIpFromConfig(cfg);
-        if (fromCfg && (!subnetPrefix || fromCfg.startsWith(`${subnetPrefix}.`))) {
-          used.add(fromCfg);
-        }
+        found.push(...this.parseIpsFromVmConfig(cfg, subnetPrefix));
       } catch {
         /* mid-clone */
       }
 
       if (vm.status === "running") {
         const fromAgent = await this.getGuestAgentIps(node, vm.vmid, subnetPrefix);
-        for (const ip of fromAgent) used.add(ip);
+        found.push(...fromAgent);
       }
+
+      absorb(found);
     }
 
-    return used;
+    let lxcs: Array<{ vmid: number; name?: string; status?: string; template?: number }>;
+    try {
+      lxcs = await this.listLxc(node);
+    } catch {
+      lxcs = [];
+    }
+
+    for (const ct of lxcs) {
+      if (ct.template === 1) continue;
+      const found: string[] = [];
+      try {
+        const cfg = await this.getLxcConfig(node, ct.vmid);
+        found.push(...this.parseIpsFromVmConfig(cfg, subnetPrefix));
+      } catch {
+        /* mid-create */
+      }
+      absorb(found);
+    }
+
+    return { ips, scanned, noIpDetected };
+  }
+
+  /** Scan every cluster node — all VMs/LXC on shared Proxmox (TG bot included). */
+  async collectUsedIpsOnCluster(subnetPrefix?: string): Promise<Set<string>> {
+    const result = await this.collectUsedIpsOnClusterDetailed(subnetPrefix);
+    return result.ips;
+  }
+
+  async collectUsedIpsOnClusterDetailed(subnetPrefix?: string): Promise<{
+    ips: Set<string>;
+    scanned: number;
+    noIpDetected: number;
+  }> {
+    const ips = new Set<string>();
+    let scanned = 0;
+    let noIpDetected = 0;
+    let nodes: Array<{ node: string; status: string }>;
+    try {
+      nodes = await this.listNodes();
+    } catch {
+      return { ips, scanned, noIpDetected };
+    }
+    for (const { node } of nodes) {
+      const onNode = await this.collectUsedIpsOnNode(node, subnetPrefix);
+      for (const ip of onNode.ips) ips.add(ip);
+      scanned += onNode.scanned;
+      noIpDetected += onNode.noIpDetected;
+    }
+    if (scanned > 0) {
+      console.log(
+        `[proxmox] IP scan: ${ips.size} IPs from ${scanned} VMs/LXC` +
+          (noIpDetected > 0 ? ` (${noIpDetected} without detectable IP — guest-agent off?)` : ""),
+      );
+    }
+    return { ips, scanned, noIpDetected };
+  }
+
+  /** Last-chance check before cloud-init assigns an IP. */
+  async isIpInUseOnCluster(targetIp: string, subnetPrefix?: string): Promise<boolean> {
+    const used = await this.collectUsedIpsOnCluster(subnetPrefix);
+    return used.has(targetIp);
   }
 
   async getVmStatus(

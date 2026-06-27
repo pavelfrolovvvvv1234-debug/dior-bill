@@ -9,7 +9,8 @@ export type ReconciliationDomain =
   | "billing_service"
   | "inventory_capacity"
   | "provisioning_proxmox"
-  | "ip_allocation";
+  | "ip_allocation"
+  | "shared_ip_registry";
 
 export async function runReconciliation(
   domain: ReconciliationDomain,
@@ -49,6 +50,18 @@ export async function runReconciliation(
         const r = await reconcileIpAllocation();
         fixesApplied = r.fixed;
         findings = r.findings;
+        break;
+      }
+      case "shared_ip_registry": {
+        const { reconcileSharedRegistryWithProxmox } = await import("../../proxmox/shared-ip-registry");
+        const r = await reconcileSharedRegistryWithProxmox();
+        fixesApplied = r.staleReserved + r.releasedGhost + r.imported;
+        findings = [
+          ...r.findings,
+          `stale reserved: ${r.staleReserved}`,
+          `ghost VM released: ${r.releasedGhost}`,
+          `imported from Proxmox: ${r.imported}`,
+        ];
         break;
       }
     }
@@ -100,6 +113,36 @@ async function reconcileIpAllocation(): Promise<{ fixed: number; findings: strin
     }
   }
 
+  const { isSharedIpRegistryEnabled, releaseSharedRegistryIpByVpsId } = await import(
+    "../../proxmox/shared-ip-registry"
+  );
+  if (isSharedIpRegistryEnabled()) {
+    const ghostBilling = await prisma.networkIpAllocation.findMany({
+      where: {
+        owner: "billing",
+        status: { in: ["active", "reserved"] },
+        vpsId: { not: null },
+      },
+    });
+    for (const row of ghostBilling) {
+      if (!row.vpsId) continue;
+      const vps = await prisma.vpsInstance.findUnique({ where: { id: row.vpsId } });
+      const service = vps
+        ? await prisma.service.findUnique({ where: { id: vps.serviceId }, select: { status: true } })
+        : null;
+      if (
+        !vps ||
+        service?.status === "DELETED" ||
+        service?.status === "CANCELLED" ||
+        service?.status === "FAILED"
+      ) {
+        await releaseSharedRegistryIpByVpsId(row.vpsId);
+        findings.push(`Shared registry: released ${row.ip} (orphan vps ${row.vpsId})`);
+        fixed++;
+      }
+    }
+  }
+
   return { fixed, findings };
 }
 
@@ -109,6 +152,7 @@ export async function runAllReconciliations(): Promise<void> {
     "inventory_capacity",
     "provisioning_proxmox",
     "ip_allocation",
+    "shared_ip_registry",
   ];
   for (const d of domains) {
     await runReconciliation(d);

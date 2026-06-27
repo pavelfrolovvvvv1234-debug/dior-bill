@@ -24,6 +24,9 @@ import {
   reportOperationalIssue,
   purgePlaceholderIpsFromInventory,
   syncProxmoxUsedIpsToInventory,
+  releaseStaleSharedRegistryReservations,
+  reconcileSharedRegistryWithProxmox,
+  isSharedIpRegistryEnabled,
 } from "@dior/backend";
 import { prisma } from "@dior/database";
 import { createNotification, deliverTelegramNotification } from "@dior/backend";
@@ -67,6 +70,11 @@ const TOPUP_SYNC_INTERVAL_MS = 90 * 1000;
 let lastWorkerErrorAlert = 0;
 const WORKER_ERROR_ALERT_MS = 5 * 60 * 1000;
 
+let lastSharedIpReconcile = 0;
+const SHARED_IP_RECONCILE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+let lastStaleIpCleanup = 0;
+const STALE_IP_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
 async function run() {
   console.log("Dior worker started (event-driven control plane)");
   resumeAllStuckVpsProvisioning().catch((e) =>
@@ -82,6 +90,15 @@ async function run() {
       ),
     )
     .catch((e) => console.error("Proxmox IP occupancy sync:", e));
+  if (isSharedIpRegistryEnabled()) {
+    reconcileSharedRegistryWithProxmox()
+      .then((r) =>
+        console.log(
+          `[shared-ip] startup reconcile: stale=${r.staleReserved} ghost=${r.releasedGhost} imported=${r.imported}`,
+        ),
+      )
+      .catch((e) => console.error("Shared IP registry reconcile:", e));
+  }
   runBillingScheduler().catch((e) => console.error("Initial billing scheduler:", e));
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -103,6 +120,21 @@ async function run() {
       if (Date.now() - lastTopUpSync > TOPUP_SYNC_INTERVAL_MS) {
         lastTopUpSync = Date.now();
         syncPendingTopUps().catch((e) => console.error("Top-up sync error:", e));
+      }
+
+      if (isSharedIpRegistryEnabled()) {
+        if (Date.now() - lastStaleIpCleanup > STALE_IP_CLEANUP_INTERVAL_MS) {
+          lastStaleIpCleanup = Date.now();
+          releaseStaleSharedRegistryReservations().catch((e) =>
+            console.error("Stale shared IP cleanup:", e),
+          );
+        }
+        if (Date.now() - lastSharedIpReconcile > SHARED_IP_RECONCILE_INTERVAL_MS) {
+          lastSharedIpReconcile = Date.now();
+          reconcileSharedRegistryWithProxmox().catch((e) =>
+            console.error("Shared IP daily reconcile:", e),
+          );
+        }
       }
 
       const job = await dequeueJob();

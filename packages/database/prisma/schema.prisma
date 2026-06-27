@@ -225,6 +225,29 @@ model IpAddress {
   @@map("ip_addresses")
 }
 
+/// Shared TG-bot + web-billing IPv4 registry (single source of truth for occupied IPs).
+model NetworkIpAllocation {
+  id                String    @id @default(cuid())
+  ip                String    @unique @db.VarChar(45)
+  network           String    @db.VarChar(50)
+  owner             String    @db.VarChar(32)
+  status            String    @db.VarChar(16)
+  vmid              Int?
+  vpsId             String?   @map("vps_id")
+  externalServiceId String?   @map("external_service_id") @db.VarChar(191)
+  hostname          String?   @db.VarChar(255)
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  releasedAt        DateTime? @map("released_at")
+
+  @@index([network, status])
+  @@index([status])
+  @@index([vpsId])
+  @@index([externalServiceId])
+  @@map("network_ip_allocations")
+}
+
 model VpsSnapshot {
   id          String      @id @default(cuid())
   vpsId       String      @map("vps_id")

@@ -35,6 +35,24 @@ export {
   resolveProxmoxNetwork,
   syncProxmoxUsedIpsToInventory,
 } from "./ip-allocate";
+export {
+  activateSharedRegistryIp,
+  getSharedRegistryNetwork,
+  isSharedIpRegistryEnabled,
+  isSharedIpRegistryRequired,
+  listOccupiedSharedRegistryIps,
+  releaseSharedRegistryIp,
+  releaseSharedRegistryIpByVmid,
+  releaseSharedRegistryIpByVpsId,
+  releaseStaleSharedRegistryReservations,
+  reconcileSharedRegistryWithProxmox,
+  reserveBillingIpInSharedRegistry,
+  syncSharedRegistryFromProxmox,
+} from "./shared-ip-registry";
+export {
+  teardownVpsNetworkResources,
+  teardownVpsNetworkResourcesForService,
+} from "./vps-network-teardown";
 
 export async function verifyProxmoxIntegration(): Promise<{
   ok: true;
@@ -106,6 +124,15 @@ export async function provisionVmOnProxmox(spec: {
   console.log(
     `[proxmox] provision ${spec.hostname} from template ${templateVmid}${useStaticIp ? ` static ${spec.primaryIp}` : " (no static IP)"}`,
   );
+
+  if (useStaticIp && spec.primaryIp) {
+    const prefix = spec.primaryIp.split(".").slice(0, 3).join(".");
+    if (await client.isIpInUseOnCluster(spec.primaryIp, prefix)) {
+      throw new ValidationError(
+        `IPv4 ${spec.primaryIp} is already in use on Proxmox (TG bot or another VM)`,
+      );
+    }
+  }
 
   await client.cloneFromTemplate(vmSpec);
   await client.configureVm(vmSpec);

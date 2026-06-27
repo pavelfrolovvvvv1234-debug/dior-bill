@@ -126,6 +126,36 @@
     "searchPlaceholder": "Поиск услуг, IP, счетов…",
     "topUp": "Пополнить"
   },
+  "notificationBell": {
+    "ariaLabel": "Уведомления",
+    "title": "Уведомления",
+    "markAllRead": "Прочитать все",
+    "newCount": "{count} новых",
+    "loading": "Загрузка…",
+    "empty": "Нет уведомлений",
+    "viewAll": "Все уведомления",
+    "relativeMinutes": "{count} мин. назад",
+    "relativeHours": "{count} ч. назад",
+    "relativeDays": "{count} дн. назад",
+    "messages": {
+      "vpsDeployedTitle": "VPS развёрнут",
+      "vpsDeployedBody": "{label} активен на {ip}",
+      "paymentFailedTitle": "Платёж не прошёл",
+      "paymentFailedBody": "{reason}",
+      "paymentFailedByAdmin": "Отмечено как неудачное администратором",
+      "balanceCreditedTitle": "Баланс пополнен",
+      "balanceCreditedBody": "${amount} зачислено на кошелёк",
+      "invoiceCreatedTitle": "Счёт на оплату создан",
+      "invoiceCreatedBody": "${amount} — завершите оплату для зачисления",
+      "manualTransferTitle": "Запрос на ручной перевод",
+      "manualTransferBody": "Референс {reference} — ожидает подтверждения поддержки",
+      "transferDeclinedTitle": "Перевод отклонён",
+      "transferDeclinedBody": "{reason}",
+      "invoiceOverdueTitle": "Просроченный счёт",
+      "invoiceOverdueBody": "{detail}",
+      "ticketUpdateTitle": "Обновление тикета"
+    }
+  },
   "search": {
     "pages": "Страницы",
     "services": "Услуги",

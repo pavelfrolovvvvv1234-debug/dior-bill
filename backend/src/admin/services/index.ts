@@ -174,6 +174,21 @@ export async function deleteAdminService(actorId: string, serviceId: string) {
   });
   if (!service) throw new NotFoundError("Service not found");
 
+  const vps = await prisma.vpsInstance.findUnique({
+    where: { serviceId },
+    select: { id: true },
+  });
+  if (vps) {
+    const { teardownVpsNetworkResources } = await import("../../proxmox/vps-network-teardown");
+    await teardownVpsNetworkResources({
+      vpsId: vps.id,
+      destroyVm: true,
+      idempotencyKey: `admin:delete:${serviceId}`,
+    }).catch((err) =>
+      console.warn("[admin] VPS teardown before delete:", err instanceof Error ? err.message : err),
+    );
+  }
+
   await prisma.service.delete({ where: { id: serviceId } });
 
   await createAuditLog({

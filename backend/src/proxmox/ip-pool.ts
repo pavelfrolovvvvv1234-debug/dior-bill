@@ -34,6 +34,33 @@ export function parseProxmoxReservedIps(): string[] {
   return [...new Set(raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))];
 }
 
+/**
+ * TG bot host octets on the Proxmox /24 (same subnet as PROXMOX_NETWORK).
+ * Examples: TELEGRAM_BOT_IP_HOSTS=165-224  or  165,166,170
+ */
+export function expandTelegramBotHostOctets(subnetPrefix: string): string[] {
+  const raw = process.env.TELEGRAM_BOT_IP_HOSTS?.trim();
+  if (!raw) return [];
+  const ips = new Set<string>();
+  for (const part of raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean)) {
+    const range = part.match(/^(\d{1,3})-(\d{1,3})$/);
+    if (range) {
+      const start = Number.parseInt(range[1], 10);
+      const end = Number.parseInt(range[2], 10);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) continue;
+      for (let host = start; host <= end; host++) {
+        if (host >= 1 && host <= 254) ips.add(`${subnetPrefix}.${host}`);
+      }
+      continue;
+    }
+    const host = Number.parseInt(part, 10);
+    if (Number.isFinite(host) && host >= 1 && host <= 254) {
+      ips.add(`${subnetPrefix}.${host}`);
+    }
+  }
+  return [...ips];
+}
+
 /** Remove demo seed IPs so purchases never get fake 185.234.* addresses. */
 export async function purgePlaceholderIpsFromInventory(): Promise<number> {
   const result = await prisma.ipAddress.deleteMany({

@@ -10,7 +10,7 @@ import {
   syncProxmoxIpPoolFromEnv,
 } from "../proxmox";
 import { runVpsProvisionPipeline } from "./state-machine";
-import { releaseIpTransactional } from "../core/inventory/service";
+import { teardownVpsNetworkResources } from "../proxmox/vps-network-teardown";
 
 function proxmoxVmName(hostname: string): string {
   return hostname.replace(/[^a-zA-Z0-9.-]/g, "-").slice(0, 63);
@@ -112,9 +112,10 @@ export async function retryVpsProvisioningForInstance(params: {
   }
 
   if (vps.primaryIp && (isPlaceholderIp(vps.primaryIp) || params.force)) {
-    await releaseIpTransactional({
-      address: vps.primaryIp,
-      idempotencyKey: `retry:release-placeholder:${vps.id}:${Date.now()}`,
+    await teardownVpsNetworkResources({
+      vpsId: vps.id,
+      destroyVm: false,
+      idempotencyKey: `retry:release:${vps.id}:${Date.now()}`,
     }).catch(() => {});
     await prisma.vpsInstance.update({
       where: { id: vps.id },

@@ -126,6 +126,36 @@
     "searchPlaceholder": "Search services, IPs, invoices…",
     "topUp": "Top up"
   },
+  "notificationBell": {
+    "ariaLabel": "Notifications",
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "newCount": "{count} new",
+    "loading": "Loading…",
+    "empty": "No notifications",
+    "viewAll": "All notifications",
+    "relativeMinutes": "{count}m ago",
+    "relativeHours": "{count}h ago",
+    "relativeDays": "{count}d ago",
+    "messages": {
+      "vpsDeployedTitle": "VPS deployed",
+      "vpsDeployedBody": "{label} is now active at {ip}",
+      "paymentFailedTitle": "Payment failed",
+      "paymentFailedBody": "{reason}",
+      "paymentFailedByAdmin": "Marked failed by admin",
+      "balanceCreditedTitle": "Balance credited",
+      "balanceCreditedBody": "${amount} added to your wallet",
+      "invoiceCreatedTitle": "Payment invoice created",
+      "invoiceCreatedBody": "${amount} — complete payment to credit your balance",
+      "manualTransferTitle": "Manual transfer request created",
+      "manualTransferBody": "Reference {reference} — awaiting support confirmation",
+      "transferDeclinedTitle": "Transfer request declined",
+      "transferDeclinedBody": "{reason}",
+      "invoiceOverdueTitle": "Invoice overdue",
+      "invoiceOverdueBody": "{detail}",
+      "ticketUpdateTitle": "Support ticket update"
+    }
+  },
   "search": {
     "pages": "Pages",
     "services": "Services",

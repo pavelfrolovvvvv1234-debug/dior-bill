@@ -11,11 +11,16 @@ import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@/app/actions/notifications";
-import { formatRelative } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/store";
+import {
+  formatRelativeI18n,
+  translateNotificationText,
+} from "@/lib/i18n/translate-notification";
 import { cn } from "@/lib/utils";
 
 type NotificationItem = {
   id: string;
+  type?: string | null;
   title: string;
   body: string;
   read: boolean;
@@ -24,6 +29,7 @@ type NotificationItem = {
 };
 
 export function NotificationBell() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -84,7 +90,7 @@ export function NotificationBell() {
           variant="ghost"
           size="icon"
           className="relative h-8 w-8 hover:bg-white/5"
-          aria-label="Уведомления"
+          aria-label={t("notificationBell.ariaLabel")}
         >
           <Bell className="h-4 w-4" strokeWidth={1.5} />
           {unreadCount > 0 && (
@@ -106,7 +112,7 @@ export function NotificationBell() {
         >
           <div className="flex h-10 items-center justify-between gap-2 border-b border-border px-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Уведомления
+              {t("notificationBell.title")}
             </p>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
@@ -117,10 +123,10 @@ export function NotificationBell() {
                     onClick={() => void handleMarkAllRead()}
                     className="text-[11px] font-medium text-primary transition-colors hover:text-primary/80"
                   >
-                    Прочитать все
+                    {t("notificationBell.markAllRead")}
                   </button>
                   <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                    {unreadCount} новых
+                    {t("notificationBell.newCount", { count: unreadCount })}
                   </span>
                 </>
               )}
@@ -130,15 +136,16 @@ export function NotificationBell() {
           <div className="scroll-dior h-72 overflow-y-auto p-1">
             {loading ? (
               <p className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                Загрузка…
+                {t("notificationBell.loading")}
               </p>
             ) : items.length === 0 ? (
               <p className="flex h-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
-                Нет уведомлений
+                {t("notificationBell.empty")}
               </p>
             ) : (
               <ul className="space-y-0.5">
                 {items.map((item) => {
+                  const text = translateNotificationText(item, t);
                   const inner = (
                     <>
                       <div className="flex items-start gap-2">
@@ -146,12 +153,12 @@ export function NotificationBell() {
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                         )}
                         <div className={cn("min-w-0 flex-1", item.read && "pl-3.5")}>
-                          <p className="truncate text-xs font-medium leading-snug">{item.title}</p>
+                          <p className="truncate text-xs font-medium leading-snug">{text.title}</p>
                           <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
-                            {item.body}
+                            {text.body}
                           </p>
                           <p className="mt-1 text-[10px] text-muted-foreground/80">
-                            {formatRelative(item.createdAt)}
+                            {formatRelativeI18n(item.createdAt, t)}
                           </p>
                         </div>
                       </div>
@@ -200,7 +207,7 @@ export function NotificationBell() {
                 className="flex h-8 w-full items-center justify-center rounded-md bg-primary text-xs font-medium text-primary-foreground outline-none transition-premium hover:bg-primary/90"
                 onClick={() => setOpen(false)}
               >
-                Все уведомления
+                {t("notificationBell.viewAll")}
               </FastLink>
             </DropdownMenu.Item>
           </div>

@@ -16,6 +16,8 @@
     "list-vps": "tsx scripts/list-vps.ts",
     "sync-ip-pool": "tsx scripts/sync-ip-pool.ts",
     "sync-proxmox-used-ips": "tsx scripts/sync-proxmox-used-ips.ts",
+    "sync-shared-ip-registry": "tsx scripts/sync-shared-ip-registry.ts",
+    "reconcile-shared-ip-registry": "tsx scripts/reconcile-shared-ip-registry.ts",
     "sync-vps-ip": "tsx scripts/sync-vps-ip.ts",
     "verify-vps-credentials": "tsx scripts/verify-vps-credentials.ts"
   },

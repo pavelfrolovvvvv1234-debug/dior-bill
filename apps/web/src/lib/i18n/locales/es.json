@@ -65,6 +65,36 @@
     "searchPlaceholder": "Buscar servicios, IP, facturas…",
     "topUp": "Recargar"
   },
+  "notificationBell": {
+    "ariaLabel": "Notificaciones",
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo leído",
+    "newCount": "{count} nuevas",
+    "loading": "Cargando…",
+    "empty": "Sin notificaciones",
+    "viewAll": "Todas las notificaciones",
+    "relativeMinutes": "hace {count} min",
+    "relativeHours": "hace {count} h",
+    "relativeDays": "hace {count} d",
+    "messages": {
+      "vpsDeployedTitle": "VPS desplegado",
+      "vpsDeployedBody": "{label} está activo en {ip}",
+      "paymentFailedTitle": "Pago fallido",
+      "paymentFailedBody": "{reason}",
+      "paymentFailedByAdmin": "Marcado como fallido por un administrador",
+      "balanceCreditedTitle": "Saldo acreditado",
+      "balanceCreditedBody": "${amount} añadidos a tu wallet",
+      "invoiceCreatedTitle": "Factura de pago creada",
+      "invoiceCreatedBody": "${amount} — completa el pago para acreditar",
+      "manualTransferTitle": "Solicitud de transferencia manual",
+      "manualTransferBody": "Referencia {reference} — pendiente de confirmación",
+      "transferDeclinedTitle": "Transferencia rechazada",
+      "transferDeclinedBody": "{reason}",
+      "invoiceOverdueTitle": "Factura vencida",
+      "invoiceOverdueBody": "{detail}",
+      "ticketUpdateTitle": "Actualización de ticket"
+    }
+  },
   "search": {
     "pages": "Páginas",
     "services": "Servicios",

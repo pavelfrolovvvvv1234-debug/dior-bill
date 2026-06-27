@@ -11,9 +11,18 @@ import {
   isPlaceholderIp,
   isProxmoxIpPoolConfigured,
   parseProxmoxReservedIps,
+  expandTelegramBotHostOctets,
   syncProxmoxIpPoolFromEnv,
 } from "./ip-pool";
 import { resolveTemplateVmid } from "./os-templates";
+import { collectTelegramBotIpsFromDatabase } from "./tg-bot-ips";
+import {
+  getSharedRegistryNetwork,
+  isSharedIpRegistryEnabled,
+  isSharedIpRegistryRequired,
+  listOccupiedSharedRegistryIps,
+  reserveBillingIpInSharedRegistry,
+} from "./shared-ip-registry";
 
 export type ProxmoxNetworkSpec = {
   prefix: string;
@@ -81,11 +90,72 @@ function configHostIp(): string | null {
   }
 }
 
-function configuredStartHost(fallback: number): number {
+function hostOctet(ip: string, prefix: string): number | null {
+  if (!ip.startsWith(`${prefix}.`)) return null;
+  const host = Number.parseInt(ip.split(".")[3] ?? "", 10);
+  return Number.isFinite(host) ? host : null;
+}
+
+function maxHostOctetInSubnet(used: Set<string>, prefix: string): number {
+  let max = 0;
+  for (const ip of used) {
+    const host = hostOctet(ip, prefix);
+    if (host != null && host > max) max = host;
+  }
+  return max;
+}
+
+function allocationFloor(network: ProxmoxNetworkSpec): number {
   const raw = process.env.PROXMOX_IP_START?.trim();
-  if (!raw) return fallback;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 2 && n <= 254 ? n : fallback;
+  if (raw) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 2 && n <= 254) return n;
+  }
+  return network.startHost;
+}
+
+/**
+ * VMs without ipconfig0/guest-agent still occupy an IP — Proxmox just can't report which one.
+ * Block every gap between allocation floor and highest known IP in the subnet.
+ */
+function applyUndetectedVmGapFill(
+  network: ProxmoxNetworkSpec,
+  used: Set<string>,
+  noIpDetected: number,
+): number {
+  if (noIpDetected <= 0) return 0;
+  if (process.env.PROXMOX_IP_STRICT_GAP_FILL === "0") return 0;
+
+  const floor = network.startHost;
+  const maxHost = maxHostOctetInSubnet(used, network.prefix);
+  if (maxHost < floor) return 0;
+
+  let filled = 0;
+  for (let host = floor; host <= maxHost; host++) {
+    const candidate = `${network.prefix}.${host}`;
+    if (candidate === network.gateway) continue;
+    if (!used.has(candidate)) {
+      used.add(candidate);
+      filled++;
+    }
+  }
+
+  if (filled > 0) {
+    console.log(
+      `[proxmox] strict IP mode: ${noIpDetected} VM(s) without visible IP on Proxmox — ` +
+        `blocked ${filled} gap address(es) .${floor}–.${maxHost} (invisible to ipconfig/guest-agent)`,
+    );
+  }
+  return filled;
+}
+
+function configuredStartHost(network: ProxmoxNetworkSpec, used: Set<string>): number {
+  const floor = allocationFloor(network);
+  const maxHost = maxHostOctetInSubnet(used, network.prefix);
+  if (maxHost >= floor && maxHost < 254) {
+    return Math.max(floor, maxHost + 1);
+  }
+  return floor;
 }
 
 /** Resolve routable subnet for new VMs (env → template → Proxmox host IP). */
@@ -145,18 +215,45 @@ export async function resolveProxmoxNetwork(os: string): Promise<ProxmoxNetworkS
 }
 
 /**
- * Every IPv4 that must not be assigned by web billing:
- * - PROXMOX_RESERVED_IPS (TG bot / manual)
- * - billing DB (web sales)
- * - live Proxmox VMs (TG bot + web, via ipconfig0 and guest-agent)
+ * Occupied IPv4 set for billing allocation.
+ * With PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1 → network_ip_allocations is the source of truth.
  */
 export async function collectAllUsedProxmoxIps(
   network: ProxmoxNetworkSpec,
-  nodeName: string,
+  _nodeName?: string,
 ): Promise<Set<string>> {
   const used = new Set<string>();
+  let noIpDetected = 0;
+
+  if (isSharedIpRegistryEnabled()) {
+    try {
+      const networkCidr = getSharedRegistryNetwork(network);
+      const registry = await listOccupiedSharedRegistryIps(networkCidr);
+      for (const ip of registry) used.add(ip);
+    } catch (err) {
+      if (isSharedIpRegistryRequired()) throw err;
+      console.warn("[shared-ip] registry unavailable:", err instanceof Error ? err.message : err);
+    }
+  }
+
+  if (!isSharedIpRegistryRequired()) {
+    const client = getProxmoxClient();
+    if (client) {
+      const scan = await client.collectUsedIpsOnClusterDetailed(network.prefix);
+      for (const ip of scan.ips) used.add(ip);
+      noIpDetected = scan.noIpDetected;
+    }
+  }
 
   for (const ip of parseProxmoxReservedIps()) {
+    if (isInSubnet(ip, network.prefix)) used.add(ip);
+  }
+
+  for (const ip of expandTelegramBotHostOctets(network.prefix)) {
+    used.add(ip);
+  }
+
+  for (const ip of await collectTelegramBotIpsFromDatabase()) {
     if (isInSubnet(ip, network.prefix)) used.add(ip);
   }
 
@@ -179,15 +276,13 @@ export async function collectAllUsedProxmoxIps(
     if (!isPlaceholderIp(row.address)) used.add(row.address);
   }
 
-  const client = getProxmoxClient();
-  if (client) {
-    const live = await client.collectUsedIpsOnNode(nodeName, network.prefix);
-    for (const ip of live) used.add(ip);
-  }
-
   used.add(network.gateway);
   const hostIp = configHostIp();
   if (hostIp && isInSubnet(hostIp, network.prefix)) used.add(hostIp);
+
+  if (!isSharedIpRegistryRequired()) {
+    applyUndetectedVmGapFill(network, used, noIpDetected);
+  }
 
   return used;
 }
@@ -254,7 +349,7 @@ export async function syncProxmoxUsedIpsToInventory(
     : 0;
 
   let nextFree: string | null = null;
-  for (let host = configuredStartHost(network.startHost); host <= network.endHost; host++) {
+  for (let host = configuredStartHost(network, used); host <= network.endHost; host++) {
     const candidate = `${network.prefix}.${host}`;
     if (candidate === network.gateway) continue;
     if (!used.has(candidate)) {
@@ -270,12 +365,35 @@ function pickNextFreeIp(
   network: ProxmoxNetworkSpec,
   used: Set<string>,
 ): string | null {
-  const floor = configuredStartHost(network.startHost);
+  const floor = configuredStartHost(network, used);
   for (let host = floor; host <= network.endHost; host++) {
     const candidate = `${network.prefix}.${host}`;
     if (candidate === network.gateway) continue;
     if (!used.has(candidate)) return candidate;
   }
+  return null;
+}
+
+/** Re-scan Proxmox before cloud-init — catches race with TG bot or parallel provision. */
+async function pickVerifiedFreeIp(
+  network: ProxmoxNetworkSpec,
+  used: Set<string>,
+): Promise<string | null> {
+  const client = getProxmoxClient();
+  const working = new Set(used);
+
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const candidate = pickNextFreeIp(network, working);
+    if (!candidate) return null;
+
+    if (client && (await client.isIpInUseOnCluster(candidate, network.prefix))) {
+      working.add(candidate);
+      continue;
+    }
+
+    return candidate;
+  }
+
   return null;
 }
 
@@ -305,6 +423,63 @@ export async function allocateStaticIpForVps(params: {
     : null;
   const nodeName = getProxmoxNodeName(nodeRow?.proxmoxNode ?? nodeRow?.name);
   const network = await resolveProxmoxNetwork(params.os);
+
+  const vpsRow = await prisma.vpsInstance.findUnique({
+    where: { id: params.vpsId },
+    select: { hostname: true },
+  });
+
+  if (isSharedIpRegistryEnabled()) {
+    const address = await reserveBillingIpInSharedRegistry({
+      network,
+      vpsId: params.vpsId,
+      hostname: vpsRow?.hostname,
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.ipAddress.upsert({
+        where: { address },
+        create: {
+          address,
+          locationId: params.locationId,
+          nodeId: params.nodeId ?? null,
+          status: "assigned",
+          vpsId: params.vpsId,
+        },
+        update: {
+          status: "assigned",
+          vpsId: params.vpsId,
+          locationId: params.locationId,
+          nodeId: params.nodeId ?? null,
+        },
+      });
+
+      if (params.nodeId) {
+        await tx.node.updateMany({
+          where: { id: params.nodeId },
+          data: { activeVps: { increment: 1 } },
+        });
+      }
+    });
+
+    await appendDomainEvent({
+      eventType: DOMAIN_EVENTS.IP_ALLOCATED,
+      aggregateType: "ip",
+      aggregateId: params.vpsId,
+      payload: {
+        address,
+        vpsId: params.vpsId,
+        nodeId: params.nodeId,
+        source: "shared-ip-registry",
+        gateway: network.gateway,
+      },
+      idempotencyKey: `ip.alloc:${params.idempotencyKey}`,
+    });
+
+    console.log(`[shared-ip] allocated ${address} for vps ${params.vpsId}`);
+    return address;
+  }
+
   const used = await collectAllUsedProxmoxIps(network, nodeName);
 
   if (isProxmoxIpPoolConfigured()) {
@@ -314,13 +489,20 @@ export async function allocateStaticIpForVps(params: {
       nodeId: params.nodeId,
       used,
     });
-    return allocateIpTransactional({
+    const address = await allocateIpTransactional({
       ...params,
       excludeAddresses: used,
     });
+    const client = getProxmoxClient();
+    if (client && (await client.isIpInUseOnCluster(address, network.prefix))) {
+      throw new ValidationError(
+        `IPv4 ${address} is already in use on Proxmox (TG bot / another VM)`,
+      );
+    }
+    return address;
   }
 
-  const address = pickNextFreeIp(network, used);
+  const address = await pickVerifiedFreeIp(network, used);
   if (!address) {
     throw new ValidationError(
       `No free IPv4 in ${network.prefix}.0/${network.cidr} (${used.size} already used on Proxmox/TG bot)`,
