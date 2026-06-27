@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { COOKIE_NAME } from "@dior/backend";
+import { COOKIE_NAME } from "@/lib/session-edge";
 import { AppShell } from "@/components/layout/app-shell";
 import { getSession } from "@/lib/auth";
 import { isStaffRole } from "@/lib/staff";
