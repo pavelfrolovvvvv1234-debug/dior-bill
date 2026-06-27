@@ -1,8 +1,11 @@
 /**
  * Verify Proxmox API connectivity.
- * Usage (from backend/): set PROXMOX_* env vars, then `npm run verify-proxmox`
+ * Usage (from backend/): set PROXMOX_* in monorepo root `.env`, then `pnpm run verify-proxmox`
  */
+import { loadMonorepoEnv } from "../src/lib/load-env";
 import { verifyProxmoxIntegration, getProxmoxConfig } from "../src/proxmox";
+
+loadMonorepoEnv();
 
 async function main() {
   const config = getProxmoxConfig();
@@ -23,6 +26,10 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Proxmox verification failed:", err.message ?? err);
+  const message = err instanceof Error ? err.message : String(err);
+  console.error("Proxmox verification failed:", message);
+  if (/unable to verify the first certificate/i.test(message)) {
+    console.error("Hint: add PROXMOX_INSECURE_TLS=1 to /var/www/dior-billing/.env and restart dior-worker");
+  }
   process.exit(1);
 });
