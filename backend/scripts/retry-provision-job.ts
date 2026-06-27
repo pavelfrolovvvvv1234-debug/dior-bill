@@ -1,6 +1,9 @@
+import { loadMonorepoEnv } from "../src/lib/load-env";
 import { prisma } from "@dior/database";
 import { destroyProxmoxVmIfExists, getProxmoxNodeName } from "../src/proxmox";
 import { runVpsProvisionPipeline } from "../src/provisioning/state-machine";
+
+loadMonorepoEnv();
 
 async function main() {
   const hostname = process.argv[2];

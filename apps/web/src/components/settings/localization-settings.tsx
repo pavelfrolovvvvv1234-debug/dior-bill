@@ -45,12 +45,13 @@ export function LocalizationSettings({ initialLocale }: { initialLocale: string 
               <span className="block text-sm font-medium">{l.native}</span>
               <span className="text-xs text-muted-foreground">{l.label}</span>
             </span>
-            {active === l.id && (
-              <Check className="h-4 w-4 text-primary" strokeWidth={2} />
-            )}
-            {saving === l.id && (
-              <span className="text-[10px] text-muted-foreground">…</span>
-            )}
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+              {saving === l.id ? (
+                <span className="text-[10px] leading-none text-muted-foreground">…</span>
+              ) : active === l.id ? (
+                <Check className="h-4 w-4 text-primary" strokeWidth={2} />
+              ) : null}
+            </span>
           </button>
         ))}
       </div>

@@ -17,6 +17,14 @@ async function main() {
   console.log("Node:", config.node);
   console.log("Storage:", config.storage);
   console.log("TLS:", config.insecureTls ? "insecure (self-signed OK)" : "strict verify");
+  if (!config.insecureTls) {
+    console.error(
+      "Strict TLS is on. PROXMOX_INSECURE_TLS=%s PROXMOX_VERIFY_TLS=%s",
+      process.env.PROXMOX_INSECURE_TLS ?? "(unset)",
+      process.env.PROXMOX_VERIFY_TLS ?? "(unset)",
+    );
+    console.error("Fix: set PROXMOX_INSECURE_TLS=1 and remove PROXMOX_VERIFY_TLS=1 in /var/www/dior-billing/.env");
+  }
   console.log("Templates:", Object.keys(config.templateMap).length);
 
   const result = await verifyProxmoxIntegration();

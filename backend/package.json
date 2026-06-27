@@ -11,6 +11,7 @@
     "event-replay": "tsx scripts/event-replay.ts",
     "verify-amper": "tsx scripts/verify-amper.ts",
     "verify-proxmox": "tsx scripts/verify-proxmox.ts",
+    "retry-provision": "tsx scripts/retry-provision-job.ts",
     "resume-stuck-vps": "tsx scripts/resume-stuck-vps.ts"
   },
   "dependencies": {
