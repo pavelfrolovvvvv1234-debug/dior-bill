@@ -7,7 +7,6 @@ import {
   AdminVpsCredentialsPanel,
   AdminVpsSourceBadge,
 } from "@/components/control/admin-vps-credentials";
-import { AdminVpsRegistryForm } from "@/components/control/admin-vps-registry-form";
 import { Badge } from "@/components/ui/badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
@@ -177,25 +176,6 @@ export default async function AdminVpsDetailPage({
             </dl>
           </Panel>
         </div>
-
-        {vm.ip && !vm.registry && (
-          <Panel title="Shared IP registry">
-            <div className="p-4 pt-0">
-              <AdminVpsRegistryForm
-                vmid={vm.vmid}
-                ip={vm.ip}
-                hostname={vm.name}
-                externalServiceId={vm.externalServiceId}
-              />
-            </div>
-          </Panel>
-        )}
-
-        <Panel title="Proxmox config (raw)">
-          <pre className="max-h-96 overflow-auto p-4 pt-0 text-xs text-[var(--muted-foreground)]">
-            {JSON.stringify(vm.proxmoxConfig, null, 2)}
-          </pre>
-        </Panel>
       </PageContainer>
     </>
   );

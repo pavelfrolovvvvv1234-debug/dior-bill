@@ -54,14 +54,14 @@ export default async function ServicesPage({
     <>
       <PageHeader
         title="Services"
-        description="All Proxmox VPS (billing + Telegram bot) and other billing services"
+        description="Customer VPS on Proxmox (billing + Telegram bot)"
       />
       <PageContainer className="space-y-6">
         <Panel
-          title="Proxmox VPS cluster"
+          title="Customer VPS"
           description={
             cluster
-              ? `${cluster.total} VM(s) on cluster`
+              ? `${cluster.total} VM(s)`
               : clusterError ?? "Loading…"
           }
           noPadding

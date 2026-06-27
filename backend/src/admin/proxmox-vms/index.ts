@@ -4,7 +4,7 @@ import { decrypt } from "../../lib/crypto";
 import { createAuditLog } from "../../audit";
 import { requirePermission } from "../rbac";
 import { getProxmoxClient, getProxmoxNodeName } from "../../proxmox/client";
-import { getProxmoxCiUser, isProxmoxConfigured } from "../../proxmox/config";
+import { getProxmoxCiUser, getProxmoxConfig, isProxmoxConfigured } from "../../proxmox/config";
 import { getSharedRegistryNetwork } from "../../proxmox/shared-ip-registry";
 import { collectTelegramBotServersFromDatabase, type TelegramBotServerRow } from "../../proxmox/tg-bot-servers";
 import {
@@ -77,6 +77,52 @@ export type AdminClusterVpsDetail = {
   } | null;
   warnings: string[];
 };
+
+/** Auto-generated hostnames from failed / test billing provisions (AlphaXxx, BetaYyy, …). */
+const GREEK_AUTO_HOSTNAME =
+  /^(Alpha|Beta|Gamma|Delta|Epsilon|Zeta|Eta|Theta|Iota|Kappa|Lambda|Mu|Nu|Xi|Omicron|Pi|Rho|Sigma|Tau|Upsilon|Phi|Chi|Psi|Omega)[A-Za-z0-9]+$/;
+
+const DEFAULT_TEMPLATE_VMIDS = [902, 706, 730, 731, 996, 9010];
+
+function getTemplateVmids(): Set<number> {
+  const ids = new Set(DEFAULT_TEMPLATE_VMIDS);
+  const config = getProxmoxConfig();
+  if (config) {
+    for (const vmid of Object.values(config.templateMap)) ids.add(vmid);
+  }
+  const extra = process.env.PROXMOX_ADMIN_SKIP_VMIDS?.trim();
+  if (extra) {
+    for (const part of extra.split(/[,\s]+/)) {
+      const n = Number.parseInt(part, 10);
+      if (Number.isFinite(n)) ids.add(n);
+    }
+  }
+  return ids;
+}
+
+/** Hide golden images, templates, and provisioning junk from the admin VPS table. */
+export function isAdminVpsListNoise(params: {
+  vmid: number;
+  name: string;
+  templateFlag?: number;
+  hasBilling: boolean;
+  hasBot: boolean;
+  ip: string | null;
+}): boolean {
+  if (params.hasBilling || params.hasBot) return false;
+  if (params.templateFlag === 1) return true;
+  if (getTemplateVmids().has(params.vmid)) return true;
+
+  const n = params.name.toLowerCase();
+  if (n.includes("template")) return true;
+  if (/^win(10|11)(ru|en)?-new$/.test(n)) return true;
+  if (/^windows-\d+-pro/.test(n)) return true;
+  if (GREEK_AUTO_HOSTNAME.test(params.name)) return true;
+
+  if (!params.ip) return true;
+
+  return false;
+}
 
 type BillingVpsWithRelations = Awaited<
   ReturnType<
@@ -258,6 +304,19 @@ export async function listAdminClusterVps(
 
       if (!bot && row.ip) bot = ctx.botByIp.get(row.ip);
       if (!alloc && row.ip) alloc = ctx.allocByIp.get(row.ip);
+
+      if (
+        isAdminVpsListNoise({
+          vmid: vm.vmid,
+          name: row.name,
+          templateFlag: vm.template,
+          hasBilling: Boolean(billing),
+          hasBot: Boolean(bot),
+          ip: row.ip,
+        })
+      ) {
+        continue;
+      }
 
       if (options.source && row.source !== options.source) continue;
 
