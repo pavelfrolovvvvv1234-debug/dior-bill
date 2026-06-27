@@ -13,6 +13,7 @@
     "verify-proxmox": "tsx scripts/verify-proxmox.ts",
     "retry-provision": "tsx scripts/retry-provision-job.ts",
     "resume-stuck-vps": "tsx scripts/resume-stuck-vps.ts",
+    "list-vps": "tsx scripts/list-vps.ts",
     "sync-ip-pool": "tsx scripts/sync-ip-pool.ts",
     "sync-proxmox-used-ips": "tsx scripts/sync-proxmox-used-ips.ts",
     "sync-vps-ip": "tsx scripts/sync-vps-ip.ts",

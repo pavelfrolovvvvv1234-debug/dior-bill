@@ -13,12 +13,38 @@ async function main() {
 
   const vps = await prisma.vpsInstance.findFirst({
     where: {
-      OR: [{ id: arg }, { hostname: arg }, { service: { label: arg } }],
+      OR: [
+        { id: arg },
+        { hostname: arg },
+        { hostname: { equals: arg, mode: "insensitive" } },
+        { service: { label: arg } },
+        { service: { label: { equals: arg, mode: "insensitive" } } },
+      ],
     },
     select: { id: true, hostname: true },
   });
   if (!vps) {
-    console.error("VPS not found:", arg);
+    const recent = await prisma.vpsInstance.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 12,
+      select: {
+        hostname: true,
+        primaryIp: true,
+        service: { select: { status: true } },
+      },
+    });
+    console.error(`VPS not found: ${arg}`);
+    if (recent.length) {
+      console.error("\nRecent VPS in billing DB:");
+      for (const r of recent) {
+        console.error(
+          `  ${r.hostname}  ${r.service.status}  ip=${r.primaryIp ?? "—"}`,
+        );
+      }
+      console.error("\nList all: pnpm run list-vps");
+    } else {
+      console.error("Database has no VPS records — order one via the panel or check DATABASE_URL.");
+    }
     process.exit(1);
   }
 
