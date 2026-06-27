@@ -13,13 +13,7 @@ async function main() {
 
   const vps = await prisma.vpsInstance.findFirst({
     where: {
-      OR: [
-        { id: arg },
-        { hostname: arg },
-        { hostname: { equals: arg, mode: "insensitive" } },
-        { service: { label: arg } },
-        { service: { label: { equals: arg, mode: "insensitive" } } },
-      ],
+      OR: [{ id: arg }, { hostname: arg }, { service: { label: arg } }],
     },
     select: { id: true, hostname: true },
   });
