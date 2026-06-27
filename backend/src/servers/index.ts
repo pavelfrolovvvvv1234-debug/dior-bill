@@ -12,7 +12,7 @@ import {
   releasePromoRedemption,
 } from "../billing";
 import { assertBillingAllowed } from "../billing/guards";
-import { getWallet, lockBalance, unlockBalance } from "../payments/wallet";
+import { getWallet } from "../payments/wallet";
 import { enqueueJob } from "../lib/queue";
 import {
   isProxmoxConfigured,
@@ -210,10 +210,6 @@ export async function provisionVps(params: {
   if (params.prepaid || process.env.BILLING_AUTO_PROVISION === "true") {
     const wallet = await getWallet(params.userId);
     if (wallet.spendable >= promo.chargeAmount) {
-      const balanceLockAmount = Math.max(0, promo.chargeAmount - wallet.credits);
-      if (balanceLockAmount > 0) {
-        await lockBalance(params.userId, balanceLockAmount);
-      }
       let promoClaimed = false;
       try {
         if (promo.promoId && promo.discount > 0) {
@@ -227,10 +223,6 @@ export async function provisionVps(params: {
           await releasePromoRedemption(params.userId, promo.promoId).catch(() => undefined);
         }
         throw err;
-      } finally {
-        if (balanceLockAmount > 0) {
-          await unlockBalance(params.userId, balanceLockAmount);
-        }
       }
     } else if (params.prepaid) {
       const { emitPaymentConfirmed } = await import("../core/billing/engine");

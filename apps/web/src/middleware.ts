@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { COOKIE_NAME, verifySessionToken } from "@dior/backend";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/session-edge";
 import { captureReferralOnResponse } from "@/lib/referral-cookie-response";
 
 function isPublicPath(pathname: string) {
