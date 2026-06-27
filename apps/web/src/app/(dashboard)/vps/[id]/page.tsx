@@ -7,7 +7,6 @@ import {
   getServiceTimeline,
   getVpsAccessInfo,
   getVpsById,
-  refreshVpsLiveMetrics,
 } from "@dior/backend";
 import { ServiceTimeline } from "@/components/service-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +26,6 @@ export default async function VpsDetailPage({
 
   let vps;
   try {
-    await refreshVpsLiveMetrics(id, session.user.id);
     vps = await getVpsById(id, session.user.id);
   } catch {
     notFound();

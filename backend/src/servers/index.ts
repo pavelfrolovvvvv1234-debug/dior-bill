@@ -56,11 +56,10 @@ export async function refreshVpsLiveMetrics(vpsId: string, userId: string): Prom
   if (vps.service.status !== "ACTIVE" || !vps.proxmoxVmid) return;
   const { syncVpsMetricsFromProxmox, isProxmoxConfigured } = await import("../proxmox");
   if (!isProxmoxConfigured()) return;
-  try {
-    await syncVpsMetricsFromProxmox(vpsId);
-  } catch {
-    /* non-fatal */
-  }
+  await Promise.race([
+    syncVpsMetricsFromProxmox(vpsId).catch(() => {}),
+    new Promise<void>((resolve) => setTimeout(resolve, 8_000)),
+  ]);
 }
 
 export { getVpsAccessInfo, formatVpsOsLabel, resolveVpsLoginUser } from "./vps-access";

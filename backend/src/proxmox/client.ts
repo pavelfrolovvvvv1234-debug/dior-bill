@@ -352,7 +352,12 @@ export class ProxmoxClient {
     node: string,
     vmid: number,
   ): Promise<{ status: string; cpu?: number; mem?: number; maxmem?: number }> {
-    return this.request("GET", `/api2/json/nodes/${node}/qemu/${vmid}/status/current`);
+    return this.request(
+      "GET",
+      `/api2/json/nodes/${node}/qemu/${vmid}/status/current`,
+      undefined,
+      { timeoutMs: 8_000 },
+    );
   }
 }
 
