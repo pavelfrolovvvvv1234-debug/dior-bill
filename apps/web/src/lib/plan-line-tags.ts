@@ -5,7 +5,7 @@ export const PLAN_LINE_TAG_KEYS: Partial<Record<PlanTab, string[]>> = {
   "bulletproof-vps": ["dashboard.tags.offshore", "dashboard.tags.instantDeploy"],
   "bulletproof-dedicated": ["dashboard.tags.offshore", "dashboard.tags.setup4to12h"],
   "bulletproof-domains": ["dashboard.tags.offshore", "dashboard.tags.instantDeploy"],
-  vps: ["dashboard.tags.regular", "dashboard.tags.instantDeploy"],
+  vps: ["dashboard.tags.regular", "dashboard.tags.setup4to12h"],
   dedicated: ["dashboard.tags.regular", "dashboard.tags.setup4to12h"],
   turbovds: [
     "dashboard.tags.offshore",

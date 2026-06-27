@@ -133,7 +133,7 @@ export function PlansHub({
             title={t("plans.bpDedicatedTitle")}
             catalog={BULLETPROOF_DEDICATED_PLANS}
             detailedCatalog
-            panelTitle={t("plans.bpVpsPanel")}
+            panelTitle={t("plans.stdVpsPanel")}
             deployLabel={t("plans.buy")}
             description={t("plans.bpDedicatedDesc")}
             osOptions={BULLETPROOF_VPS_OS_OPTIONS}
