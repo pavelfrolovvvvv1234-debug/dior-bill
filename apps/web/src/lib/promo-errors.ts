@@ -1,3 +1,5 @@
+import { isNextProductionDigestError } from "@/lib/server-action-error";
+
 const PROMO_ERROR_KEYS: Record<string, string> = {
   "Enter a promo code": "promo.enterCode",
   "Invalid promo code": "promo.invalid",
@@ -14,9 +16,17 @@ const PROMO_ERROR_KEYS: Record<string, string> = {
   Unauthorized: "promo.unauthorized",
   "Deploy failed": "plans.deployFailed",
   "Order failed": "plans.deployFailed",
+  "No capacity available in this location": "plans.noCapacity",
+  "A server with this hostname is already being provisioned. Check My Services.":
+    "plans.hostnameProvisioning",
+  "Account is not active": "plans.accountInactive",
+  "Billing is frozen on this account": "plans.billingFrozen",
 };
 
 export function getPromoErrorMessage(message: string, t: (key: string) => string): string {
+  if (isNextProductionDigestError(message)) {
+    return t("plans.deployFailed");
+  }
   const key = PROMO_ERROR_KEYS[message];
   if (key) return t(key);
   return message.trim() || t("promo.errorDefault");

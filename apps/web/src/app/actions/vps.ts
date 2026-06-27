@@ -103,10 +103,11 @@ export async function deployVpsAction(formData: FormData) {
 
     return { vpsId: vps.id };
   } catch (err) {
+    console.error("[deployVpsAction]", err);
     if (err instanceof Error && err.message.startsWith("Fill ")) {
       throw err;
     }
-    if (err instanceof Error && /^(Invalid location|This location)/.test(err.message)) {
+    if (err instanceof Error && /^(Invalid location|This location|Invalid network speed)/.test(err.message)) {
       throw err;
     }
     rethrowServerActionError(err, "Deploy failed");

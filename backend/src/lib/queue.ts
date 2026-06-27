@@ -20,6 +20,17 @@ function scheduleInlineJob(type: QueueJobType, payload: Record<string, unknown>)
   return run;
 }
 
+function isRedisQueueError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return (
+    msg.includes("readonly") ||
+    msg.includes("redis disabled") ||
+    msg.includes("econnrefused") ||
+    msg.includes("connect")
+  );
+}
+
 export async function enqueueJob<T extends Record<string, unknown>>(
   type: QueueJobType,
   payload: T,
@@ -38,8 +49,14 @@ export async function enqueueJob<T extends Record<string, unknown>>(
     attempts: 0,
     createdAt: new Date().toISOString(),
   };
-  await redis.lpush(`${QUEUE_PREFIX}${type}`, JSON.stringify(job));
-  await redis.lpush(`${QUEUE_PREFIX}all`, JSON.stringify(job));
+  try {
+    await redis.lpush(`${QUEUE_PREFIX}${type}`, JSON.stringify(job));
+    await redis.lpush(`${QUEUE_PREFIX}all`, JSON.stringify(job));
+  } catch (err) {
+    console.warn(`[queue] Redis enqueue failed for ${type}, running inline`, err);
+    const pending = scheduleInlineJob(type, payload as Record<string, unknown>);
+    if (pending) await pending;
+  }
   return id;
 }
 
