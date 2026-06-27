@@ -41,7 +41,8 @@ export async function retryVpsProvisioningForInstance(params: {
   });
   if (!job) throw new NotFoundError("No provisioning job for this VPS");
 
-  const status = vps.service.status;
+  const fresh = await prisma.service.findUnique({ where: { id: vps.serviceId } });
+  const status = fresh?.status ?? vps.service.status;
   if (status === "ROLLBACK" || status === "FAILED" || status === "PENDING") {
     await transitionServiceLifecycle({
       serviceId: vps.serviceId,
@@ -75,7 +76,7 @@ export async function retryVpsProvisioningForInstance(params: {
   });
 
   console.log(
-    `[retry] ${vps.hostname} — cloning VM on Proxmox (usually 2–5 min). Do not interrupt.`,
+    `[retry] ${vps.hostname} — cloning VM on Proxmox (can take up to 10 min). Do not interrupt.`,
   );
 
   await runVpsProvisionPipeline({

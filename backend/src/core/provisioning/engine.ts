@@ -190,10 +190,18 @@ export async function startProvisioning(params: {
       where: { serviceId: params.serviceId },
       orderBy: { createdAt: "desc" },
     });
+    const vps = service.vpsInstance;
+    if (job && vps && (job.status === "failed" || job.status === "queued")) {
+      await enqueueJob("vps.provision", {
+        serviceId: params.serviceId,
+        vpsId: vps.id,
+        jobId: job.id,
+        idempotencyKey: params.idempotencyKey,
+      });
+    }
     if (job) {
       return { jobId: job.id, vpsId: service.vpsInstance?.id };
     }
-    const vps = service.vpsInstance;
     if (vps) {
       const recovered = await initProvisioningJob(params.serviceId, "vps.provision");
       await enqueueJob("vps.provision", {
@@ -221,25 +229,48 @@ export async function startProvisioning(params: {
   }
 
   return withProvisioningIdempotency(params.idempotencyKey, async () => {
-    await transitionServiceLifecycle({
-      serviceId: params.serviceId,
-      to: "PROVISIONING",
-      idempotencyKey: `lifecycle:prov:${params.idempotencyKey}`,
-      correlationId: params.correlationId,
+    const fresh = await prisma.service.findUnique({
+      where: { id: params.serviceId },
+      include: { vpsInstance: true },
     });
+    if (!fresh) throw new NotFoundError("Service not found");
 
-    const vps = service.vpsInstance;
+    if (fresh.status !== "PROVISIONING") {
+      if (
+        fresh.status !== "PENDING" &&
+        fresh.status !== "FAILED" &&
+        fresh.status !== "ROLLBACK"
+      ) {
+        throw new ValidationError(`Cannot provision from status ${fresh.status}`);
+      }
+      await transitionServiceLifecycle({
+        serviceId: params.serviceId,
+        to: "PROVISIONING",
+        idempotencyKey: `lifecycle:prov:${params.idempotencyKey}`,
+        correlationId: params.correlationId,
+      });
+    }
+
+    const vps = fresh.vpsInstance;
     if (!vps) throw new ValidationError("VPS record missing for service");
 
-    const job = await initProvisioningJob(params.serviceId, "vps.provision");
+    let job = await prisma.provisioningJob.findFirst({
+      where: { serviceId: params.serviceId },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!job) {
+      job = await initProvisioningJob(params.serviceId, "vps.provision");
+    }
 
-    await prisma.provisioningOperation.create({
-      data: {
+    await prisma.provisioningOperation.upsert({
+      where: { idempotencyKey: params.idempotencyKey },
+      create: {
         serviceId: params.serviceId,
         operation: "vps.provision",
         idempotencyKey: params.idempotencyKey,
         status: "running",
       },
+      update: { status: "running", error: null, completedAt: null },
     });
 
     const pipelinePayload = {

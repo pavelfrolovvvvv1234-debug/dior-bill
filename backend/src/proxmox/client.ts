@@ -79,6 +79,7 @@ export class ProxmoxClient {
           method,
           headers,
           agent: this.agent,
+          timeout: 120_000,
         },
         (res) => {
           const chunks: Buffer[] = [];
@@ -108,6 +109,9 @@ export class ProxmoxClient {
         },
       );
       req.on("error", reject);
+      req.on("timeout", () => {
+        req.destroy(new Error("Connection timed out"));
+      });
       if (requestBody) req.write(requestBody);
       req.end();
     });
@@ -165,7 +169,7 @@ export class ProxmoxClient {
       },
     );
     if (typeof upid === "string" && upid.startsWith("UPID:")) {
-      await this.waitForTask(spec.node, upid);
+      await this.waitForTask(spec.node, upid, 600_000);
     }
   }
 

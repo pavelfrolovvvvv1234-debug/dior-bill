@@ -17,7 +17,7 @@ export function loadMonorepoEnv(): void {
 
   for (const path of candidates) {
     if (existsSync(path)) {
-      config({ path, override: false });
+      config({ path, override: true });
       loaded = true;
       return;
     }
