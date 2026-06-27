@@ -333,7 +333,7 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
     where: {
       userId,
       type: "VPS",
-      status: { in: ["PENDING", "FAILED"] },
+      status: { in: ["PENDING", "FAILED", "ROLLBACK"] },
     },
     select: { id: true },
   });
@@ -350,7 +350,7 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
     try {
       await startProvisioning({
         serviceId: service.id,
-        idempotencyKey: `resume:${service.id}`,
+        idempotencyKey: `resume:${service.id}:${Date.now()}`,
       });
     } catch (err) {
       if (err instanceof ValidationError && String(err.message).includes("Cannot provision")) {
@@ -433,7 +433,7 @@ export async function resumeAllStuckVpsProvisioning(): Promise<{
   const stuckUsers = await prisma.service.findMany({
     where: {
       type: "VPS",
-      status: { in: ["PENDING", "FAILED", "PROVISIONING"] },
+      status: { in: ["PENDING", "FAILED", "ROLLBACK", "PROVISIONING"] },
     },
     select: { userId: true },
     distinct: ["userId"],

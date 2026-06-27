@@ -2,8 +2,11 @@
  * Retry provisioning for paid VPS stuck in PENDING/FAILED.
  * Usage: DATABASE_URL=... [PROXMOX_*] npx tsx scripts/resume-stuck-vps.ts [userEmail]
  */
+import { loadMonorepoEnv } from "../src/lib/load-env";
 import { prisma } from "@dior/database";
 import { resumeAllStuckVpsProvisioning } from "../src/core/provisioning/engine";
+
+loadMonorepoEnv();
 
 async function main() {
   const email = process.argv[2];
