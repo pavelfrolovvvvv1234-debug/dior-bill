@@ -51,6 +51,7 @@ export class ProxmoxClient {
     method: string,
     path: string,
     body?: Record<string, unknown> | URLSearchParams,
+    options?: { timeoutMs?: number },
   ): Promise<T> {
     const url = new URL(`${this.config.apiUrl}${path.startsWith("/") ? path : `/${path}`}`);
     const headers: Record<string, string> = {
@@ -79,7 +80,7 @@ export class ProxmoxClient {
           method,
           headers,
           agent: this.agent,
-          timeout: 120_000,
+          timeout: options?.timeoutMs ?? 120_000,
         },
         (res) => {
           const chunks: Buffer[] = [];
@@ -110,7 +111,7 @@ export class ProxmoxClient {
       );
       req.on("error", reject);
       req.on("timeout", () => {
-        req.destroy(new Error("Connection timed out"));
+        req.destroy(new Error(`Proxmox API timed out (${method} ${path})`));
       });
       if (requestBody) req.write(requestBody);
       req.end();
@@ -121,21 +122,28 @@ export class ProxmoxClient {
     method: string,
     path: string,
     fields: Record<string, string | number | undefined>,
+    options?: { timeoutMs?: number },
   ): Promise<T> {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(fields)) {
       if (v !== undefined && v !== null) params.set(k, String(v));
     }
-    return this.request<T>(method, path, params);
+    return this.request<T>(method, path, params, options);
   }
 
-  async waitForTask(node: string, upid: string, timeoutMs = 120_000): Promise<void> {
+  async waitForTask(node: string, upid: string, timeoutMs = 600_000): Promise<void> {
     const started = Date.now();
+    let lastLog = 0;
     while (Date.now() - started < timeoutMs) {
       const status = await this.request<{
         status: string;
         exitstatus?: string;
-      }>("GET", `/api2/json/nodes/${node}/tasks/${encodeURIComponent(upid)}/status`);
+      }>(
+        "GET",
+        `/api2/json/nodes/${node}/tasks/${encodeURIComponent(upid)}/status`,
+        undefined,
+        { timeoutMs: 300_000 },
+      );
 
       if (status.status === "stopped") {
         if (status.exitstatus && status.exitstatus !== "OK") {
@@ -143,9 +151,13 @@ export class ProxmoxClient {
         }
         return;
       }
-      await new Promise((r) => setTimeout(r, 1500));
+      if (Date.now() - lastLog > 30_000) {
+        console.log(`[proxmox] task still running: ${upid}`);
+        lastLog = Date.now();
+      }
+      await new Promise((r) => setTimeout(r, 2000));
     }
-    throw new ProxmoxApiError(504, `Proxmox task timed out: ${upid}`);
+    throw new ProxmoxApiError(504, `Proxmox task timed out after ${Math.round(timeoutMs / 1000)}s: ${upid}`);
   }
 
   async getNextVmid(): Promise<number> {
@@ -158,6 +170,9 @@ export class ProxmoxClient {
   }
 
   async cloneFromTemplate(spec: VmSpec): Promise<void> {
+    console.log(
+      `[proxmox] cloning template ${spec.templateVmid} → vmid ${spec.vmid} (${spec.hostname}) on ${spec.node}`,
+    );
     const upid = await this.requestForm<string>(
       "POST",
       `/api2/json/nodes/${spec.node}/qemu/${spec.templateVmid}/clone`,
@@ -167,9 +182,10 @@ export class ProxmoxClient {
         full: 1,
         storage: spec.storage,
       },
+      { timeoutMs: 0 },
     );
     if (typeof upid === "string" && upid.startsWith("UPID:")) {
-      await this.waitForTask(spec.node, upid, 600_000);
+      await this.waitForTask(spec.node, upid, 900_000);
     }
   }
 
@@ -183,7 +199,7 @@ export class ProxmoxClient {
       },
     );
     if (typeof upid === "string" && upid.startsWith("UPID:")) {
-      await this.waitForTask(node, upid);
+      await this.waitForTask(node, upid, 600_000);
     }
   }
 
@@ -266,8 +282,14 @@ export class ProxmoxClient {
       {},
     );
     if (typeof upid === "string" && upid.startsWith("UPID:")) {
-      await this.waitForTask(node, upid, 120_000);
+      await this.waitForTask(node, upid, 600_000);
     }
+  }
+
+  async listVms(
+    node: string,
+  ): Promise<Array<{ vmid: number; name?: string; status?: string }>> {
+    return this.request("GET", `/api2/json/nodes/${node}/qemu`);
   }
 
   async getVmStatus(

@@ -1,8 +1,31 @@
 import { prisma } from "@dior/database";
 import { NotFoundError, ValidationError } from "@dior/shared";
 import { transitionServiceLifecycle } from "../core/provisioning/engine";
-import { destroyProxmoxVmIfExists, getProxmoxNodeName } from "../proxmox";
+import { destroyProxmoxVmIfExists, getProxmoxClient, getProxmoxNodeName } from "../proxmox";
 import { runVpsProvisionPipeline } from "./state-machine";
+
+function proxmoxVmName(hostname: string): string {
+  return hostname.replace(/[^a-zA-Z0-9.-]/g, "-").slice(0, 63);
+}
+
+/** Remove VMs left on Proxmox after interrupted clone (DB may have no vmid). */
+async function destroyOrphanVmByHostname(node: string, hostname: string): Promise<void> {
+  const client = getProxmoxClient();
+  if (!client) return;
+  const expected = proxmoxVmName(hostname);
+  try {
+    const vms = await client.listVms(node);
+    for (const vm of vms) {
+      const name = vm.name ?? "";
+      if (name === expected || name === hostname) {
+        console.log(`[retry] removing orphan VM ${vm.vmid} (${name}) on ${node}`);
+        await destroyProxmoxVmIfExists(node, vm.vmid);
+      }
+    }
+  } catch (e) {
+    console.warn("[retry] orphan VM scan failed:", e instanceof Error ? e.message : e);
+  }
+}
 
 export async function retryVpsProvisioningForInstance(params: {
   hostname?: string;
@@ -55,6 +78,7 @@ export async function retryVpsProvisioningForInstance(params: {
   }
 
   const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+  await destroyOrphanVmByHostname(node, vps.hostname);
   if (vps.proxmoxVmid) {
     await destroyProxmoxVmIfExists(node, vps.proxmoxVmid);
     await prisma.vpsInstance.update({
@@ -76,7 +100,7 @@ export async function retryVpsProvisioningForInstance(params: {
   });
 
   console.log(
-    `[retry] ${vps.hostname} — cloning VM on Proxmox (can take up to 10 min). Do not interrupt.`,
+    `[retry] ${vps.hostname} — cloning VM on Proxmox (can take up to 15 min). Do not interrupt.`,
   );
 
   await runVpsProvisionPipeline({
