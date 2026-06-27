@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { COOKIE_NAME, verifySessionToken } from "@dior/backend";
 import { captureReferralOnResponse } from "@/lib/referral-cookie-response";
 
 function isPublicPath(pathname: string) {
@@ -10,12 +11,31 @@ function isPublicPath(pathname: string) {
   return false;
 }
 
-export function middleware(request: NextRequest) {
+function withSessionCookieCleared(response: NextResponse) {
+  response.cookies.delete(COOKIE_NAME);
+  return response;
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = isPublicPath(pathname);
-  const hasSession = request.cookies.has("dior_session");
+  const token = request.cookies.get(COOKIE_NAME)?.value;
+  const session = token ? await verifySessionToken(token) : null;
+  const hasValidSession = !!session;
 
-  if (!isPublic && !hasSession && !pathname.startsWith("/_next")) {
+  if (token && !hasValidSession) {
+    if (!isPublic && !pathname.startsWith("/_next")) {
+      const loginUrl = new URL("/login", request.url);
+      const ref = request.nextUrl.searchParams.get("ref");
+      if (ref) loginUrl.searchParams.set("ref", ref);
+      const response = withSessionCookieCleared(NextResponse.redirect(loginUrl));
+      return captureReferralOnResponse(request, response);
+    }
+    const response = withSessionCookieCleared(NextResponse.next());
+    return captureReferralOnResponse(request, response);
+  }
+
+  if (!isPublic && !hasValidSession && !pathname.startsWith("/_next")) {
     const loginUrl = new URL("/login", request.url);
     const ref = request.nextUrl.searchParams.get("ref");
     if (ref) loginUrl.searchParams.set("ref", ref);
@@ -23,7 +43,7 @@ export function middleware(request: NextRequest) {
     return captureReferralOnResponse(request, response);
   }
 
-  if (hasSession && (pathname === "/login" || pathname === "/register")) {
+  if (hasValidSession && (pathname === "/login" || pathname === "/register")) {
     const response = NextResponse.redirect(new URL("/dashboard", request.url));
     return captureReferralOnResponse(request, response);
   }

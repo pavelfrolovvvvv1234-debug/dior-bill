@@ -69,7 +69,13 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
 
 export async function requireSession(): Promise<AppSession> {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) {
+    const cookieStore = await cookies();
+    if (cookieStore.get(COOKIE_NAME)?.value) {
+      cookieStore.delete(COOKIE_NAME);
+    }
+    redirect("/login");
+  }
   return session;
 }
 
