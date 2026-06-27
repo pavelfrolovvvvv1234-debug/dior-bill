@@ -5,14 +5,38 @@ import { runVpsProvisionPipeline } from "../src/provisioning/state-machine";
 
 loadMonorepoEnv();
 
+function parseHostnameArg(): string | undefined {
+  const args = process.argv.slice(2).filter((a) => a !== "--");
+  const hostname = args[0]?.trim();
+  return hostname || undefined;
+}
+
 async function main() {
-  const hostname = process.argv[2];
+  const hostname = parseHostnameArg();
   const vps = await prisma.vpsInstance.findFirst({
-    where: hostname ? { hostname } : undefined,
+    where: hostname
+      ? {
+          OR: [
+            { hostname },
+            { service: { label: hostname } },
+          ],
+        }
+      : undefined,
     orderBy: { createdAt: "desc" },
     include: { service: true, node: true },
   });
-  if (!vps) throw new Error("VPS not found");
+  if (!vps) {
+    const recent = await prisma.vpsInstance.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { hostname: true, service: { select: { label: true, status: true } } },
+    });
+    const hint =
+      recent.length > 0
+        ? `Recent hostnames: ${recent.map((r) => `${r.hostname} (${r.service.status})`).join(", ")}`
+        : "No VPS instances in database.";
+    throw new Error(hostname ? `VPS not found for "${hostname}". ${hint}` : `VPS not found. ${hint}`);
+  }
 
   const job = await prisma.provisioningJob.findFirst({
     where: { serviceId: vps.serviceId },
