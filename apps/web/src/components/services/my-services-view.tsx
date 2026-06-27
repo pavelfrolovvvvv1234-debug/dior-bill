@@ -23,6 +23,7 @@ import {
   sortServices,
 } from "@/lib/service-catalog";
 import { LocalDateTime } from "@/components/ui/local-datetime";
+import { translateServiceDetail } from "@/lib/service-detail-i18n";
 import { Plus, Server } from "lucide-react";
 import type { ServiceType, ServiceStatus } from "@dior/database";
 import { useI18n } from "@/lib/i18n/store";
@@ -162,7 +163,7 @@ function ServiceTypeSection({
                   />
                 </DataTableTd>
                 <DataTableTd mono className="text-muted-foreground">
-                  {row.detail}
+                  {translateServiceDetail(row.detail, t)}
                 </DataTableTd>
                 <DataTableTd>{row.region}</DataTableTd>
                 <DataTableTd className="text-muted-foreground">{row.plan}</DataTableTd>
@@ -170,7 +171,13 @@ function ServiceTypeSection({
                   {row.renewsAt ? <LocalDateTime value={row.renewsAt} mode="date" /> : "—"}
                 </DataTableTd>
                 <DataTableTd align="right">
-                  <ServiceQuickActions manageHref={row.manageHref} />
+                  <ServiceQuickActions
+                    manageHref={row.manageHref}
+                    serviceId={row.id}
+                    vpsId={row.vpsId}
+                    canRenew={row.canRenew}
+                    canUpgrade={row.canUpgrade}
+                  />
                 </DataTableTd>
               </DataTableRow>
             ))}
@@ -188,6 +195,8 @@ function ServiceCard({
   row: ServiceRow;
   statusLabel: (status: ServiceStatus) => string;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="rounded-lg border border-white/6 bg-white/[0.02] p-4 transition-premium hover:border-white/10">
       <div className="flex items-start justify-between gap-3">
@@ -195,7 +204,9 @@ function ServiceCard({
           <FastLink href={row.manageHref} className="font-medium hover:text-primary">
             {row.name}
           </FastLink>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{row.detail}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {translateServiceDetail(row.detail, t)}
+          </p>
         </div>
         <StatusIndicator status={mapServiceStatus(row.status)} label={statusLabel(row.status)} />
       </div>
@@ -204,7 +215,13 @@ function ServiceCard({
         <span className="text-right">{row.plan}</span>
       </div>
       <div className="mt-3 border-t border-white/6 pt-3">
-        <ServiceQuickActions manageHref={row.manageHref} />
+        <ServiceQuickActions
+          manageHref={row.manageHref}
+          serviceId={row.id}
+          vpsId={row.vpsId}
+          canRenew={row.canRenew}
+          canUpgrade={row.canUpgrade}
+        />
       </div>
     </div>
   );

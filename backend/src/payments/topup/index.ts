@@ -20,6 +20,7 @@ import { NOTIFICATION_TYPES } from "@dior/shared";
 import { createHash } from "crypto";
 import { assertBillingAllowed } from "../../billing/guards";
 import { processReferralCommission } from "../../referrals";
+import { invalidateControlDashboardCache } from "../../admin/dashboard";
 
 export interface CreateTopUpInput {
   userId: string;
@@ -243,6 +244,7 @@ export async function completeTopUp(
       entityType: "top_up",
       entityId: topUpId,
     });
+    await invalidateControlDashboardCache().catch(() => undefined);
     return updated;
   });
 }
@@ -260,6 +262,7 @@ export async function failTopUp(topUpId: string, reason: string) {
     body: reason,
     link: `/billing/topup/${topUpId}`,
   });
+  await invalidateControlDashboardCache().catch(() => undefined);
   return updated;
 }
 
@@ -298,6 +301,7 @@ export async function rejectManualTopUp(
     body: reason,
     link: `/billing/topup/${topUpId}`,
   });
+  await invalidateControlDashboardCache().catch(() => undefined);
   return updated;
 }
 

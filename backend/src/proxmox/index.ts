@@ -125,9 +125,7 @@ async function loadVpsForProxmox(vpsId: string, userId?: string) {
 }
 
 function resolveNode(vps: { node: { proxmoxNode: string | null; name: string } | null }) {
-  const fromEnv = getProxmoxConfig()?.node;
-  if (fromEnv) return fromEnv;
-  return vps.node?.proxmoxNode ?? getProxmoxNodeName(vps.node?.name);
+  return getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
 }
 
 function requireProxmoxClient() {

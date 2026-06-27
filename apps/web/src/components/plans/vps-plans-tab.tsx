@@ -28,6 +28,20 @@ import {
 } from "@/lib/vps-plan-locations";
 import { useI18n } from "@/lib/i18n/store";
 import { getPromoErrorMessage } from "@/lib/promo-errors";
+import {
+  BP_NETWORK_BASE_MBPS,
+  BP_NETWORK_MAX_MBPS,
+  calcBpNetworkMonthlyAddon,
+  listBpNetworkSpeedOptions,
+  normalizeBpNetworkMbps,
+} from "@dior/shared";
+
+const BP_NETWORK_SPEED_OPTIONS = listBpNetworkSpeedOptions();
+
+function formatNetworkSpeedLabel(mbps: number, locale: "ru" | "en"): string {
+  if (mbps >= 1000) return locale === "ru" ? "1 Гбит/с" : "1 Gbps";
+  return locale === "ru" ? `${mbps} Мбит/с` : `${mbps} Mbps`;
+}
 
 interface Location {
   id: string;
@@ -67,11 +81,13 @@ export function VpsPlansTab({
   purchaseViaTicket?: boolean;
   ticketKind?: "turbovds" | "standard-vps";
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const networkSpeedConfigurable = filterLocationsByPlan && !purchaseViaTicket;
   const resolvedDeployLabel = deployLabel ?? t("plans.buy");
   const [selectedPlan, setSelectedPlan] = useState(plans[0]?.id ?? "");
   const [locationId, setLocationId] = useState("");
   const [os, setOs] = useState(DEFAULT_VPS_OS);
+  const [networkSpeedIndex, setNetworkSpeedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
@@ -119,7 +135,9 @@ export function VpsPlansTab({
       return;
     }
     try {
-      const { sufficient } = await checkSufficientBalance(plan.price);
+      const networkMbps = networkSpeedConfigurable ? selectedNetworkMbps : BP_NETWORK_BASE_MBPS;
+      const totalBeforePromo = plan.price + calcBpNetworkMonthlyAddon(networkMbps);
+      const { sufficient } = await checkSufficientBalance(totalBeforePromo);
       if (!sufficient) {
         toastInsufficientBalance();
         setLoading(false);
@@ -146,6 +164,12 @@ export function VpsPlansTab({
   }
 
   const selected = plans.find((p) => p.id === selectedPlan);
+  const selectedNetworkMbps = BP_NETWORK_SPEED_OPTIONS[networkSpeedIndex] ?? BP_NETWORK_BASE_MBPS;
+  const networkAddon = networkSpeedConfigurable
+    ? calcBpNetworkMonthlyAddon(selectedNetworkMbps)
+    : 0;
+  const orderTotal = (selected?.price ?? 0) + networkAddon;
+  const uiLocale = locale === "ru" ? "ru" : "en";
 
   return (
     <div className="grid gap-6 xl:grid-cols-12">
@@ -184,6 +208,51 @@ export function VpsPlansTab({
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <input type="hidden" name="planId" value={selectedPlan} />
+            {networkSpeedConfigurable && (
+              <>
+                <input type="hidden" name="networkMbps" value={selectedNetworkMbps} />
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <label htmlFor="networkSpeed" className="text-sm font-medium">
+                      {t("plans.form.networkSpeed")}
+                    </label>
+                    <div className="text-right text-sm">
+                      <p className="font-medium tabular-nums">
+                        {formatNetworkSpeedLabel(selectedNetworkMbps, uiLocale)}
+                      </p>
+                      {networkAddon > 0 ? (
+                        <p className="text-muted-foreground">
+                          {t("plans.form.networkSpeedAddon", {
+                            amount: networkAddon.toFixed(2),
+                          })}
+                        </p>
+                      ) : (
+                        <p className="text-muted-foreground">{t("plans.form.networkSpeedIncluded")}</p>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    id="networkSpeed"
+                    type="range"
+                    min={0}
+                    max={BP_NETWORK_SPEED_OPTIONS.length - 1}
+                    step={1}
+                    value={networkSpeedIndex}
+                    onChange={(e) => setNetworkSpeedIndex(Number(e.target.value))}
+                    className="h-2 w-full cursor-pointer accent-primary"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+                    <span>{formatNetworkSpeedLabel(BP_NETWORK_BASE_MBPS, uiLocale)}</span>
+                    <span>{formatNetworkSpeedLabel(BP_NETWORK_MAX_MBPS, uiLocale)}</span>
+                  </div>
+                  {selected && (
+                    <p className="text-sm text-muted-foreground">
+                      {t("plans.form.networkSpeedTotal", { amount: orderTotal.toFixed(2) })}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <label htmlFor="hostname" className="text-sm font-medium">
                 {t("plans.form.hostname")}

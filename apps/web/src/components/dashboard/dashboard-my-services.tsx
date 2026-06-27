@@ -2,7 +2,10 @@
 
 import { FastLink } from "@/components/ui/fast-link";
 import { Button } from "@/components/ui/button";
-import { InvoiceStatusBadge } from "@/components/billing/invoice-status-badge";
+import {
+  StatusIndicator,
+  mapServiceStatus,
+} from "@/components/ui/enterprise/status-indicator";
 import {
   DataTable,
   DataTableBody,
@@ -15,23 +18,22 @@ import {
 import { toServiceRow, sortServices } from "@/lib/service-catalog";
 import { formatMoney } from "@/lib/utils";
 import { LocalDateTime } from "@/components/ui/local-datetime";
+import { translateServiceDetail } from "@/lib/service-detail-i18n";
 import { useI18n } from "@/lib/i18n/store";
 import { ArrowUpRight, Plus } from "lucide-react";
+import type { ServiceStatus } from "@dior/database";
 
 type RawService = Parameters<typeof toServiceRow>[0] & { monthlyPrice: unknown };
-
-const STATUS_MAP: Record<string, string> = {
-  ACTIVE: "PAID",
-  PENDING: "PENDING",
-  PROVISIONING: "PROCESSING",
-  SUSPENDED: "FAILED",
-  CANCELLED: "CANCELLED",
-  TERMINATED: "CANCELLED",
-};
 
 export function DashboardMyServices({ services }: { services: RawService[] }) {
   const { t } = useI18n();
   const rows = sortServices(services.map(toServiceRow)).slice(0, 8);
+
+  function serviceStatusLabel(status: ServiceStatus) {
+    const key = `services.status.${status}`;
+    const label = t(key);
+    return label !== key ? label : status;
+  }
 
   return (
     <section className="space-y-4">
@@ -73,7 +75,6 @@ export function DashboardMyServices({ services }: { services: RawService[] }) {
               rows.map((row) => {
                 const raw = services.find((s) => s.id === row.id);
                 const price = raw ? Number(raw.monthlyPrice) : 0;
-                const badgeStatus = STATUS_MAP[row.status] ?? row.status;
                 return (
                   <DataTableRow key={row.id}>
                     <DataTableTd>
@@ -85,14 +86,17 @@ export function DashboardMyServices({ services }: { services: RawService[] }) {
                       {row.plan}
                     </DataTableTd>
                     <DataTableTd mono className="text-muted-foreground">
-                      {row.detail}
+                      {translateServiceDetail(row.detail, t)}
                     </DataTableTd>
                     <DataTableTd align="right" mono>
                       {formatMoney(price)}
                       <span className="text-muted-foreground">{t("plans.perMonth")}</span>
                     </DataTableTd>
                     <DataTableTd>
-                      <InvoiceStatusBadge status={badgeStatus} />
+                      <StatusIndicator
+                        status={mapServiceStatus(row.status)}
+                        label={serviceStatusLabel(row.status)}
+                      />
                     </DataTableTd>
                     <DataTableTd className="text-muted-foreground">
                       {row.renewsAt ? <LocalDateTime value={row.renewsAt} mode="date" /> : "—"}

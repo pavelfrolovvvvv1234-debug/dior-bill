@@ -22,7 +22,12 @@ export type ServiceRow = {
   renewsAt: Date | null;
   manageHref: string;
   isActive: boolean;
+  vpsId?: string;
+  canRenew: boolean;
+  canUpgrade: boolean;
 };
+
+const RENEWABLE_STATUSES: ServiceStatus[] = ["ACTIVE", "SUSPENDED", "EXPIRED"];
 
 type RawService = {
   id: string;
@@ -99,6 +104,9 @@ export function toServiceRow(service: RawService): ServiceRow {
     activeStatuses.includes(service.status) ||
     provisioningStatuses.includes(service.status);
 
+  const canRenew = RENEWABLE_STATUSES.includes(service.status);
+  const canUpgrade = service.type === "VPS" && service.status === "ACTIVE" && !!service.vpsInstance;
+
   return {
     id: service.id,
     type: service.type,
@@ -110,6 +118,9 @@ export function toServiceRow(service: RawService): ServiceRow {
     renewsAt: service.renewsAt,
     manageHref,
     isActive,
+    vpsId: service.vpsInstance?.id,
+    canRenew,
+    canUpgrade,
   };
 }
 

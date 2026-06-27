@@ -3,6 +3,10 @@ import type { StoredDomainEvent } from "./store";
 import { withIdempotency } from "./idempotency";
 import { projectToReadModels } from "./projector";
 import { transitionServiceLifecycle, startProvisioning } from "../provisioning/engine";
+import { parseInvoiceBillingAction } from "../../billing/invoice-actions";
+import { resolveInvoiceBillingSideEffects } from "../../billing/service-renewal";
+
+const PROVISION_STATUSES = new Set(["PENDING", "FAILED", "ROLLBACK"]);
 
 /**
  * Stateless event consumers. Side effects only here — never in UI/API directly.
@@ -12,8 +16,10 @@ export async function dispatchDomainEvent(event: StoredDomainEvent): Promise<voi
     await projectToReadModels(event);
 
     switch (event.eventType) {
-      case DOMAIN_EVENTS.PAYMENT_CONFIRMED:
       case DOMAIN_EVENTS.INVOICE_PAID:
+        await handleInvoicePaid(event);
+        break;
+      case DOMAIN_EVENTS.PAYMENT_CONFIRMED:
         await handlePaymentConfirmed(event);
         break;
 
@@ -23,13 +29,29 @@ export async function dispatchDomainEvent(event: StoredDomainEvent): Promise<voi
   });
 }
 
+async function handleInvoicePaid(event: StoredDomainEvent): Promise<void> {
+  const { prisma } = await import("@dior/database");
+  const invoiceId = event.payload.invoiceId as string | undefined;
+  if (!invoiceId) return;
+
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (invoice && parseInvoiceBillingAction(invoice.notes)) {
+    await resolveInvoiceBillingSideEffects(invoiceId, event.id);
+  }
+}
+
 async function handlePaymentConfirmed(event: StoredDomainEvent): Promise<void> {
   const { prisma } = await import("@dior/database");
 
-  let serviceIds = event.payload.serviceIds as string[] | undefined;
   const invoiceId = event.payload.invoiceId as string | undefined;
+  let serviceIds = event.payload.serviceIds as string[] | undefined;
 
   if (!serviceIds?.length && invoiceId) {
+    const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+    if (invoice && parseInvoiceBillingAction(invoice.notes)) {
+      return;
+    }
+
     const items = await prisma.invoiceItem.findMany({
       where: { invoiceId, serviceId: { not: null } },
       select: { serviceId: true },
@@ -41,7 +63,7 @@ async function handlePaymentConfirmed(event: StoredDomainEvent): Promise<void> {
     const service = await prisma.service.findUnique({ where: { id: serviceId } });
     if (!service) continue;
 
-    if (service.type === "VPS") {
+    if (service.type === "VPS" && PROVISION_STATUSES.has(service.status)) {
       await startProvisioning({
         serviceId,
         idempotencyKey: `provision:${serviceId}:${event.id}`,

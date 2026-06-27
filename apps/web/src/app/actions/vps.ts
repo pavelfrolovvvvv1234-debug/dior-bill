@@ -8,6 +8,12 @@ import { getLocations, provisionVps, quoteOrderPromo } from "@dior/backend";
 import { VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
 import { isLocationAllowedForBulletproofPlan } from "@/lib/vps-plan-locations";
 import { rethrowServerActionError } from "@/lib/server-action-error";
+import {
+  BP_NETWORK_BASE_MBPS,
+  calcBpNetworkMonthlyAddon,
+  isValidBpNetworkMbps,
+  normalizeBpNetworkMbps,
+} from "@dior/shared";
 
 const ALL_VPS_PLANS = [...VPS_PLANS, ...TURBO_VPS_PLANS];
 
@@ -36,6 +42,18 @@ export async function deployVpsAction(formData: FormData) {
       throw new Error("Fill hostname, location, and plan");
     }
 
+    const isBulletproofInstant = VPS_PLANS.some((p) => p.id === planId);
+    let networkMbps = BP_NETWORK_BASE_MBPS;
+    if (isBulletproofInstant) {
+      networkMbps = normalizeBpNetworkMbps(formData.get("networkMbps"));
+      if (!isValidBpNetworkMbps(networkMbps)) {
+        throw new Error("Invalid network speed");
+      }
+    }
+
+    const networkAddon = isBulletproofInstant ? calcBpNetworkMonthlyAddon(networkMbps) : 0;
+    const monthlySubtotal = plan.price + networkAddon;
+
     const locations = await getLocations();
     const location = locations.find((l) => l.id === locationId);
     if (!location) {
@@ -48,15 +66,15 @@ export async function deployVpsAction(formData: FormData) {
       throw new Error("This location is not available for the selected plan");
     }
 
-    let chargeAmount = plan.price;
+    let chargeAmount = monthlySubtotal;
     if (promoCode) {
-      const quote = await quoteOrderPromo(session.user.id, promoCode, plan.price);
+      const quote = await quoteOrderPromo(session.user.id, promoCode, monthlySubtotal);
       chargeAmount = quote.finalAmount;
     }
     await assertSufficientBalance(chargeAmount);
 
     const idempotencyKey = createHash("sha256")
-      .update(`${session.user.id}:${hostname}:${locationId}:${planId}:${os}`)
+      .update(`${session.user.id}:${hostname}:${locationId}:${planId}:${os}:${networkMbps}`)
       .digest("hex")
       .slice(0, 32);
 
@@ -75,6 +93,7 @@ export async function deployVpsAction(formData: FormData) {
       prepaid: true,
       promoCode,
       idempotencyKey,
+      networkMbps: isBulletproofInstant ? networkMbps : undefined,
     });
 
     revalidatePath("/services");

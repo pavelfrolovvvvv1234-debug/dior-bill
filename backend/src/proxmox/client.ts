@@ -2,6 +2,7 @@
  * Proxmox VE API client
  * @see https://pve.proxmox.com/pve-docs/api-viewer/
  */
+import { readFileSync } from "node:fs";
 import https from "node:https";
 import { URL } from "node:url";
 import type { ProxmoxRuntimeConfig } from "./config";
@@ -37,7 +38,13 @@ export class ProxmoxClient {
   private readonly agent: https.Agent;
 
   constructor(private readonly config: ProxmoxRuntimeConfig) {
-    this.agent = new https.Agent({ rejectUnauthorized: config.verifyTls });
+    const ca = config.caCertPath
+      ? readFileSync(config.caCertPath)
+      : undefined;
+    this.agent = new https.Agent({
+      rejectUnauthorized: config.verifyTls,
+      ...(ca ? { ca } : {}),
+    });
   }
 
   private request<T>(
@@ -283,7 +290,7 @@ export function getProxmoxClient(): ProxmoxClient | null {
 }
 
 export function getProxmoxNodeName(dbNode?: string | null): string {
-  const config = getProxmoxConfig();
-  if (config?.node) return config.node;
-  return dbNode ?? "pve01";
+  const fromDb = dbNode?.trim();
+  if (fromDb) return fromDb;
+  return getProxmoxConfig()?.node?.trim() || "pve01";
 }

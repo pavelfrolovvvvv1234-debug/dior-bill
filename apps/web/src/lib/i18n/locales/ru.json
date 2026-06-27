@@ -1,7 +1,7 @@
 {
   "nav": {
     "overview": "Обзор",
-    "selectPlan": "Выбор тарифа",
+    "selectPlan": "Каталог услуг",
     "myServices": "Мои услуги",
     "billing": "Биллинг",
     "affiliate": "Рефералы",
@@ -155,8 +155,8 @@
       "description": "Ваши услуги и доступные тарифы — разверните за пару кликов"
     },
     "plans": {
-      "title": "Выбор тарифа",
-      "description": "Bulletproof и стандартная инфраструктура — домены, VPS, dedicated и Turbovds"
+      "title": "Каталог услуг",
+      "description": "Bulletproof и стандартные VPS, dedicated, домены и TurboVDS — выберите линейку и настройте тариф"
     },
     "services": {
       "title": "Мои услуги",
@@ -350,13 +350,18 @@
     "addService": "Добавить услугу",
     "addServiceDesc": "Выберите продукт и настройте тариф",
     "browseAllPlans": "Все тарифы",
-    "catalogBulletproof": "Bulletproof",
+    "catalogBulletproof": "Bulletproof / офшор",
     "catalogStandard": "Стандарт",
     "catalogConfigure": "Настроить",
     "colName": "Название",
     "tags": {
       "instantDeploy": "Мгновенная выдача",
       "offshore": "Офшор",
+      "regular": "Regular",
+      "setup4to12h": "Установка 4–12 ч",
+      "setup2to3h": "Установка 2–3 ч",
+      "registration4to8h": "Регистрация 4–8 ч",
+      "highInternet": "High-Internet",
       "bareMetal": "Bare metal",
       "abuseReview": "Abuse review",
       "registration": "Регистрация",
@@ -365,27 +370,27 @@
       "multiRegion": "Мультирегион",
       "sla": "SLA 99.9%",
       "ddosReady": "DDoS ready",
-      "hiCpu": "Hi-CPU",
+      "hiCpu": "High-CPU",
       "nvme": "NVMe"
     }
   },
   "plans": {
     "productNav": "Линейки продуктов",
-    "bpDomainsTitle": "Bulletproof домены и офшорная регистрация",
-    "bpDomainsDesc": "Регистрация с DMCA-ignored и ручным abuse review, офшор DNS.",
-    "bpVpsTitle": "Bulletproof VPS/VDS",
-    "bpVpsDesc": "Офшор VPS/VDS с DMCA-ignored и мгновенной выдачей",
+    "bpDomainsTitle": "Оффшорные домены",
+    "bpDomainsDesc": "Регистрация доменов в оффшорных юрисдикциях с повышенной защитой конфиденциальности",
+    "bpVpsTitle": "BP VDS/VPS",
+    "bpVpsDesc": "Офшорный VPS с абузоустойчивостью и DMCA Ignored.",
     "buy": "Купить",
     "bpVpsDeploy": "Купить",
     "bpVpsPanel": "Мгновенная выдача",
-    "bpDedicatedTitle": "Bulletproof dedicated",
-    "bpDedicatedDesc": "Bare-metal под bulletproof — высоконагруженные и DMCA-ignored задачи.",
-    "stdVpsTitle": "VPS/VDS хостинг",
-    "stdVpsDesc": "Стандартные VPS в РФ, Беларуси и Абхазии. Заказы выполняются вручную через поддержку после оплаты.",
+    "bpDedicatedTitle": "BP Dedicated",
+    "bpDedicatedDesc": "Выделенный сервер в офшорном дата-центре с политикой DMCA Ignored.",
+    "stdVpsTitle": "VPS/VDS",
+    "stdVpsDesc": "Стандартные VPS/VDS с выделенными ресурсами, гибкой настройкой и полным административным доступом.",
     "stdVpsDeploy": "Купить",
     "stdVpsPanel": "Конфигурация заказа",
-    "stdDedicatedTitle": "Dedicated серверы",
-    "stdDedicatedDesc": "Стандартный bare-metal с фикс. конфигами, SLA и DDoS-ready uplinks.",
+    "stdDedicatedTitle": "Dedicated",
+    "stdDedicatedDesc": "Выделенный сервер с полным контролем над оборудованием и гарантированными вычислительными ресурсами.",
     "deployConfig": "Конфигурация развёртывания",
     "deployConfigDesc": "Офшор VPS с ручным abuse review. Выберите тариф, регион и разверните.",
     "selectLocation": "Выберите локацию",
@@ -421,11 +426,15 @@
       "os": "Операционная система",
       "promoCode": "Промокод",
       "optional": "необязательно",
-      "regionsLoading": "Регионы загружаются. Обновите страницу или обратитесь в поддержку."
+      "regionsLoading": "Регионы загружаются. Обновите страницу или обратитесь в поддержку.",
+      "networkSpeed": "Скорость сети",
+      "networkSpeedIncluded": "150 Мбит/с включено в тариф",
+      "networkSpeedAddon": "+{amount}/мес",
+      "networkSpeedTotal": "Итого: {amount}/мес"
     },
     "turbovds": {
       "title": "TurboVDS",
-      "desc": "Высокочастотные DDR5 + NVMe с uplink 10 Gbps и безлимитным трафиком.",
+      "desc": "Абузоустойчивые VPS/VDS под высокопроизводительные и сетевые задачи.",
       "deploy": "Купить",
       "panel": "Конфигурация заказа"
     },
@@ -442,34 +451,34 @@
     },
     "lines": {
       "bulletproof-vps": {
-        "label": "Bulletproof VPS/VDS",
+        "label": "BP VDS/VPS",
         "short": "BP VPS",
-        "desc": "Офшорный DMCA-ignored хостинг"
+        "desc": "Офшорный VPS с абузоустойчивостью и DMCA Ignored."
       },
       "bulletproof-dedicated": {
-        "label": "Bulletproof dedicated",
+        "label": "BP Dedicated",
         "short": "BP Dedicated",
-        "desc": "Bare metal с bulletproof политикой"
+        "desc": "Выделенный сервер в офшорном дата-центре с политикой DMCA Ignored."
       },
       "bulletproof-domains": {
-        "label": "Bulletproof домены",
+        "label": "BP Domains",
         "short": "BP Domains",
-        "desc": "Bulletproof регистрация и DNS"
+        "desc": "Регистрация доменов в оффшорных юрисдикциях с повышенной защитой конфиденциальности"
       },
       "vps": {
         "label": "VPS/VDS",
         "short": "VPS",
-        "desc": "Стандартные VPS с быстрым провижинингом"
+        "desc": "Стандартные VPS/VDS с выделенными ресурсами, гибкой настройкой и полным административным доступом."
       },
       "dedicated": {
         "label": "Dedicated",
         "short": "Dedicated",
-        "desc": "Стандартная bare-metal инфраструктура"
+        "desc": "Выделенный сервер с полным контролем над оборудованием и гарантированными вычислительными ресурсами."
       },
       "turbovds": {
-        "label": "Turbovds",
-        "short": "Turbovds",
-        "desc": "Высокочастотные вычисления для чувствительных к задержке задач"
+        "label": "TurboVDS",
+        "short": "TurboVDS",
+        "desc": "Абузоустойчивые VPS/VDS под высокопроизводительные и сетевые задачи."
       }
     }
   },
@@ -477,7 +486,24 @@
     "title": "Мои услуги",
     "empty": "Услуг пока нет",
     "manage": "Управление",
-    "endpoint": "Endpoint",
+    "renew": "Продлить",
+    "upgrade": "Апгрейд",
+    "upgradeTitle": "Апгрейд VPS",
+    "upgradeDesc": "Увеличьте ресурсы сервера {hostname} без заказа новой услуги.",
+    "upgradePageDesc": "Выберите тариф выше текущего — оплата разницы, конфиг обновится автоматически.",
+    "upgradeCurrent": "Текущий тариф",
+    "upgradeSelect": "Новый тариф",
+    "upgradeDueNow": "К оплате сейчас (разница)",
+    "upgradeNewMonthly": "Новая цена в месяц",
+    "upgradeConfirm": "Создать счёт на апгрейд",
+    "upgradeNone": "Для этого сервера нет доступных тарифов выше текущего.",
+    "upgradeFailed": "Не удалось оформить апгрейд",
+    "renewFailed": "Не удалось создать счёт на продление",
+    "endpoint": "Адрес",
+    "detail": {
+      "provisioning": "Выдаётся",
+      "pendingIp": "Ожидание IP"
+    },
     "region": "Регион",
     "plan": "Тариф",
     "renews": "Продление",
@@ -505,7 +531,10 @@
       "EXPIRED": "Истекла",
       "CANCELLED": "Отменена",
       "FAILED": "Ошибка",
-      "DELETED": "Удалена"
+      "DELETED": "Удалена",
+      "ROLLBACK": "Откат",
+      "REINSTALLING": "Переустановка",
+      "SNAPSHOTTING": "Снимок"
     }
   },
   "locations": {

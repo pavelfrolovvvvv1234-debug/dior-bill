@@ -103,3 +103,27 @@ export const TURBO_VPS_PLANS: readonly VpsPlan[] = [
 export function isStandardVpsPlan(planId: string): boolean {
   return STANDARD_VPS_PLANS.some((p) => p.id === planId);
 }
+
+export const ALL_CATALOG_VPS_PLANS: readonly VpsPlan[] = [
+  ...VPS_PLANS,
+  ...TURBO_VPS_PLANS,
+  ...STANDARD_VPS_PLANS,
+];
+
+export function listVpsUpgradeOptions(current: {
+  cpuCores: number;
+  ramMb: number;
+  diskGb: number;
+  monthlyPrice: number;
+}): VpsPlan[] {
+  return ALL_CATALOG_VPS_PLANS.filter(
+    (plan) =>
+      plan.price > current.monthlyPrice &&
+      plan.cpuCores >= current.cpuCores &&
+      plan.ramMb >= current.ramMb &&
+      plan.diskGb >= current.diskGb &&
+      (plan.cpuCores > current.cpuCores ||
+        plan.ramMb > current.ramMb ||
+        plan.diskGb > current.diskGb),
+  ).sort((a, b) => a.price - b.price);
+}

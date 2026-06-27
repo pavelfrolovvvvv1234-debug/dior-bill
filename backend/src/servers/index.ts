@@ -2,7 +2,7 @@ import { prisma } from "@dior/database";
 import { NotFoundError, ValidationError } from "@dior/shared";
 import { createAuditLog } from "../audit";
 import { encrypt } from "../lib/crypto";
-import { createServiceOrder, startProvisioning } from "../core/provisioning/engine";
+import { createServiceOrder } from "../core/provisioning/engine";
 import { selectNodeForProvisioning } from "../core/inventory/service";
 import {
   applyPromoToOrderTotal,
@@ -22,6 +22,12 @@ import {
   stopVpsOnProxmox,
 } from "../proxmox";
 import { createHash } from "crypto";
+import {
+  BP_NETWORK_BASE_MBPS,
+  calcBpNetworkMonthlyAddon,
+  isValidBpNetworkMbps,
+  normalizeBpNetworkMbps,
+} from "@dior/shared";
 import { ensureBulletproofVpsLocations, ensureStandardVpsLocations } from "./locations";
 
 export async function getUserVpsInstances(userId: string) {
@@ -73,6 +79,8 @@ export async function provisionVps(params: {
   /** Dev/demo: skip invoice gate and provision immediately */
   prepaid?: boolean;
   promoCode?: string;
+  /** Bulletproof VPS: configurable uplink speed (150–1000 Mbps). */
+  networkMbps?: number;
 }) {
   await assertBillingAllowed(params.userId);
 
@@ -81,11 +89,18 @@ export async function provisionVps(params: {
   const location = await prisma.location.findUnique({ where: { id: params.locationId } });
   if (!location?.active) throw new ValidationError("Location unavailable");
 
+  const networkMbps = normalizeBpNetworkMbps(params.networkMbps ?? BP_NETWORK_BASE_MBPS);
+  if (!isValidBpNetworkMbps(networkMbps)) {
+    throw new ValidationError("Invalid network speed");
+  }
+  const networkAddon = calcBpNetworkMonthlyAddon(networkMbps);
+  const monthlyTotal = params.plan.price + networkAddon;
+
   const idempotencyKey =
     params.idempotencyKey ??
     createHash("sha256")
       .update(
-        `${params.userId}:${params.hostname}:${params.locationId}:${params.plan.cpuCores}:${params.plan.ramMb}:${params.plan.diskGb}`,
+        `${params.userId}:${params.hostname}:${params.locationId}:${params.plan.cpuCores}:${params.plan.ramMb}:${params.plan.diskGb}:${networkMbps}`,
       )
       .digest("hex")
       .slice(0, 32);
@@ -130,9 +145,9 @@ export async function provisionVps(params: {
     userId: params.userId,
     type: "VPS",
     label: params.hostname,
-    monthlyPrice: params.plan.price,
+    monthlyPrice: monthlyTotal,
     idempotencyKey,
-    metadata: { locationId: params.locationId, os: params.os },
+    metadata: { locationId: params.locationId, os: params.os, networkMbps },
   });
 
   const vps = await prisma.vpsInstance.create({
@@ -146,6 +161,10 @@ export async function provisionVps(params: {
       ramMb: params.plan.ramMb,
       diskGb: params.plan.diskGb,
       bandwidthTb: params.plan.bandwidthTb,
+      cloudInit:
+        networkMbps > BP_NETWORK_BASE_MBPS
+          ? { networkMbps }
+          : undefined,
     },
   });
 
@@ -167,13 +186,15 @@ export async function provisionVps(params: {
   const promo = await applyPromoToOrderTotal(
     params.userId,
     params.promoCode,
-    params.plan.price,
+    monthlyTotal,
   );
 
+  const networkNote =
+    networkMbps > BP_NETWORK_BASE_MBPS ? `, network ${networkMbps} Mbps` : "";
   const invoiceDescription =
     promo.discount > 0 && promo.promoCode
-      ? `VPS: ${params.hostname} (promo ${promo.promoCode}: -$${promo.discount.toFixed(2)})`
-      : `VPS: ${params.hostname}`;
+      ? `VPS: ${params.hostname}${networkNote} (promo ${promo.promoCode}: -$${promo.discount.toFixed(2)})`
+      : `VPS: ${params.hostname}${networkNote}`;
 
   const invoice = await createInvoice({
     userId: params.userId,
@@ -197,6 +218,7 @@ export async function provisionVps(params: {
           promoClaimed = true;
         }
         await payInvoiceFromBalance(invoice.id, params.userId);
+        // Provisioning is started by invoice.paid / payment.confirmed event handlers.
       } catch (err) {
         if (promoClaimed && promo.promoId) {
           await releasePromoRedemption(params.userId, promo.promoId).catch(() => undefined);
@@ -204,29 +226,6 @@ export async function provisionVps(params: {
         throw err;
       } finally {
         await unlockBalance(params.userId, promo.chargeAmount);
-      }
-
-      try {
-        await startProvisioning({
-          serviceId,
-          idempotencyKey: `direct:${idempotencyKey}`,
-        });
-      } catch (err) {
-        if (
-          !(
-            err instanceof ValidationError &&
-            String(err.message).includes("Cannot provision")
-          )
-        ) {
-          const { reportOperationalIssue } = await import("../lib/operational-alerts");
-          await reportOperationalIssue({
-            category: "provisioning.start",
-            message: err instanceof Error ? err.message : "startProvisioning failed",
-            serviceId,
-            userId: params.userId,
-            dedupeKey: `start_fail:${serviceId}`,
-          });
-        }
       }
     } else if (params.prepaid) {
       const { emitPaymentConfirmed } = await import("../core/billing/engine");
@@ -360,3 +359,5 @@ export async function getLocations() {
     orderBy: { name: "asc" },
   });
 }
+
+export { createVpsUpgradeInvoice } from "./vps-upgrade";

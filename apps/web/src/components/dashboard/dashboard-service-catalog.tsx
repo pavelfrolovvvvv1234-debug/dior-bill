@@ -5,20 +5,12 @@ import { FastLink } from "@/components/ui/fast-link";
 import { usePlanProductLines } from "@/lib/i18n/use-plan-lines";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/store";
-import type { PlanProductLine, PlanTab } from "@/lib/plan-catalog";
-
-const LINE_TAG_KEYS: Partial<Record<PlanTab, string[]>> = {
-  "bulletproof-vps": ["dashboard.tags.instantDeploy", "dashboard.tags.offshore"],
-  "bulletproof-dedicated": ["dashboard.tags.bareMetal", "dashboard.tags.abuseReview"],
-  "bulletproof-domains": ["dashboard.tags.registration", "dashboard.tags.dns"],
-  vps: ["dashboard.tags.kvm", "dashboard.tags.multiRegion"],
-  dedicated: ["dashboard.tags.sla", "dashboard.tags.ddosReady"],
-  turbovds: ["dashboard.tags.hiCpu", "dashboard.tags.nvme"],
-};
+import type { PlanProductLine } from "@/lib/plan-catalog";
+import { PLAN_LINE_TAG_KEYS } from "@/lib/plan-line-tags";
 
 function ServiceCard({ line, bulletproof }: { line: PlanProductLine; bulletproof?: boolean }) {
   const { t } = useI18n();
-  const tagKeys = LINE_TAG_KEYS[line.id] ?? [];
+  const tagKeys = PLAN_LINE_TAG_KEYS[line.id] ?? [];
 
   return (
     <FastLink

@@ -1,7 +1,7 @@
 {
   "nav": {
     "overview": "Overview",
-    "selectPlan": "Select Plan",
+    "selectPlan": "Service catalog",
     "myServices": "My Services",
     "billing": "Billing",
     "affiliate": "Affiliate",
@@ -155,8 +155,8 @@
       "description": "Your services and available plans — deploy in a few clicks"
     },
     "plans": {
-      "title": "Select Plan",
-      "description": "Bulletproof & standard infrastructure — domains, VPS, dedicated, and Turbovds"
+      "title": "Service catalog",
+      "description": "Bulletproof and standard VPS, dedicated, domains, and TurboVDS — pick a line and configure your plan"
     },
     "services": {
       "title": "My Services",
@@ -357,6 +357,11 @@
     "tags": {
       "instantDeploy": "Instant deploy",
       "offshore": "Offshore",
+      "regular": "Regular",
+      "setup4to12h": "Setup 4–12h",
+      "setup2to3h": "Setup 2–3h",
+      "registration4to8h": "Registration 4–8h",
+      "highInternet": "High-Internet",
       "bareMetal": "Bare metal",
       "abuseReview": "Abuse review",
       "registration": "Registration",
@@ -365,27 +370,27 @@
       "multiRegion": "Multi-region",
       "sla": "99.9% SLA",
       "ddosReady": "DDoS ready",
-      "hiCpu": "Hi-CPU",
+      "hiCpu": "High-CPU",
       "nvme": "NVMe"
     }
   },
   "plans": {
     "productNav": "Product lines",
-    "bpDomainsTitle": "Bulletproof Domains & Offshore Registration",
-    "bpDomainsDesc": "DMCA-ignored registration with manual abuse review and offshore DNS.",
-    "bpVpsTitle": "Bulletproof VPS/VDS Hosting",
-    "bpVpsDesc": "Offshore VPS/VDS with DMCA-ignored policies and instant delivery",
+    "bpDomainsTitle": "Offshore domains",
+    "bpDomainsDesc": "Domain registration in offshore jurisdictions with enhanced privacy protection",
+    "bpVpsTitle": "BP VDS/VPS",
+    "bpVpsDesc": "Offshore abuse-resistant VPS with DMCA Ignored policy.",
     "buy": "Buy",
     "bpVpsDeploy": "Buy",
     "bpVpsPanel": "Instant delivery",
-    "bpDedicatedTitle": "Bulletproof Dedicated Servers",
-    "bpDedicatedDesc": "Bare-metal servers under bulletproof policy — high-trust workloads and DMCA-ignored hosting.",
-    "stdVpsTitle": "VPS/VDS Hosting",
-    "stdVpsDesc": "Standard virtual servers in Russia, Belarus, and Abkhazia. Orders are fulfilled manually via support after payment.",
+    "bpDedicatedTitle": "BP Dedicated",
+    "bpDedicatedDesc": "Dedicated server in an offshore datacenter with DMCA Ignored policy.",
+    "stdVpsTitle": "VPS/VDS",
+    "stdVpsDesc": "Standard VPS/VDS with dedicated resources, flexible configuration, and full root access.",
     "stdVpsDeploy": "Buy",
     "stdVpsPanel": "Order configuration",
-    "stdDedicatedTitle": "Dedicated Servers",
-    "stdDedicatedDesc": "Standard bare-metal servers with fixed configs, SLA-backed performance, and DDoS-ready uplinks.",
+    "stdDedicatedTitle": "Dedicated",
+    "stdDedicatedDesc": "Dedicated server with full hardware control and guaranteed compute resources.",
     "deployConfig": "Deploy configuration",
     "deployConfigDesc": "Offshore VPS with manual abuse review. Select a plan, region, and deploy.",
     "selectLocation": "Select location",
@@ -421,11 +426,15 @@
       "os": "Operating system",
       "promoCode": "Promo code",
       "optional": "optional",
-      "regionsLoading": "Regions are loading. Refresh the page or contact support."
+      "regionsLoading": "Regions are loading. Refresh the page or contact support.",
+      "networkSpeed": "Network speed",
+      "networkSpeedIncluded": "150 Mbps included in plan",
+      "networkSpeedAddon": "+{amount}/mo",
+      "networkSpeedTotal": "Total: {amount}/mo"
     },
     "turbovds": {
       "title": "TurboVDS",
-      "desc": "High-frequency DDR5 + NVMe compute with 10 Gbps uplink and unlimited bandwidth.",
+      "desc": "Abuse-resistant VPS/VDS for high-performance and network-intensive workloads.",
       "deploy": "Buy",
       "panel": "Order configuration"
     },
@@ -442,34 +451,34 @@
     },
     "lines": {
       "bulletproof-vps": {
-        "label": "Bulletproof VPS/VDS",
+        "label": "BP VDS/VPS",
         "short": "BP VPS",
-        "desc": "DMCA-ignored offshore hosting"
+        "desc": "Offshore abuse-resistant VPS with DMCA Ignored policy."
       },
       "bulletproof-dedicated": {
-        "label": "Bulletproof dedicated servers",
+        "label": "BP Dedicated",
         "short": "BP Dedicated",
-        "desc": "Bare metal with bulletproof policy"
+        "desc": "Dedicated server in an offshore datacenter with DMCA Ignored policy."
       },
       "bulletproof-domains": {
-        "label": "Bulletproof domains",
+        "label": "BP Domains",
         "short": "BP Domains",
-        "desc": "Bulletproof registration & DNS"
+        "desc": "Domain registration in offshore jurisdictions with enhanced privacy protection"
       },
       "vps": {
         "label": "VPS/VDS",
         "short": "VPS",
-        "desc": "Standard virtual servers with instant provisioning"
+        "desc": "Standard VPS/VDS with dedicated resources, flexible configuration, and full root access."
       },
       "dedicated": {
-        "label": "Dedicated servers",
+        "label": "Dedicated",
         "short": "Dedicated",
-        "desc": "Standard bare-metal infrastructure"
+        "desc": "Dedicated server with full hardware control and guaranteed compute resources."
       },
       "turbovds": {
-        "label": "Turbovds",
-        "short": "Turbovds",
-        "desc": "High-frequency compute for latency-sensitive workloads"
+        "label": "TurboVDS",
+        "short": "TurboVDS",
+        "desc": "Abuse-resistant VPS/VDS for high-performance and network-intensive workloads."
       }
     }
   },
@@ -477,7 +486,24 @@
     "title": "My Services",
     "empty": "No services yet",
     "manage": "Manage",
-    "endpoint": "Endpoint",
+    "renew": "Renew",
+    "upgrade": "Upgrade",
+    "upgradeTitle": "Upgrade VPS",
+    "upgradeDesc": "Increase resources for {hostname} without ordering a new service.",
+    "upgradePageDesc": "Pick a plan above your current tier — pay the price difference and resources update automatically.",
+    "upgradeCurrent": "Current plan",
+    "upgradeSelect": "New plan",
+    "upgradeDueNow": "Due now (difference)",
+    "upgradeNewMonthly": "New monthly price",
+    "upgradeConfirm": "Create upgrade invoice",
+    "upgradeNone": "No higher plans are available for this server.",
+    "upgradeFailed": "Could not start upgrade",
+    "renewFailed": "Could not create renewal invoice",
+    "endpoint": "Address",
+    "detail": {
+      "provisioning": "Provisioning",
+      "pendingIp": "Pending IP"
+    },
     "region": "Region",
     "plan": "Plan",
     "renews": "Renews",
@@ -505,7 +531,10 @@
       "EXPIRED": "Expired",
       "CANCELLED": "Cancelled",
       "FAILED": "Failed",
-      "DELETED": "Deleted"
+      "DELETED": "Deleted",
+      "ROLLBACK": "Rollback",
+      "REINSTALLING": "Reinstalling",
+      "SNAPSHOTTING": "Snapshotting"
     }
   },
   "locations": {

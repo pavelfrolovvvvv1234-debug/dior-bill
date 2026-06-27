@@ -126,5 +126,7 @@ export {
   releasePromoRedemption,
   topUpBalance,
 } from "./legacy-helpers";
+export { createUserRenewalInvoice } from "./service-renewal";
+export { resolveInvoiceBillingSideEffects } from "./service-renewal";
 export { getBillingOverview, type BillingOverviewData } from "./overview";
 export { renderInvoiceText } from "./invoice-document";

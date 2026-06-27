@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { PlanProductLine, PlanTab } from "@/lib/plan-catalog";
+import { PLAN_LINE_TAG_KEYS } from "@/lib/plan-line-tags";
 import { Shield } from "lucide-react";
 import { useI18n } from "@/lib/i18n/store";
 
@@ -13,7 +14,7 @@ interface PlanProductNavProps {
 
 /** Fixed layout so all 6 tabs stay the same size when switching (no grid jump). */
 const TAB_BUTTON_CLASS =
-  "flex h-[5.75rem] w-full flex-col rounded-lg border px-4 py-3 text-left transition-colors duration-150";
+  "flex h-auto min-h-[7.5rem] w-full flex-col rounded-lg border px-4 py-3 text-left transition-colors duration-150";
 
 export function PlanProductNav({ lines, value, onChange }: PlanProductNavProps) {
   const { t } = useI18n();
@@ -26,6 +27,7 @@ export function PlanProductNav({ lines, value, onChange }: PlanProductNavProps) 
     >
       {lines.map((line) => {
         const active = line.id === value;
+        const tagKeys = PLAN_LINE_TAG_KEYS[line.id] ?? [];
         return (
           <button
             key={line.id}
@@ -54,9 +56,21 @@ export function PlanProductNav({ lines, value, onChange }: PlanProductNavProps) 
                 ) : null}
               </span>
             </div>
-            <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
               {line.description}
             </p>
+            {tagKeys.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {tagKeys.map((tagKey) => (
+                  <span
+                    key={tagKey}
+                    className="rounded-md border border-border/80 bg-background/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                  >
+                    {t(tagKey)}
+                  </span>
+                ))}
+              </div>
+            )}
           </button>
         );
       })}

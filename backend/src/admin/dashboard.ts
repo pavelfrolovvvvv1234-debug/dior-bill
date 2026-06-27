@@ -1,6 +1,13 @@
 import { prisma } from "@dior/database";
-import { cacheGet, cacheSet } from "../lib/redis";
+import { cacheGet, cacheSet, cacheDel } from "../lib/redis";
 import { requirePermission } from "./rbac";
+
+export const CONTROL_DASHBOARD_CACHE_KEY = "control:dashboard:v7";
+
+/** Drop cached admin overview — call after top-ups, services, tickets, etc. */
+export async function invalidateControlDashboardCache(): Promise<void> {
+  await cacheDel(CONTROL_DASHBOARD_CACHE_KEY);
+}
 
 export type ControlDashboard = {
   kpis: {
@@ -50,7 +57,7 @@ export type ControlDashboard = {
 export async function getControlDashboard(actorId: string): Promise<ControlDashboard> {
   await requirePermission(actorId, "analytics.read");
 
-  const cacheKey = "control:dashboard:v6";
+  const cacheKey = CONTROL_DASHBOARD_CACHE_KEY;
   const cached = await cacheGet<ControlDashboard>(cacheKey);
   if (cached) return cached;
 
@@ -153,6 +160,6 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
     recentTickets,
   };
 
-  await cacheSet(cacheKey, dashboard, 120);
+  await cacheSet(cacheKey, dashboard, 30);
   return dashboard;
 }

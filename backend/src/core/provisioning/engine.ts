@@ -184,7 +184,29 @@ export async function startProvisioning(params: {
     include: { vpsInstance: true },
   });
   if (!service) throw new NotFoundError("Service not found");
-  if (service.status !== "PENDING" && service.status !== "FAILED") {
+
+  if (service.status === "PROVISIONING") {
+    const job = await prisma.provisioningJob.findFirst({
+      where: { serviceId: params.serviceId },
+      orderBy: { createdAt: "desc" },
+    });
+    if (job) {
+      return { jobId: job.id, vpsId: service.vpsInstance?.id };
+    }
+    const vps = service.vpsInstance;
+    if (vps) {
+      const recovered = await initProvisioningJob(params.serviceId, "vps.provision");
+      await enqueueJob("vps.provision", {
+        serviceId: params.serviceId,
+        vpsId: vps.id,
+        jobId: recovered.id,
+        idempotencyKey: params.idempotencyKey,
+      });
+      return { jobId: recovered.id, vpsId: vps.id };
+    }
+  }
+
+  if (service.status !== "PENDING" && service.status !== "FAILED" && service.status !== "ROLLBACK") {
     const existing = await prisma.provisioningOperation.findUnique({
       where: { idempotencyKey: params.idempotencyKey },
     });

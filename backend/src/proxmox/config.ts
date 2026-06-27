@@ -6,8 +6,23 @@ export type ProxmoxRuntimeConfig = {
   storage: string;
   bridge: string;
   verifyTls: boolean;
+  caCertPath?: string;
   templateMap: Record<string, number>;
 };
+
+/** Proxmox clusters almost always use self-signed certs unless you install a real CA. */
+function parseProxmoxTlsVerify(): boolean {
+  const insecure = process.env.PROXMOX_INSECURE_TLS?.trim().toLowerCase();
+  if (insecure === "1" || insecure === "true" || insecure === "yes") return false;
+
+  const verify = process.env.PROXMOX_VERIFY_TLS?.trim().toLowerCase();
+  if (verify === "1" || verify === "true" || verify === "yes") return true;
+
+  // Legacy: PROXMOX_INSECURE_TLS=0 explicitly requests verification
+  if (insecure === "0" || insecure === "false" || insecure === "no") return true;
+
+  return false;
+}
 
 function parseTemplateMap(raw: string | undefined): Record<string, number> {
   if (!raw?.trim()) return {};
@@ -43,7 +58,8 @@ export function getProxmoxConfig(): ProxmoxRuntimeConfig | null {
     node: process.env.PROXMOX_NODE?.trim() || "pve01",
     storage: process.env.PROXMOX_STORAGE?.trim() || "local-lvm",
     bridge: process.env.PROXMOX_BRIDGE?.trim() || "vmbr0",
-    verifyTls: process.env.PROXMOX_INSECURE_TLS !== "1",
+    verifyTls: parseProxmoxTlsVerify(),
+    caCertPath: process.env.PROXMOX_CA_CERT_PATH?.trim() || undefined,
     templateMap: parseTemplateMap(process.env.PROXMOX_TEMPLATE_MAP),
   };
 }
