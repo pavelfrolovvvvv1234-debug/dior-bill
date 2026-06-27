@@ -12,7 +12,8 @@
     "verify-amper": "tsx scripts/verify-amper.ts",
     "verify-proxmox": "tsx scripts/verify-proxmox.ts",
     "retry-provision": "tsx scripts/retry-provision-job.ts",
-    "resume-stuck-vps": "tsx scripts/resume-stuck-vps.ts"
+    "resume-stuck-vps": "tsx scripts/resume-stuck-vps.ts",
+    "sync-ip-pool": "tsx scripts/sync-ip-pool.ts"
   },
   "dependencies": {
     "@dior/database": "workspace:*",

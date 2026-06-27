@@ -18,6 +18,7 @@ export interface VmSpec {
   templateVmid: number;
   primaryIp?: string;
   gateway?: string;
+  ipCidr?: number;
   storage: string;
   bridge: string;
 }
@@ -205,7 +206,7 @@ export class ProxmoxClient {
 
   async configureVm(spec: VmSpec): Promise<void> {
     const ipconfig0 = spec.primaryIp
-      ? `ip=${spec.primaryIp}/24,gw=${spec.gateway ?? guessGateway(spec.primaryIp)}`
+      ? `ip=${spec.primaryIp}/${spec.ipCidr ?? 24},gw=${spec.gateway ?? guessGateway(spec.primaryIp)}`
       : undefined;
 
     await this.requestForm(

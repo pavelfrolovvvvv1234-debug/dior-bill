@@ -1,10 +1,14 @@
 import { prisma } from "@dior/database";
+import { ValidationError } from "@dior/shared";
 import { toJsonValue } from "../lib/json";
 import {
   destroyProxmoxVmIfExists,
   getProxmoxNodeName,
+  isProxmoxConfigured,
+  isProxmoxIpPoolConfigured,
   provisionVmOnProxmox,
   proxmoxTlsHint,
+  syncProxmoxIpPoolFromEnv,
   syncVpsMetricsFromProxmox,
 } from "../proxmox";
 import { withIdempotency } from "../core/events/idempotency";
@@ -58,7 +62,7 @@ async function updateJob(
     progress?: number;
     currentStep?: string;
     steps?: ProvisioningStep[];
-    error?: string;
+    error?: string | null;
     rollbackState?: Record<string, unknown>;
     attempts?: number;
   },
@@ -124,6 +128,14 @@ export async function runVpsProvisionPipeline(payload: {
     const proxmoxNode = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
 
     try {
+      if (isProxmoxIpPoolConfigured()) {
+        await syncProxmoxIpPoolFromEnv();
+      } else if (process.env.NODE_ENV === "production") {
+        throw new ValidationError(
+          "PROXMOX_IP_POOL is not configured — set real routable IPv4 addresses in .env",
+        );
+      }
+
       await markStep(steps, 0, "running", 15, payload.jobId);
       assignedIp = await allocateIpTransactional({
         locationId: vps.locationId,

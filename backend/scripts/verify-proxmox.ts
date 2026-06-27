@@ -3,7 +3,13 @@
  * Usage (from backend/): set PROXMOX_* in monorepo root `.env`, then `pnpm run verify-proxmox`
  */
 import { loadMonorepoEnv } from "../src/lib/load-env";
-import { verifyProxmoxIntegration, getProxmoxConfig } from "../src/proxmox";
+import {
+  verifyProxmoxIntegration,
+  getProxmoxConfig,
+  isProxmoxIpPoolConfigured,
+  parseProxmoxIpPool,
+  syncProxmoxIpPoolFromEnv,
+} from "../src/proxmox";
 
 loadMonorepoEnv();
 
@@ -38,6 +44,13 @@ async function main() {
     process.exit(1);
   }
   console.log("Next VMID:", result.nextVmid);
+  if (isProxmoxIpPoolConfigured()) {
+    const sync = await syncProxmoxIpPoolFromEnv();
+    console.log("IP pool:", parseProxmoxIpPool().length, "addresses →", sync.nodeHostname);
+    console.log("Gateway:", config.gateway ?? "(auto .1)", `/${config.ipCidr}`);
+  } else {
+    console.error("WARNING: PROXMOX_IP_POOL not set — VPS will get fake demo IPs (185.234.x.x)");
+  }
   console.log("OK — Proxmox API is reachable");
 }
 

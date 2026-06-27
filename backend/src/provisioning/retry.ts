@@ -1,8 +1,16 @@
 import { prisma } from "@dior/database";
 import { NotFoundError, ValidationError } from "@dior/shared";
 import { transitionServiceLifecycle } from "../core/provisioning/engine";
-import { destroyProxmoxVmIfExists, getProxmoxClient, getProxmoxNodeName } from "../proxmox";
+import {
+  destroyProxmoxVmIfExists,
+  getProxmoxClient,
+  getProxmoxNodeName,
+  isPlaceholderIp,
+  isProxmoxIpPoolConfigured,
+  syncProxmoxIpPoolFromEnv,
+} from "../proxmox";
 import { runVpsProvisionPipeline } from "./state-machine";
+import { releaseIpTransactional } from "../core/inventory/service";
 
 function proxmoxVmName(hostname: string): string {
   return hostname.replace(/[^a-zA-Z0-9.-]/g, "-").slice(0, 63);
@@ -64,6 +72,17 @@ export async function retryVpsProvisioningForInstance(params: {
   });
   if (!job) throw new NotFoundError("No provisioning job for this VPS");
 
+  if (isProxmoxIpPoolConfigured()) {
+    const sync = await syncProxmoxIpPoolFromEnv();
+    if (sync.poolSize > 0) {
+      console.log(`[retry] synced ${sync.poolSize} IPs to ${sync.nodeHostname}`);
+    }
+  } else {
+    throw new ValidationError(
+      "PROXMOX_IP_POOL is not set in .env — add your real routable IPv4s before provisioning",
+    );
+  }
+
   const fresh = await prisma.service.findUnique({ where: { id: vps.serviceId } });
   const status = fresh?.status ?? vps.service.status;
   if (status === "ROLLBACK" || status === "FAILED" || status === "PENDING") {
@@ -84,6 +103,17 @@ export async function retryVpsProvisioningForInstance(params: {
     await prisma.vpsInstance.update({
       where: { id: vps.id },
       data: { proxmoxVmid: null },
+    });
+  }
+
+  if (vps.primaryIp && isPlaceholderIp(vps.primaryIp)) {
+    await releaseIpTransactional({
+      address: vps.primaryIp,
+      idempotencyKey: `retry:release-placeholder:${vps.id}:${Date.now()}`,
+    }).catch(() => {});
+    await prisma.vpsInstance.update({
+      where: { id: vps.id },
+      data: { primaryIp: null },
     });
   }
 

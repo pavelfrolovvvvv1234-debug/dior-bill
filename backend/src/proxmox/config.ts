@@ -5,6 +5,8 @@ export type ProxmoxRuntimeConfig = {
   node: string;
   storage: string;
   bridge: string;
+  gateway?: string;
+  ipCidr: number;
   /** Accept self-signed / private CA certs (default for Proxmox). */
   insecureTls: boolean;
   caCertPath?: string;
@@ -64,6 +66,12 @@ export function getProxmoxConfig(): ProxmoxRuntimeConfig | null {
     node: process.env.PROXMOX_NODE?.trim() || "pve01",
     storage: process.env.PROXMOX_STORAGE?.trim() || "local-lvm",
     bridge: process.env.PROXMOX_BRIDGE?.trim() || "vmbr0",
+    gateway: process.env.PROXMOX_GATEWAY?.trim() || undefined,
+    ipCidr: (() => {
+      const raw = process.env.PROXMOX_IP_CIDR?.trim();
+      const n = raw ? Number.parseInt(raw, 10) : 24;
+      return Number.isFinite(n) && n > 0 && n <= 32 ? n : 24;
+    })(),
     insecureTls: parseProxmoxInsecureTls(),
     caCertPath: process.env.PROXMOX_CA_CERT_PATH?.trim() || undefined,
     templateMap: parseTemplateMap(process.env.PROXMOX_TEMPLATE_MAP),

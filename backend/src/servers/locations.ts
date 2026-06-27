@@ -1,5 +1,6 @@
 import { prisma } from "@dior/database";
 import { getProxmoxConfig } from "../proxmox/config";
+import { isProxmoxIpPoolConfigured, syncProxmoxIpPoolFromEnv } from "../proxmox/ip-pool";
 
 /** Proxmox API node name — use PROXMOX_NODE from .env when set (single cluster). */
 function resolveProxmoxNodeForLocation(locCode: string): string {
@@ -119,6 +120,10 @@ export async function ensureBulletproofVpsLocations() {
     await ensureNodeIpPool(node);
   }
 
+  if (isProxmoxIpPoolConfigured()) {
+    await syncProxmoxIpPoolFromEnv();
+  }
+
   bulletproofEnsured = true;
 }
 
@@ -182,6 +187,8 @@ async function ensureNodeIpPool(node: {
   locationId: string;
   hostname: string;
 }) {
+  if (isProxmoxIpPoolConfigured()) return;
+
   const existing = await prisma.ipAddress.count({ where: { nodeId: node.id } });
   if (existing > 0) return;
 

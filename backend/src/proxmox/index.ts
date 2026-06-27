@@ -14,6 +14,12 @@ export {
 } from "./client";
 export { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint } from "./config";
 export { resolveTemplateVmid } from "./os-templates";
+export {
+  isPlaceholderIp,
+  isProxmoxIpPoolConfigured,
+  parseProxmoxIpPool,
+  syncProxmoxIpPoolFromEnv,
+} from "./ip-pool";
 
 export async function verifyProxmoxIntegration(): Promise<{
   ok: true;
@@ -77,6 +83,8 @@ export async function provisionVmOnProxmox(spec: {
     diskGb: spec.diskGb,
     templateVmid,
     primaryIp: spec.primaryIp,
+    gateway: config.gateway,
+    ipCidr: config.ipCidr,
     storage: config.storage,
     bridge: config.bridge,
   };
@@ -221,6 +229,8 @@ export async function reinstallVpsOnProxmox(
     diskGb: vps.diskGb,
     templateVmid,
     primaryIp: vps.primaryIp ?? undefined,
+    gateway: config.gateway,
+    ipCidr: config.ipCidr,
     storage: config.storage,
     bridge: config.bridge,
   };
