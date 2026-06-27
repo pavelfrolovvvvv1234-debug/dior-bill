@@ -8,6 +8,7 @@ import {
   adminUpdateServiceStatus,
   adminReplyToTicket,
   adminUpdateTicket,
+  adminRegisterVpsInSharedRegistry,
   createBroadcast,
   createPromoCode,
   togglePromoCode,
@@ -164,4 +165,16 @@ export async function deleteTicketAction(ticketId: string) {
   const actor = await requireControlSession();
   await deleteAdminTicket(actor.id, ticketId);
   revalidateControl(controlPath("/support"), controlPath(`/support/${ticketId}`));
+}
+
+export async function adminRegisterVpsInRegistryAction(params: {
+  vmid: number;
+  ip: string;
+  owner: "telegram_bot" | "billing" | "manual";
+  externalServiceId?: string;
+  hostname?: string;
+}) {
+  const actor = await requireControlSession();
+  await adminRegisterVpsInSharedRegistry(actor.id, params);
+  revalidateControl(controlPath("/services"), controlPath(`/vms/${params.vmid}`));
 }

@@ -2,6 +2,7 @@ export * from "./rbac";
 export * from "./dashboard";
 export * from "./users";
 export * from "./services";
+export * from "./proxmox-vms";
 export * from "./billing";
 export * from "./promo-codes";
 export * from "./referrals";

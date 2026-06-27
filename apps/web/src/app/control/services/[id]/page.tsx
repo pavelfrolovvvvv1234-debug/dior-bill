@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { adminGetDomainNameservers, getAdminServiceDetail } from "@dior/backend";
+import { adminGetDomainNameservers, getAdminServiceDetail, getAdminVpsAccessByServiceId } from "@dior/backend";
 import { PageHeader } from "@/components/control/page-header";
 import { PageContainer } from "@/components/control/page-container";
 import { Panel } from "@/components/control/panel";
 import { ServiceActions } from "@/components/control/service-actions";
+import { AdminVpsCredentialsPanel } from "@/components/control/admin-vps-credentials";
 import { Badge } from "@/components/ui/badge";
 import { requireControlSession } from "@/lib/auth";
 import { controlPath } from "@/lib/control-paths";
@@ -32,6 +33,16 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
   const domainNs =
     service.type === "DOMAIN" && service.domain
       ? await adminGetDomainNameservers(actor.id, service.id)
+      : null;
+
+  const vpsAccess =
+    service.type === "VPS" && service.vpsInstance
+      ? await getAdminVpsAccessByServiceId(actor.id, service.id)
+      : null;
+
+  const proxmoxDetailHref =
+    service.vpsInstance?.proxmoxVmid != null
+      ? controlPath(`/vms/${service.vpsInstance.proxmoxVmid}`)
       : null;
 
   return (
@@ -121,6 +132,26 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             </dl>
           </Panel>
         </div>
+
+        {vpsAccess && (
+          <AdminVpsCredentialsPanel
+            username={vpsAccess.username}
+            password={vpsAccess.password}
+            host={vpsAccess.host}
+            sshCommand={vpsAccess.sshCommand}
+            rdpTarget={vpsAccess.rdpTarget}
+            proxmoxVmid={vpsAccess.proxmoxVmid}
+            osLabel={vpsAccess.osLabel}
+          />
+        )}
+
+        {proxmoxDetailHref && (
+          <p className="text-sm">
+            <Link href={proxmoxDetailHref} className="font-medium text-primary hover:underline">
+              Full Proxmox cluster details →
+            </Link>
+          </p>
+        )}
 
         {domainNs && (
           <Panel title="Nameservers">
