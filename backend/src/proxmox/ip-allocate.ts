@@ -10,6 +10,7 @@ import {
   getProxmoxIpCidr,
   isPlaceholderIp,
   isProxmoxIpPoolConfigured,
+  parseProxmoxReservedIps,
   syncProxmoxIpPoolFromEnv,
 } from "./ip-pool";
 import { resolveTemplateVmid } from "./os-templates";
@@ -63,6 +64,39 @@ function parseIpconfigNetwork(
     startHost: 10,
     endHost: 254,
   };
+}
+
+function isInSubnet(ip: string, prefix: string): boolean {
+  return ip.startsWith(`${prefix}.`);
+}
+
+function configHostIp(): string | null {
+  const apiUrl = getProxmoxConfig()?.apiUrl;
+  if (!apiUrl) return null;
+  try {
+    const host = new URL(apiUrl).hostname;
+    return /^\d+\.\d+\.\d+\.\d+$/.test(host) ? host : null;
+  } catch {
+    return null;
+  }
+}
+
+function configuredStartHost(fallback: number): number {
+  const raw = process.env.PROXMOX_IP_START?.trim();
+  if (!raw) return fallback;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 2 && n <= 254 ? n : fallback;
+}
+
+function computeStartHost(network: ProxmoxNetworkSpec, used: Set<string>): number {
+  const floor = configuredStartHost(network.startHost);
+  let maxOctet = floor - 1;
+  for (const ip of used) {
+    if (!isInSubnet(ip, network.prefix)) continue;
+    const last = Number.parseInt(ip.split(".")[3] ?? "", 10);
+    if (Number.isFinite(last)) maxOctet = Math.max(maxOctet, last);
+  }
+  return Math.min(network.endHost, Math.max(floor, maxOctet + 1));
 }
 
 /** Resolve routable subnet for new VMs (env → template → Proxmox host IP). */
@@ -121,11 +155,24 @@ export async function resolveProxmoxNetwork(os: string): Promise<ProxmoxNetworkS
   );
 }
 
-async function collectUsedProxmoxIps(locationId: string, nodeName: string): Promise<Set<string>> {
+/**
+ * Every IPv4 that must not be assigned by web billing:
+ * - PROXMOX_RESERVED_IPS (TG bot / manual)
+ * - billing DB (web sales)
+ * - live Proxmox VMs (TG bot + web, via ipconfig0 and guest-agent)
+ */
+export async function collectAllUsedProxmoxIps(
+  network: ProxmoxNetworkSpec,
+  nodeName: string,
+): Promise<Set<string>> {
   const used = new Set<string>();
 
+  for (const ip of parseProxmoxReservedIps()) {
+    if (isInSubnet(ip, network.prefix)) used.add(ip);
+  }
+
   const vpsRows = await prisma.vpsInstance.findMany({
-    where: { locationId, primaryIp: { not: null } },
+    where: { primaryIp: { startsWith: `${network.prefix}.` } },
     select: { primaryIp: true },
   });
   for (const row of vpsRows) {
@@ -134,7 +181,7 @@ async function collectUsedProxmoxIps(locationId: string, nodeName: string): Prom
 
   const ipRows = await prisma.ipAddress.findMany({
     where: {
-      locationId,
+      address: { startsWith: `${network.prefix}.` },
       status: { in: ["assigned", "reserved"] },
     },
     select: { address: true },
@@ -145,41 +192,98 @@ async function collectUsedProxmoxIps(locationId: string, nodeName: string): Prom
 
   const client = getProxmoxClient();
   if (client) {
-    try {
-      const vms = await client.listVms(nodeName);
-      for (const vm of vms) {
-        try {
-          const cfg = await client.getVmConfig(nodeName, vm.vmid);
-          const ip = client.parseIpFromConfig(cfg);
-          if (ip && !isPlaceholderIp(ip)) used.add(ip);
-        } catch {
-          /* VM may be mid-clone */
-        }
-      }
-    } catch {
-      /* list failed */
-    }
+    const live = await client.collectUsedIpsOnNode(nodeName, network.prefix);
+    for (const ip of live) used.add(ip);
   }
 
+  used.add(network.gateway);
   const hostIp = configHostIp();
-  if (hostIp) used.add(hostIp);
+  if (hostIp && isInSubnet(hostIp, network.prefix)) used.add(hostIp);
 
   return used;
 }
 
-function configHostIp(): string | null {
-  const apiUrl = getProxmoxConfig()?.apiUrl;
-  if (!apiUrl) return null;
-  try {
-    const host = new URL(apiUrl).hostname;
-    return /^\d+\.\d+\.\d+\.\d+$/.test(host) ? host : null;
-  } catch {
-    return null;
+/** Mark IPs already on Proxmox as reserved in billing inventory (pool mode safety). */
+export async function reserveProxmoxOccupiedIps(params: {
+  locationId: string;
+  nodeId?: string;
+  used: Set<string>;
+}): Promise<number> {
+  let reserved = 0;
+  for (const address of params.used) {
+    if (isPlaceholderIp(address)) continue;
+    const row = await prisma.ipAddress.findUnique({ where: { address } });
+    if (!row) {
+      await prisma.ipAddress.create({
+        data: {
+          address,
+          locationId: params.locationId,
+          nodeId: params.nodeId ?? null,
+          status: "reserved",
+        },
+      });
+      reserved++;
+      continue;
+    }
+    if (row.status === "available") {
+      await prisma.ipAddress.update({
+        where: { id: row.id },
+        data: { status: "reserved", vpsId: null },
+      });
+      reserved++;
+    }
   }
+  return reserved;
 }
 
-function pickNextFreeIp(network: ProxmoxNetworkSpec, used: Set<string>): string | null {
-  for (let host = network.startHost; host <= network.endHost; host++) {
+/** Worker/admin: sync live Proxmox occupancy into inventory. */
+export async function syncProxmoxUsedIpsToInventory(
+  locationId?: string,
+  os = "debian12",
+): Promise<{ used: number; reserved: number; nextFree: string | null }> {
+  const network = await resolveProxmoxNetwork(os);
+  const nodeName = getProxmoxNodeName();
+  const used = await collectAllUsedProxmoxIps(network, nodeName);
+
+  let locId = locationId;
+  let nodeId: string | undefined;
+  if (!locId) {
+    const locationCode = process.env.PROXMOX_IP_LOCATION?.trim() || "nl-ams";
+    const location = await prisma.location.findUnique({ where: { code: locationCode } });
+    locId = location?.id;
+    if (locId) {
+      const node = await prisma.node.findFirst({
+        where: { locationId: locId, status: "online" },
+        orderBy: { createdAt: "asc" },
+      });
+      nodeId = node?.id;
+    }
+  }
+
+  const reserved = locId
+    ? await reserveProxmoxOccupiedIps({ locationId: locId, nodeId, used })
+    : 0;
+
+  const start = computeStartHost(network, used);
+  let nextFree: string | null = null;
+  for (let host = start; host <= network.endHost; host++) {
+    const candidate = `${network.prefix}.${host}`;
+    if (candidate === network.gateway) continue;
+    if (!used.has(candidate)) {
+      nextFree = candidate;
+      break;
+    }
+  }
+
+  return { used: used.size, reserved, nextFree };
+}
+
+function pickNextFreeIp(
+  network: ProxmoxNetworkSpec,
+  used: Set<string>,
+): string | null {
+  const start = computeStartHost(network, used);
+  for (let host = start; host <= network.endHost; host++) {
     const candidate = `${network.prefix}.${host}`;
     if (candidate === network.gateway) continue;
     if (!used.has(candidate)) return candidate;
@@ -189,7 +293,7 @@ function pickNextFreeIp(network: ProxmoxNetworkSpec, used: Set<string>): string 
 
 /**
  * Allocate a routable IPv4 for Proxmox cloud-init.
- * Uses PROXMOX_IP_POOL when set; otherwise auto-picks from detected subnet.
+ * Skips IPs already used on Proxmox (including TG-bot VMs).
  */
 export async function allocateStaticIpForVps(params: {
   locationId: string;
@@ -198,11 +302,6 @@ export async function allocateStaticIpForVps(params: {
   os: string;
   idempotencyKey: string;
 }): Promise<string> {
-  if (isProxmoxIpPoolConfigured()) {
-    await syncProxmoxIpPoolFromEnv();
-    return allocateIpTransactional(params);
-  }
-
   const existing = await prisma.domainEvent.findUnique({
     where: { idempotencyKey: `ip.alloc:${params.idempotencyKey}` },
   });
@@ -217,14 +316,31 @@ export async function allocateStaticIpForVps(params: {
       })
     : null;
   const nodeName = getProxmoxNodeName(nodeRow?.proxmoxNode ?? nodeRow?.name);
-
   const network = await resolveProxmoxNetwork(params.os);
-  const used = await collectUsedProxmoxIps(params.locationId, nodeName);
+  const used = await collectAllUsedProxmoxIps(network, nodeName);
+
+  if (isProxmoxIpPoolConfigured()) {
+    await syncProxmoxIpPoolFromEnv();
+    await reserveProxmoxOccupiedIps({
+      locationId: params.locationId,
+      nodeId: params.nodeId,
+      used,
+    });
+    return allocateIpTransactional({
+      ...params,
+      excludeAddresses: used,
+    });
+  }
+
   const address = pickNextFreeIp(network, used);
   if (!address) {
     throw new ValidationError(
-      `No free IPv4 in ${network.prefix}.0/${network.cidr} — expand PROXMOX_IP_POOL or PROXMOX_NETWORK`,
+      `No free IPv4 in ${network.prefix}.0/${network.cidr} (${used.size} already used on Proxmox/TG bot)`,
     );
+  }
+
+  if (used.has(address)) {
+    throw new ValidationError(`IPv4 ${address} is already in use on Proxmox`);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -272,7 +388,7 @@ export async function allocateStaticIpForVps(params: {
   });
 
   console.log(
-    `[proxmox] auto-allocated ${address} (gw ${network.gateway}/${network.cidr}) for vps ${params.vpsId}`,
+    `[proxmox] auto-allocated ${address} (gw ${network.gateway}/${network.cidr}, ${used.size} IPs skipped) for vps ${params.vpsId}`,
   );
   return address;
 }

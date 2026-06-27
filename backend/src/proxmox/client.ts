@@ -278,18 +278,8 @@ export class ProxmoxClient {
             { timeoutMs: 15_000 },
           );
 
-          for (const iface of interfaces) {
-            for (const addr of iface["ip-addresses"] ?? []) {
-              const ip = addr["ip-address"]?.trim();
-              if (
-                addr["ip-address-type"] === "ipv4" &&
-                ip &&
-                !ip.startsWith("127.") &&
-                !ip.startsWith("169.254.")
-              ) {
-                return ip;
-              }
-            }
+          for (const ip of this.extractIpv4FromAgentInterfaces(interfaces)) {
+            return ip;
           }
         } catch {
           /* agent up but no IP yet */
@@ -369,8 +359,88 @@ export class ProxmoxClient {
 
   async listVms(
     node: string,
-  ): Promise<Array<{ vmid: number; name?: string; status?: string }>> {
+  ): Promise<Array<{ vmid: number; name?: string; status?: string; template?: number }>> {
     return this.request("GET", `/api2/json/nodes/${node}/qemu`);
+  }
+
+  /** Extract routable IPv4s from guest-agent interface list. */
+  extractIpv4FromAgentInterfaces(
+    interfaces: Array<{
+      name?: string;
+      "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
+    }>,
+    subnetPrefix?: string,
+  ): string[] {
+    const out: string[] = [];
+    for (const iface of interfaces) {
+      for (const addr of iface["ip-addresses"] ?? []) {
+        const ip = addr["ip-address"]?.trim();
+        if (
+          addr["ip-address-type"] === "ipv4" &&
+          ip &&
+          !ip.startsWith("127.") &&
+          !ip.startsWith("169.254.") &&
+          (!subnetPrefix || ip.startsWith(`${subnetPrefix}.`))
+        ) {
+          out.push(ip);
+        }
+      }
+    }
+    return out;
+  }
+
+  async getGuestAgentIps(node: string, vmid: number, subnetPrefix?: string): Promise<string[]> {
+    if (!(await this.pingGuestAgent(node, vmid))) return [];
+    try {
+      const interfaces = await this.request<
+        Array<{
+          name?: string;
+          "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
+        }>
+      >(
+        "GET",
+        `/api2/json/nodes/${node}/qemu/${vmid}/agent/network-get-interfaces`,
+        undefined,
+        { timeoutMs: 8_000 },
+      );
+      return this.extractIpv4FromAgentInterfaces(interfaces, subnetPrefix);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * All IPv4s already in use on this node (cloud-init config + guest-agent on running VMs).
+   * Includes TG-bot VMs that are not in billing DB.
+   */
+  async collectUsedIpsOnNode(node: string, subnetPrefix?: string): Promise<Set<string>> {
+    const used = new Set<string>();
+    let vms: Array<{ vmid: number; name?: string; status?: string; template?: number }>;
+    try {
+      vms = await this.listVms(node);
+    } catch {
+      return used;
+    }
+
+    for (const vm of vms) {
+      if (vm.template === 1) continue;
+      try {
+        const cfg = await this.getVmConfig(node, vm.vmid);
+        const fromCfg = this.parseIpFromConfig(cfg);
+        if (fromCfg && (!subnetPrefix || fromCfg.startsWith(`${subnetPrefix}.`))) {
+          used.add(fromCfg);
+        }
+      } catch {
+        /* mid-clone */
+      }
+
+      if (vm.status === "running") {
+        const fromAgent = await this.getGuestAgentIps(node, vm.vmid, subnetPrefix);
+        for (const ip of fromAgent) used.add(ip);
+      }
+    }
+
+    return used;
   }
 
   async getVmStatus(

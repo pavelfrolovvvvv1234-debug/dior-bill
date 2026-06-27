@@ -9,7 +9,9 @@ import {
   isProxmoxIpPoolConfigured,
   parseProxmoxIpPool,
   syncProxmoxIpPoolFromEnv,
+  syncProxmoxUsedIpsToInventory,
   resolveProxmoxNetwork,
+  parseProxmoxReservedIps,
 } from "../src/proxmox";
 
 loadMonorepoEnv();
@@ -51,11 +53,19 @@ async function main() {
     console.log("Gateway:", config.gateway ?? "(auto .1)", `/${config.ipCidr}`);
   } else {
     const net = await resolveProxmoxNetwork("debian12");
+    const occupancy = await syncProxmoxUsedIpsToInventory();
+    const reservedEnv = parseProxmoxReservedIps();
     console.log(
       "IP mode: auto static cloud-init",
-      `→ ${net.prefix}.10–${net.endHost}`,
-      `gw ${net.gateway}/${net.cidr}`,
+      `→ ${net.prefix}.0/${net.cidr}`,
+      `gw ${net.gateway}`,
     );
+    console.log(
+      "Occupied (Proxmox + billing + TG reserved):",
+      occupancy.used,
+      reservedEnv.length ? `(+${reservedEnv.length} from PROXMOX_RESERVED_IPS)` : "",
+    );
+    console.log("Next free IP for web billing:", occupancy.nextFree ?? "NONE");
   }
   console.log("OK — Proxmox API is reachable");
 }

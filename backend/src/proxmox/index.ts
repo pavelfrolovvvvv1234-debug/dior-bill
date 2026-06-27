@@ -24,10 +24,17 @@ export {
   isPlaceholderIp,
   isProxmoxIpPoolConfigured,
   parseProxmoxIpPool,
+  parseProxmoxReservedIps,
   purgePlaceholderIpsFromInventory,
   syncProxmoxIpPoolFromEnv,
 } from "./ip-pool";
-export { allocateStaticIpForVps, resolveProxmoxNetwork } from "./ip-allocate";
+export {
+  allocateStaticIpForVps,
+  collectAllUsedProxmoxIps,
+  reserveProxmoxOccupiedIps,
+  resolveProxmoxNetwork,
+  syncProxmoxUsedIpsToInventory,
+} from "./ip-allocate";
 
 export async function verifyProxmoxIntegration(): Promise<{
   ok: true;

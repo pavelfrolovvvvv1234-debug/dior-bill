@@ -41,6 +41,8 @@ export async function allocateIpTransactional(params: {
   nodeId?: string;
   vpsId: string;
   idempotencyKey: string;
+  /** Skip IPs already on Proxmox / TG bot / reserved list */
+  excludeAddresses?: ReadonlySet<string>;
 }): Promise<string> {
   const existing = await prisma.domainEvent.findUnique({
     where: { idempotencyKey: `ip.alloc:${params.idempotencyKey}` },
@@ -63,8 +65,12 @@ export async function allocateIpTransactional(params: {
     const ip =
       isProxmoxConfigured() && !isProxmoxIpPoolConfigured()
         ? null
-        : candidates.find((row) => !isPlaceholderIp(row.address)) ??
-          candidates[0] ??
+        : candidates.find(
+            (row) =>
+              !isPlaceholderIp(row.address) &&
+              !params.excludeAddresses?.has(row.address),
+          ) ??
+          candidates.find((row) => !params.excludeAddresses?.has(row.address)) ??
           null;
 
     if (!ip) {

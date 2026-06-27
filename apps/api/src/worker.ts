@@ -23,6 +23,7 @@ import {
   resumeAllStuckVpsProvisioning,
   reportOperationalIssue,
   purgePlaceholderIpsFromInventory,
+  syncProxmoxUsedIpsToInventory,
 } from "@dior/backend";
 import { prisma } from "@dior/database";
 import { createNotification, deliverTelegramNotification } from "@dior/backend";
@@ -74,6 +75,13 @@ async function run() {
   purgePlaceholderIpsFromInventory()
     .then((n) => n > 0 && console.log(`Purged ${n} placeholder IPs from inventory`))
     .catch((e) => console.error("Placeholder IP purge:", e));
+  syncProxmoxUsedIpsToInventory()
+    .then((r) =>
+      console.log(
+        `Proxmox IP sync: ${r.used} occupied, ${r.reserved} reserved in DB, next free ${r.nextFree ?? "none"}`,
+      ),
+    )
+    .catch((e) => console.error("Proxmox IP occupancy sync:", e));
   runBillingScheduler().catch((e) => console.error("Initial billing scheduler:", e));
   // eslint-disable-next-line no-constant-condition
   while (true) {

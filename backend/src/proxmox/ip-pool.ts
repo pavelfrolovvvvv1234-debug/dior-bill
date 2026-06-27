@@ -27,6 +27,13 @@ export function isProxmoxIpPoolConfigured(): boolean {
   return parseProxmoxIpPool().length > 0;
 }
 
+/** IPs sold outside web billing (e.g. Telegram bot) — never auto-assign these. */
+export function parseProxmoxReservedIps(): string[] {
+  const raw = process.env.PROXMOX_RESERVED_IPS?.trim();
+  if (!raw) return [];
+  return [...new Set(raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))];
+}
+
 /** Remove demo seed IPs so purchases never get fake 185.234.* addresses. */
 export async function purgePlaceholderIpsFromInventory(): Promise<number> {
   const result = await prisma.ipAddress.deleteMany({
