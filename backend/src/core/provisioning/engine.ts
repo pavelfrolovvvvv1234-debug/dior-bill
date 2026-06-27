@@ -306,7 +306,7 @@ export async function markProvisioningComplete(params: {
           idempotencyKey: `lifecycle:normalize:${params.idempotencyKey}`,
         });
         status = "PROVISIONING";
-      } else {
+      } else if (status !== "REINSTALLING") {
         throw new ValidationError(`Cannot activate service from status ${status}`);
       }
     }

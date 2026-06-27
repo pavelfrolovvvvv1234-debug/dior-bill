@@ -4,15 +4,16 @@ import { retryVpsProvisioningForInstance } from "../src/provisioning/retry";
 
 loadMonorepoEnv();
 
-function parseHostnameArg(): string | undefined {
+function parseArgs(): { hostname?: string; force: boolean } {
   const args = process.argv.slice(2).filter((a) => a !== "--");
-  const hostname = args[0]?.trim();
-  return hostname || undefined;
+  const force = args.includes("--force") || args.includes("-f");
+  const hostname = args.find((a) => !a.startsWith("-"))?.trim();
+  return { hostname: hostname || undefined, force };
 }
 
 async function main() {
-  const hostname = parseHostnameArg();
-  const result = await retryVpsProvisioningForInstance({ hostname });
+  const { hostname, force } = parseArgs();
+  const result = await retryVpsProvisioningForInstance({ hostname, force });
   console.log("Done:", result.hostname, "status=", result.status, "ip=", result.ip, "vmid=", result.vmid);
 }
 

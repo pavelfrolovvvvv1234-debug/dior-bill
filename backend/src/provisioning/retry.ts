@@ -38,6 +38,8 @@ async function destroyOrphanVmByHostname(node: string, hostname: string): Promis
 export async function retryVpsProvisioningForInstance(params: {
   hostname?: string;
   serviceId?: string;
+  /** Recreate VM from template even when service is already ACTIVE */
+  force?: boolean;
 }): Promise<{ hostname: string; status: string; ip: string | null; vmid: number | null }> {
   const vps = await prisma.vpsInstance.findFirst({
     where: params.serviceId
@@ -85,8 +87,18 @@ export async function retryVpsProvisioningForInstance(params: {
       reason: "Provisioning retry",
       idempotencyKey: `retry:lifecycle:${job.id}:${Date.now()}`,
     });
-  } else if (status !== "PROVISIONING") {
-    throw new ValidationError(`Cannot retry provisioning from status ${status}`);
+  } else if (params.force && status === "ACTIVE") {
+    console.log(`[retry] force reprovision ${vps.hostname} (ACTIVE → REINSTALLING)`);
+    await transitionServiceLifecycle({
+      serviceId: vps.serviceId,
+      to: "REINSTALLING",
+      reason: "Force reprovision from Proxmox template",
+      idempotencyKey: `retry:force:${job.id}:${Date.now()}`,
+    });
+  } else if (status !== "PROVISIONING" && status !== "REINSTALLING") {
+    throw new ValidationError(
+      `Cannot retry provisioning from status ${status}. Use --force to recreate an ACTIVE VPS.`,
+    );
   }
 
   const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
@@ -99,7 +111,7 @@ export async function retryVpsProvisioningForInstance(params: {
     });
   }
 
-  if (vps.primaryIp && isPlaceholderIp(vps.primaryIp)) {
+  if (vps.primaryIp && (isPlaceholderIp(vps.primaryIp) || params.force)) {
     await releaseIpTransactional({
       address: vps.primaryIp,
       idempotencyKey: `retry:release-placeholder:${vps.id}:${Date.now()}`,
