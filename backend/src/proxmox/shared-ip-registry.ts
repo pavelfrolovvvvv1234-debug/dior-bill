@@ -284,6 +284,7 @@ async function listLiveClusterVmids(): Promise<Set<number>> {
  */
 export async function reconcileSharedRegistryWithProxmox(
   os = "debian12",
+  options?: { force?: boolean },
 ): Promise<{
   staleReserved: number;
   releasedGhost: number;
@@ -292,7 +293,7 @@ export async function reconcileSharedRegistryWithProxmox(
   findings: string[];
 }> {
   const findings: string[] = [];
-  if (!isSharedIpRegistryEnabled()) {
+  if (!isSharedIpRegistryEnabled() && !options?.force) {
     return { staleReserved: 0, releasedGhost: 0, imported: 0, skipped: 0, findings };
   }
 

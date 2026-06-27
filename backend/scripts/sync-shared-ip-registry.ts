@@ -2,7 +2,6 @@ import { loadMonorepoEnv } from "../src/lib/load-env";
 import {
   getProxmoxClient,
   getProxmoxConfig,
-  isSharedIpRegistryEnabled,
   listOccupiedSharedRegistryIps,
   resolveProxmoxNetwork,
   syncSharedRegistryFromProxmox,
@@ -25,11 +24,6 @@ async function collectIpsForInitialSync(
 }
 
 async function main() {
-  if (!isSharedIpRegistryEnabled()) {
-    console.error("Shared IP registry is disabled. Set PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1 in .env");
-    process.exit(1);
-  }
-
   const config = getProxmoxConfig();
   if (!config) {
     console.error("Proxmox not configured");

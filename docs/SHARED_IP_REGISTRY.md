@@ -47,9 +47,9 @@ Do **not** enable registry on billing only — bot must write too.
 # 1. Migration
 cd packages/database && pnpm migrate:deploy
 
-# 2. Seed existing IPs from Proxmox
+# 2. Seed existing IPs from Proxmox (no PROXMOX_REQUIRE_SHARED_IP_REGISTRY yet)
 cd backend
-pnpm run sync-shared-ip-registry -- --dry-run
+pnpm run sync-shared-ip-registry --dry-run
 pnpm run sync-shared-ip-registry
 
 # 3. Enable registry in .env (bot + billing), restart both

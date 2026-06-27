@@ -1,9 +1,5 @@
 import { loadMonorepoEnv } from "../src/lib/load-env";
-import {
-  getProxmoxConfig,
-  isSharedIpRegistryEnabled,
-  reconcileSharedRegistryWithProxmox,
-} from "../src/proxmox";
+import { getProxmoxConfig, reconcileSharedRegistryWithProxmox } from "../src/proxmox";
 
 loadMonorepoEnv();
 
@@ -12,12 +8,7 @@ async function main() {
     console.error("Proxmox not configured");
     process.exit(1);
   }
-  if (!isSharedIpRegistryEnabled()) {
-    console.error("Set PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1 or SHARED_IP_REGISTRY=1");
-    process.exit(1);
-  }
-
-  const r = await reconcileSharedRegistryWithProxmox();
+  const r = await reconcileSharedRegistryWithProxmox(undefined, { force: true });
   console.log("Stale reserved released:", r.staleReserved);
   console.log("Ghost VM rows released:", r.releasedGhost);
   console.log("Imported from Proxmox:", r.imported, `(skipped ${r.skipped})`);
