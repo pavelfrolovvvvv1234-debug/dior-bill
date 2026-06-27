@@ -5,7 +5,11 @@ import { encrypt } from "../lib/crypto";
 import { getProxmoxClient, getProxmoxNodeName, ProxmoxApiError } from "./client";
 import { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint } from "./config";
 import { resolveTemplateVmid } from "./os-templates";
-import { isPlaceholderIp, isProxmoxIpPoolConfigured } from "./ip-pool";
+import {
+  getProxmoxGateway,
+  isPlaceholderIp,
+  isProxmoxIpPoolConfigured,
+} from "./ip-pool";
 import { enqueueJob } from "../lib/queue";
 
 export {
@@ -23,6 +27,7 @@ export {
   purgePlaceholderIpsFromInventory,
   syncProxmoxIpPoolFromEnv,
 } from "./ip-pool";
+export { allocateStaticIpForVps, resolveProxmoxNetwork } from "./ip-allocate";
 
 export async function verifyProxmoxIntegration(): Promise<{
   ok: true;
@@ -68,8 +73,7 @@ export async function provisionVmOnProxmox(spec: {
     return { vmid, ip };
   }
 
-  const useStaticIp =
-    !!spec.primaryIp && !isPlaceholderIp(spec.primaryIp) && isProxmoxIpPoolConfigured();
+  const useStaticIp = !!spec.primaryIp && !isPlaceholderIp(spec.primaryIp);
 
   const node = spec.nodeName || config.node;
   const vmid = await client.getNextVmid();
@@ -85,7 +89,7 @@ export async function provisionVmOnProxmox(spec: {
     diskGb: spec.diskGb,
     templateVmid,
     primaryIp: useStaticIp ? spec.primaryIp : undefined,
-    gateway: useStaticIp ? config.gateway : undefined,
+    gateway: useStaticIp ? (config.gateway ?? getProxmoxGateway()) : undefined,
     ipCidr: useStaticIp ? config.ipCidr : undefined,
     rootPassword,
     storage: config.storage,
@@ -93,12 +97,10 @@ export async function provisionVmOnProxmox(spec: {
   };
 
   console.log(
-    `[proxmox] provision ${spec.hostname} from template ${templateVmid}${useStaticIp ? ` static ${spec.primaryIp}` : " (template network)"}`,
+    `[proxmox] provision ${spec.hostname} from template ${templateVmid}${useStaticIp ? ` static ${spec.primaryIp}` : " (no static IP)"}`,
   );
 
   await client.cloneFromTemplate(vmSpec);
-  const clonedCfg = await client.getVmConfig(node, vmid);
-  let ip: string | null = client.parseIpFromConfig(clonedCfg);
   await client.configureVm(vmSpec);
   await client.startVm(node, vmid);
 
@@ -107,15 +109,14 @@ export async function provisionVmOnProxmox(spec: {
     data: { rootPasswordEnc: encrypt(rootPassword), proxmoxVmid: vmid },
   });
 
-  if (useStaticIp) {
-    ip = spec.primaryIp ?? ip;
-  } else if (!ip) {
-    console.log(`[proxmox] waiting for guest-agent IP on vmid ${vmid} (up to 5 min)...`);
-    ip = await client.waitForGuestIp(node, vmid);
-  }
+  let ip: string | null = useStaticIp ? (spec.primaryIp ?? null) : null;
   if (!ip) {
     const vmConfig = await client.getVmConfig(node, vmid);
     ip = client.parseIpFromConfig(vmConfig);
+  }
+  if (!ip && !useStaticIp) {
+    console.log(`[proxmox] optional guest-agent IP poll vmid ${vmid} (30s)...`);
+    ip = await client.waitForGuestIp(node, vmid, 30_000);
   }
 
   if (ip) {
@@ -198,10 +199,17 @@ export async function syncVpsIpFromProxmox(vpsId: string): Promise<string | null
   }
 
   const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
-  let ip = await client.waitForGuestIp(node, vps.proxmoxVmid, 120_000);
+  const cfg = await client.getVmConfig(node, vps.proxmoxVmid);
+  let ip = client.parseIpFromConfig(cfg);
+  if (ip && isPlaceholderIp(ip)) ip = null;
+
   if (!ip) {
-    const cfg = await client.getVmConfig(node, vps.proxmoxVmid);
-    ip = client.parseIpFromConfig(cfg);
+    ip = await client.waitForGuestIp(node, vps.proxmoxVmid, 45_000);
+  }
+  if (!ip) {
+    const cfgRetry = await client.getVmConfig(node, vps.proxmoxVmid);
+    ip = client.parseIpFromConfig(cfgRetry);
+    if (ip && isPlaceholderIp(ip)) ip = null;
   }
   if (!ip) return null;
 

@@ -9,6 +9,7 @@ import {
   isProxmoxIpPoolConfigured,
   parseProxmoxIpPool,
   syncProxmoxIpPoolFromEnv,
+  resolveProxmoxNetwork,
 } from "../src/proxmox";
 
 loadMonorepoEnv();
@@ -49,7 +50,12 @@ async function main() {
     console.log("IP pool:", parseProxmoxIpPool().length, "addresses →", sync.nodeHostname);
     console.log("Gateway:", config.gateway ?? "(auto .1)", `/${config.ipCidr}`);
   } else {
-    console.log("IP mode: template network (guest-agent / template cloud-init)");
+    const net = await resolveProxmoxNetwork("debian12");
+    console.log(
+      "IP mode: auto static cloud-init",
+      `→ ${net.prefix}.10–${net.endHost}`,
+      `gw ${net.gateway}/${net.cidr}`,
+    );
   }
   console.log("OK — Proxmox API is reachable");
 }

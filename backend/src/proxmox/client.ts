@@ -216,14 +216,15 @@ export class ProxmoxClient {
       fields.cipassword = spec.rootPassword;
     }
 
-    // Static IP only when explicitly provided — otherwise keep template cloud-init / DHCP.
     if (spec.primaryIp) {
       fields.net0 = `virtio,bridge=${spec.bridge}`;
       fields.boot = "order=scsi0";
       fields.ciuser = "root";
       fields.nameserver = "1.1.1.1";
       fields.searchdomain = "local";
-      fields.ipconfig0 = `ip=${spec.primaryIp}/${spec.ipCidr ?? 24},gw=${spec.gateway ?? guessGateway(spec.primaryIp)}`;
+      const gw = spec.gateway ?? guessGateway(spec.primaryIp);
+      fields.ipconfig0 = `ip=${spec.primaryIp}/${spec.ipCidr ?? 24},gw=${gw}`;
+      fields.citype = "configdrive2";
     }
 
     await this.requestForm(

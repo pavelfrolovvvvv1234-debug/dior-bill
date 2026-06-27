@@ -36,9 +36,9 @@ async function main() {
 
   const ip = await syncVpsIpFromProxmox(vps.id);
   if (!ip) {
-    console.error("IP not detected. In Proxmox UI: VM → Console (not SSH pve01), then:");
-    console.error("  apt install -y qemu-guest-agent && systemctl start qemu-guest-agent");
-    console.error("Then run this command again.");
+    console.error("IP not in VM cloud-init config and guest-agent is down.");
+    console.error("Re-provision with static IP (after git pull + build):");
+    console.error(`  pnpm run retry-provision -- ${hostname} --force`);
     process.exit(1);
   }
   console.log("OK ip=", ip);

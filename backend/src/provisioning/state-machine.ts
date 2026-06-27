@@ -5,11 +5,10 @@ import {
   getProxmoxNodeName,
   isPlaceholderIp,
   isProxmoxConfigured,
-  isProxmoxIpPoolConfigured,
   provisionVmOnProxmox,
   proxmoxTlsHint,
-  syncProxmoxIpPoolFromEnv,
   syncVpsMetricsFromProxmox,
+  allocateStaticIpForVps,
 } from "../proxmox";
 import { withIdempotency } from "../core/events/idempotency";
 import { enqueueJob } from "../lib/queue";
@@ -129,23 +128,16 @@ export async function runVpsProvisionPipeline(payload: {
     const proxmoxNode = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
 
     try {
-      if (isProxmoxIpPoolConfigured()) {
-        await syncProxmoxIpPoolFromEnv();
+      if (isProxmoxConfigured()) {
         await markStep(steps, 0, "running", 15, payload.jobId);
-        assignedIp = await allocateIpTransactional({
+        assignedIp = await allocateStaticIpForVps({
           locationId: vps.locationId,
           nodeId: vps.nodeId ?? undefined,
           vpsId: payload.vpsId,
+          os: vps.os,
           idempotencyKey: `${idemKey}:ip`,
         });
         await markStep(steps, 0, "done", 20, payload.jobId);
-      } else if (isProxmoxConfigured()) {
-        steps[0] = { ...steps[0], status: "done" };
-        await updateJob(payload.jobId, {
-          steps,
-          progress: 20,
-          currentStep: "cloning_template",
-        });
       } else {
         await markStep(steps, 0, "running", 15, payload.jobId);
         assignedIp = await allocateIpTransactional({
