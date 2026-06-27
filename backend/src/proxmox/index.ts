@@ -133,6 +133,54 @@ export async function provisionVmOnProxmox(spec: {
   return { vmid, ip: "" };
 }
 
+function proxmoxVmName(hostname: string): string {
+  return hostname.replace(/[^a-zA-Z0-9.-]/g, "-").slice(0, 63);
+}
+
+/** Find guest VM on Proxmox by hostname (billing DB may have lost vmid). */
+export async function findProxmoxVmidByHostname(
+  hostname: string,
+  nodeName?: string,
+): Promise<{ vmid: number; node: string; name: string } | null> {
+  const client = getProxmoxClient();
+  if (!client) return null;
+  const node = nodeName ?? getProxmoxConfig()?.node ?? "pve01";
+  const expected = proxmoxVmName(hostname);
+  try {
+    const vms = await client.listVms(node);
+    for (const vm of vms) {
+      const name = vm.name ?? "";
+      if (name === expected || name === hostname) {
+        return { vmid: vm.vmid, node, name };
+      }
+    }
+  } catch (e) {
+    console.warn("[proxmox] list VMs failed:", e instanceof Error ? e.message : e);
+  }
+  return null;
+}
+
+/** Re-link VPS row to an existing VM on Proxmox (after failed reprovision). */
+export async function linkVpsToProxmoxVm(vpsId: string): Promise<number | null> {
+  const vps = await prisma.vpsInstance.findUnique({
+    where: { id: vpsId },
+    include: { node: true },
+  });
+  if (!vps) return null;
+  if (vps.proxmoxVmid) return vps.proxmoxVmid;
+
+  const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+  const found = await findProxmoxVmidByHostname(vps.hostname, node);
+  if (!found) return null;
+
+  await prisma.vpsInstance.update({
+    where: { id: vpsId },
+    data: { proxmoxVmid: found.vmid },
+  });
+  console.log(`[proxmox] linked ${vps.hostname} → vmid ${found.vmid} on ${found.node}`);
+  return found.vmid;
+}
+
 /** Resolve and persist primary IP from guest-agent or cloud-init config. */
 export async function syncVpsIpFromProxmox(vpsId: string): Promise<string | null> {
   const client = getProxmoxClient();
@@ -140,7 +188,13 @@ export async function syncVpsIpFromProxmox(vpsId: string): Promise<string | null
     where: { id: vpsId },
     include: { node: true, service: true },
   });
-  if (!client || !vps?.proxmoxVmid) return null;
+  if (!client || !vps) return null;
+
+  if (!vps.proxmoxVmid) {
+    const linked = await linkVpsToProxmoxVm(vpsId);
+    if (!linked) return null;
+    vps.proxmoxVmid = linked;
+  }
 
   const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
   let ip = await client.waitForGuestIp(node, vps.proxmoxVmid, 120_000);

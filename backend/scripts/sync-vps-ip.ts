@@ -1,6 +1,6 @@
 import { loadMonorepoEnv } from "../src/lib/load-env";
 import { prisma } from "@dior/database";
-import { syncVpsIpFromProxmox } from "../src/proxmox";
+import { findProxmoxVmidByHostname, linkVpsToProxmoxVm, syncVpsIpFromProxmox } from "../src/proxmox";
 
 loadMonorepoEnv();
 
@@ -21,9 +21,24 @@ async function main() {
   }
 
   console.log(`Syncing IP for ${vps.hostname} vmid=${vps.proxmoxVmid} status=${vps.service.status}`);
+
+  if (!vps.proxmoxVmid) {
+    const onPve = await findProxmoxVmidByHostname(vps.hostname);
+    if (onPve) {
+      console.log(`Found on Proxmox: vmid=${onPve.vmid} name=${onPve.name}`);
+      await linkVpsToProxmoxVm(vps.id);
+    } else {
+      console.error("No VM on Proxmox for this hostname — run:");
+      console.error(`  pnpm run retry-provision -- ${hostname} --force`);
+      process.exit(1);
+    }
+  }
+
   const ip = await syncVpsIpFromProxmox(vps.id);
   if (!ip) {
-    console.error("IP not detected — install qemu-guest-agent on template/VM and retry");
+    console.error("IP not detected. In Proxmox UI: VM → Console (not SSH pve01), then:");
+    console.error("  apt install -y qemu-guest-agent && systemctl start qemu-guest-agent");
+    console.error("Then run this command again.");
     process.exit(1);
   }
   console.log("OK ip=", ip);
