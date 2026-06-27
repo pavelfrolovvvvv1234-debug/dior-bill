@@ -243,40 +243,64 @@ export class ProxmoxClient {
     return this.request("GET", `/api2/json/nodes/${node}/qemu/${vmid}/config`);
   }
 
-  /** Poll qemu-guest-agent for the first non-loopback IPv4. */
-  async waitForGuestIp(node: string, vmid: number, timeoutMs = 180_000): Promise<string | null> {
-    const started = Date.now();
-    while (Date.now() - started < timeoutMs) {
-      try {
-        const interfaces = await this.request<
-          Array<{
-            name?: string;
-            "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
-          }>
-        >(
-          "GET",
-          `/api2/json/nodes/${node}/qemu/${vmid}/agent/network-get-interfaces`,
-          undefined,
-          { timeoutMs: 30_000 },
-        );
+  async pingGuestAgent(node: string, vmid: number): Promise<boolean> {
+    try {
+      await this.request<{ result?: Record<string, unknown> }>(
+        "POST",
+        `/api2/json/nodes/${node}/qemu/${vmid}/agent/ping`,
+        {},
+        { timeoutMs: 10_000 },
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
-        for (const iface of interfaces) {
-          for (const addr of iface["ip-addresses"] ?? []) {
-            const ip = addr["ip-address"]?.trim();
-            if (
-              addr["ip-address-type"] === "ipv4" &&
-              ip &&
-              !ip.startsWith("127.") &&
-              !ip.startsWith("169.254.")
-            ) {
-              return ip;
+  /** Poll qemu-guest-agent for the first non-loopback IPv4. */
+  async waitForGuestIp(node: string, vmid: number, timeoutMs = 300_000): Promise<string | null> {
+    const started = Date.now();
+    let lastLog = 0;
+    while (Date.now() - started < timeoutMs) {
+      const agentUp = await this.pingGuestAgent(node, vmid);
+      if (agentUp) {
+        try {
+          const interfaces = await this.request<
+            Array<{
+              name?: string;
+              "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
+            }>
+          >(
+            "GET",
+            `/api2/json/nodes/${node}/qemu/${vmid}/agent/network-get-interfaces`,
+            undefined,
+            { timeoutMs: 15_000 },
+          );
+
+          for (const iface of interfaces) {
+            for (const addr of iface["ip-addresses"] ?? []) {
+              const ip = addr["ip-address"]?.trim();
+              if (
+                addr["ip-address-type"] === "ipv4" &&
+                ip &&
+                !ip.startsWith("127.") &&
+                !ip.startsWith("169.254.")
+              ) {
+                return ip;
+              }
             }
           }
+        } catch {
+          /* agent up but no IP yet */
         }
-      } catch {
-        /* guest agent not ready yet */
       }
-      await new Promise((r) => setTimeout(r, 3000));
+      if (Date.now() - lastLog > 20_000) {
+        console.log(
+          `[proxmox] waiting for IP vmid ${vmid} (agent ${agentUp ? "up" : "down"})...`,
+        );
+        lastLog = Date.now();
+      }
+      await new Promise((r) => setTimeout(r, 4000));
     }
     return null;
   }

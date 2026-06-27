@@ -52,6 +52,7 @@ export type QueueJobType =
   | "vps.reboot"
   | "vps.reinstall"
   | "vps.sync_metrics"
+  | "vps.sync_ip"
   | "payment.retry"
   | "topup.expire"
   | "notification.send"

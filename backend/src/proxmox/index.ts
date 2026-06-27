@@ -6,6 +6,7 @@ import { getProxmoxClient, getProxmoxNodeName, ProxmoxApiError } from "./client"
 import { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint } from "./config";
 import { resolveTemplateVmid } from "./os-templates";
 import { isPlaceholderIp, isProxmoxIpPoolConfigured } from "./ip-pool";
+import { enqueueJob } from "../lib/queue";
 
 export {
   ProxmoxClient,
@@ -95,31 +96,77 @@ export async function provisionVmOnProxmox(spec: {
   );
 
   await client.cloneFromTemplate(vmSpec);
+  const clonedCfg = await client.getVmConfig(node, vmid);
+  let ip: string | null = client.parseIpFromConfig(clonedCfg);
   await client.configureVm(vmSpec);
   await client.startVm(node, vmid);
 
-  let ip: string | null = useStaticIp ? (spec.primaryIp ?? null) : null;
-  if (!ip) {
-    console.log(`[proxmox] waiting for guest-agent IP on vmid ${vmid}...`);
+  await prisma.vpsInstance.update({
+    where: { id: spec.vpsId },
+    data: { rootPasswordEnc: encrypt(rootPassword), proxmoxVmid: vmid },
+  });
+
+  if (useStaticIp) {
+    ip = spec.primaryIp ?? ip;
+  } else if (!ip) {
+    console.log(`[proxmox] waiting for guest-agent IP on vmid ${vmid} (up to 5 min)...`);
     ip = await client.waitForGuestIp(node, vmid);
   }
   if (!ip) {
     const vmConfig = await client.getVmConfig(node, vmid);
     ip = client.parseIpFromConfig(vmConfig);
   }
-  if (!ip) {
-    throw new ValidationError(
-      "VM started but IP not detected. Install qemu-guest-agent on the Proxmox template, or set PROXMOX_IP_POOL in .env",
-    );
+
+  if (ip) {
+    await prisma.vpsInstance.update({
+      where: { id: spec.vpsId },
+      data: { primaryIp: ip },
+    });
+    console.log(`[proxmox] ${spec.hostname} vmid=${vmid} ip=${ip}`);
+    return { vmid, ip };
   }
 
+  console.warn(
+    `[proxmox] ${spec.hostname} vmid=${vmid} running — IP pending (guest-agent). Queuing background sync.`,
+  );
+  await enqueueJob("vps.sync_ip", { vpsId: spec.vpsId }).catch(() => {});
+  return { vmid, ip: "" };
+}
+
+/** Resolve and persist primary IP from guest-agent or cloud-init config. */
+export async function syncVpsIpFromProxmox(vpsId: string): Promise<string | null> {
+  const client = getProxmoxClient();
+  const vps = await prisma.vpsInstance.findUnique({
+    where: { id: vpsId },
+    include: { node: true, service: true },
+  });
+  if (!client || !vps?.proxmoxVmid) return null;
+
+  const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+  let ip = await client.waitForGuestIp(node, vps.proxmoxVmid, 120_000);
+  if (!ip) {
+    const cfg = await client.getVmConfig(node, vps.proxmoxVmid);
+    ip = client.parseIpFromConfig(cfg);
+  }
+  if (!ip) return null;
+
   await prisma.vpsInstance.update({
-    where: { id: spec.vpsId },
-    data: { rootPasswordEnc: encrypt(rootPassword), proxmoxVmid: vmid, primaryIp: ip },
+    where: { id: vpsId },
+    data: { primaryIp: ip },
   });
 
-  console.log(`[proxmox] ${spec.hostname} vmid=${vmid} ip=${ip}`);
-  return { vmid, ip };
+  const st = vps.service.status;
+  if (st === "REINSTALLING" || st === "PROVISIONING") {
+    const { markProvisioningComplete } = await import("../core/provisioning/engine");
+    await markProvisioningComplete({
+      serviceId: vps.serviceId,
+      idempotencyKey: `ip-sync:${vpsId}:${Date.now()}`,
+      ip,
+      vmid: vps.proxmoxVmid,
+    }).catch((e) => console.warn("[proxmox] lifecycle after IP sync:", e));
+  }
+
+  return ip;
 }
 
 /** Remove a partially created VM after failed provision (best-effort). */

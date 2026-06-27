@@ -10,6 +10,7 @@ import {
   syncPendingTopUps,
   runVpsProvisionPipeline,
   syncVpsBandwidth,
+  syncVpsIpFromProxmox,
   rebootVpsOnProxmox,
   reinstallVpsOnProxmox,
   processEventById,
@@ -125,6 +126,11 @@ async function run() {
           case "vps.sync_metrics": {
             const { vpsId } = job.payload as { vpsId: string };
             await syncVpsBandwidth(vpsId);
+            break;
+          }
+          case "vps.sync_ip": {
+            const { vpsId } = job.payload as { vpsId: string };
+            await syncVpsIpFromProxmox(vpsId);
             break;
           }
           case "event.process": {

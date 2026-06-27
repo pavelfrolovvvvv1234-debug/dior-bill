@@ -5,6 +5,7 @@ const BACKGROUND_JOB_TYPES = new Set<QueueJobType>([
   "vps.reboot",
   "vps.reinstall",
   "vps.sync_metrics",
+  "vps.sync_ip",
   "reconciliation.run",
 ]);
 
@@ -55,6 +56,11 @@ export async function dispatchInlineJob(
     case "vps.sync_metrics": {
       const { syncVpsBandwidth } = await import("../provisioning/state-machine");
       await syncVpsBandwidth(payload.vpsId as string);
+      break;
+    }
+    case "vps.sync_ip": {
+      const { syncVpsIpFromProxmox } = await import("../proxmox");
+      await syncVpsIpFromProxmox(payload.vpsId as string);
       break;
     }
     case "payment.retry": {

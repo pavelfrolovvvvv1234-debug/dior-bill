@@ -13,7 +13,8 @@
     "verify-proxmox": "tsx scripts/verify-proxmox.ts",
     "retry-provision": "tsx scripts/retry-provision-job.ts",
     "resume-stuck-vps": "tsx scripts/resume-stuck-vps.ts",
-    "sync-ip-pool": "tsx scripts/sync-ip-pool.ts"
+    "sync-ip-pool": "tsx scripts/sync-ip-pool.ts",
+    "sync-vps-ip": "tsx scripts/sync-vps-ip.ts"
   },
   "dependencies": {
     "@dior/database": "workspace:*",
