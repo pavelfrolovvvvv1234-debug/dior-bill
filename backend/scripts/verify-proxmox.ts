@@ -49,7 +49,7 @@ async function main() {
     console.log("IP pool:", parseProxmoxIpPool().length, "addresses →", sync.nodeHostname);
     console.log("Gateway:", config.gateway ?? "(auto .1)", `/${config.ipCidr}`);
   } else {
-    console.error("WARNING: PROXMOX_IP_POOL not set — VPS will get fake demo IPs (185.234.x.x)");
+    console.log("IP mode: template network (guest-agent / template cloud-init)");
   }
   console.log("OK — Proxmox API is reachable");
 }

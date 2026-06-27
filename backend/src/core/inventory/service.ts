@@ -2,23 +2,34 @@ import { prisma } from "@dior/database";
 import { DOMAIN_EVENTS } from "@dior/shared";
 import { ValidationError } from "@dior/shared";
 import { appendDomainEvent } from "../events/store";
+import { isProxmoxConfigured } from "../../proxmox/config";
+
+function usesProxmoxTemplateNetwork(): boolean {
+  return isProxmoxConfigured() && !(process.env.PROXMOX_IP_POOL?.trim());
+}
 
 /**
  * InventoryService — SOLE owner of Node/IP/capacity mutations.
  */
 export async function selectNodeForProvisioning(locationId: string) {
+  const templateOnly = usesProxmoxTemplateNetwork();
   const node = await prisma.node.findFirst({
     where: {
       locationId,
       status: "online",
-      capacityPercent: { lt: 95 },
-      ipv4Available: { gt: 0 },
+      ...(templateOnly
+        ? {}
+        : { capacityPercent: { lt: 95 }, ipv4Available: { gt: 0 } }),
     },
     orderBy: [{ capacityPercent: "asc" }, { loadPercent: "asc" }],
   });
 
   if (!node) {
-    throw new ValidationError("No capacity available in this location");
+    throw new ValidationError(
+      templateOnly
+        ? "No online node in this location"
+        : "No capacity available in this location",
+    );
   }
 
   return node;

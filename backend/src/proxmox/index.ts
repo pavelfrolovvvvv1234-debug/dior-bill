@@ -5,6 +5,7 @@ import { encrypt } from "../lib/crypto";
 import { getProxmoxClient, getProxmoxNodeName, ProxmoxApiError } from "./client";
 import { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint } from "./config";
 import { resolveTemplateVmid } from "./os-templates";
+import { isPlaceholderIp, isProxmoxIpPoolConfigured } from "./ip-pool";
 
 export {
   ProxmoxClient,
@@ -65,9 +66,8 @@ export async function provisionVmOnProxmox(spec: {
     return { vmid, ip };
   }
 
-  if (!spec.primaryIp) {
-    throw new ValidationError("No IPv4 available for this location — add IPs to inventory");
-  }
+  const useStaticIp =
+    !!spec.primaryIp && !isPlaceholderIp(spec.primaryIp) && isProxmoxIpPoolConfigured();
 
   const node = spec.nodeName || config.node;
   const vmid = await client.getNextVmid();
@@ -82,23 +82,44 @@ export async function provisionVmOnProxmox(spec: {
     memoryMb: spec.ramMb,
     diskGb: spec.diskGb,
     templateVmid,
-    primaryIp: spec.primaryIp,
-    gateway: config.gateway,
-    ipCidr: config.ipCidr,
+    primaryIp: useStaticIp ? spec.primaryIp : undefined,
+    gateway: useStaticIp ? config.gateway : undefined,
+    ipCidr: useStaticIp ? config.ipCidr : undefined,
+    rootPassword,
     storage: config.storage,
     bridge: config.bridge,
   };
+
+  console.log(
+    `[proxmox] provision ${spec.hostname} from template ${templateVmid}${useStaticIp ? ` static ${spec.primaryIp}` : " (template network)"}`,
+  );
 
   await client.cloneFromTemplate(vmSpec);
   await client.configureVm(vmSpec);
   await client.startVm(node, vmid);
 
+  let ip: string | null = useStaticIp ? (spec.primaryIp ?? null) : null;
+  if (!ip) {
+    console.log(`[proxmox] waiting for guest-agent IP on vmid ${vmid}...`);
+    ip = await client.waitForGuestIp(node, vmid);
+  }
+  if (!ip) {
+    const vmConfig = await client.getVmConfig(node, vmid);
+    ip = client.parseIpFromConfig(vmConfig);
+  }
+  if (!ip) {
+    throw new ValidationError(
+      "VM started but IP not detected. Install qemu-guest-agent on the Proxmox template, or set PROXMOX_IP_POOL in .env",
+    );
+  }
+
   await prisma.vpsInstance.update({
     where: { id: spec.vpsId },
-    data: { rootPasswordEnc: encrypt(rootPassword), proxmoxVmid: vmid },
+    data: { rootPasswordEnc: encrypt(rootPassword), proxmoxVmid: vmid, primaryIp: ip },
   });
 
-  return { vmid, ip: spec.primaryIp };
+  console.log(`[proxmox] ${spec.hostname} vmid=${vmid} ip=${ip}`);
+  return { vmid, ip };
 }
 
 /** Remove a partially created VM after failed provision (best-effort). */

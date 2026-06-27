@@ -1,5 +1,4 @@
 import { prisma } from "@dior/database";
-import { ValidationError } from "@dior/shared";
 import { toJsonValue } from "../lib/json";
 import {
   destroyProxmoxVmIfExists,
@@ -130,20 +129,31 @@ export async function runVpsProvisionPipeline(payload: {
     try {
       if (isProxmoxIpPoolConfigured()) {
         await syncProxmoxIpPoolFromEnv();
-      } else if (process.env.NODE_ENV === "production") {
-        throw new ValidationError(
-          "PROXMOX_IP_POOL is not configured — set real routable IPv4 addresses in .env",
-        );
+        await markStep(steps, 0, "running", 15, payload.jobId);
+        assignedIp = await allocateIpTransactional({
+          locationId: vps.locationId,
+          nodeId: vps.nodeId ?? undefined,
+          vpsId: payload.vpsId,
+          idempotencyKey: `${idemKey}:ip`,
+        });
+        await markStep(steps, 0, "done", 20, payload.jobId);
+      } else if (isProxmoxConfigured()) {
+        steps[0] = { ...steps[0], status: "done" };
+        await updateJob(payload.jobId, {
+          steps,
+          progress: 20,
+          currentStep: "cloning_template",
+        });
+      } else {
+        await markStep(steps, 0, "running", 15, payload.jobId);
+        assignedIp = await allocateIpTransactional({
+          locationId: vps.locationId,
+          nodeId: vps.nodeId ?? undefined,
+          vpsId: payload.vpsId,
+          idempotencyKey: `${idemKey}:ip`,
+        });
+        await markStep(steps, 0, "done", 20, payload.jobId);
       }
-
-      await markStep(steps, 0, "running", 15, payload.jobId);
-      assignedIp = await allocateIpTransactional({
-        locationId: vps.locationId,
-        nodeId: vps.nodeId ?? undefined,
-        vpsId: payload.vpsId,
-        idempotencyKey: `${idemKey}:ip`,
-      });
-      await markStep(steps, 0, "done", 20, payload.jobId);
 
       await markStep(steps, 1, "running", 30, payload.jobId);
       const result = await provisionVmOnProxmox({

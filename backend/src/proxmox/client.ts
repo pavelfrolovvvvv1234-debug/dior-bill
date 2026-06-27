@@ -19,6 +19,7 @@ export interface VmSpec {
   primaryIp?: string;
   gateway?: string;
   ipCidr?: number;
+  rootPassword?: string;
   storage: string;
   bridge: string;
 }
@@ -205,24 +206,30 @@ export class ProxmoxClient {
   }
 
   async configureVm(spec: VmSpec): Promise<void> {
-    const ipconfig0 = spec.primaryIp
-      ? `ip=${spec.primaryIp}/${spec.ipCidr ?? 24},gw=${spec.gateway ?? guessGateway(spec.primaryIp)}`
-      : undefined;
+    const fields: Record<string, string | number | undefined> = {
+      cores: spec.cores,
+      memory: spec.memoryMb,
+      agent: 1,
+    };
+
+    if (spec.rootPassword) {
+      fields.cipassword = spec.rootPassword;
+    }
+
+    // Static IP only when explicitly provided — otherwise keep template cloud-init / DHCP.
+    if (spec.primaryIp) {
+      fields.net0 = `virtio,bridge=${spec.bridge}`;
+      fields.boot = "order=scsi0";
+      fields.ciuser = "root";
+      fields.nameserver = "1.1.1.1";
+      fields.searchdomain = "local";
+      fields.ipconfig0 = `ip=${spec.primaryIp}/${spec.ipCidr ?? 24},gw=${spec.gateway ?? guessGateway(spec.primaryIp)}`;
+    }
 
     await this.requestForm(
       "PUT",
       `/api2/json/nodes/${spec.node}/qemu/${spec.vmid}/config`,
-      {
-        cores: spec.cores,
-        memory: spec.memoryMb,
-        net0: `virtio,bridge=${spec.bridge}`,
-        boot: "order=scsi0",
-        agent: 1,
-        ciuser: "root",
-        nameserver: "1.1.1.1",
-        searchdomain: "local",
-        ...(ipconfig0 ? { ipconfig0 } : {}),
-      },
+      fields,
     );
 
     try {
@@ -230,6 +237,54 @@ export class ProxmoxClient {
     } catch {
       /* template disk may already match plan size */
     }
+  }
+
+  async getVmConfig(node: string, vmid: number): Promise<Record<string, string>> {
+    return this.request("GET", `/api2/json/nodes/${node}/qemu/${vmid}/config`);
+  }
+
+  /** Poll qemu-guest-agent for the first non-loopback IPv4. */
+  async waitForGuestIp(node: string, vmid: number, timeoutMs = 180_000): Promise<string | null> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      try {
+        const interfaces = await this.request<
+          Array<{
+            name?: string;
+            "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
+          }>
+        >(
+          "GET",
+          `/api2/json/nodes/${node}/qemu/${vmid}/agent/network-get-interfaces`,
+          undefined,
+          { timeoutMs: 30_000 },
+        );
+
+        for (const iface of interfaces) {
+          for (const addr of iface["ip-addresses"] ?? []) {
+            const ip = addr["ip-address"]?.trim();
+            if (
+              addr["ip-address-type"] === "ipv4" &&
+              ip &&
+              !ip.startsWith("127.") &&
+              !ip.startsWith("169.254.")
+            ) {
+              return ip;
+            }
+          }
+        }
+      } catch {
+        /* guest agent not ready yet */
+      }
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    return null;
+  }
+
+  parseIpFromConfig(config: Record<string, string>): string | null {
+    const ipconfig0 = config.ipconfig0 ?? config.ipconfig1 ?? "";
+    const match = ipconfig0.match(/ip=([0-9.]+)/);
+    return match?.[1] ?? null;
   }
 
   async startVm(node: string, vmid: number): Promise<void> {

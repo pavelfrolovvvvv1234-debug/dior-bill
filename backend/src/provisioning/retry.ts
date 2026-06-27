@@ -73,14 +73,7 @@ export async function retryVpsProvisioningForInstance(params: {
   if (!job) throw new NotFoundError("No provisioning job for this VPS");
 
   if (isProxmoxIpPoolConfigured()) {
-    const sync = await syncProxmoxIpPoolFromEnv();
-    if (sync.poolSize > 0) {
-      console.log(`[retry] synced ${sync.poolSize} IPs to ${sync.nodeHostname}`);
-    }
-  } else {
-    throw new ValidationError(
-      "PROXMOX_IP_POOL is not set in .env — add your real routable IPv4s before provisioning",
-    );
+    await syncProxmoxIpPoolFromEnv();
   }
 
   const fresh = await prisma.service.findUnique({ where: { id: vps.serviceId } });
