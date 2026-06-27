@@ -3,6 +3,7 @@ import { toJsonValue } from "../lib/json";
 import {
   destroyProxmoxVmIfExists,
   getProxmoxNodeName,
+  isPlaceholderIp,
   isProxmoxConfigured,
   isProxmoxIpPoolConfigured,
   provisionVmOnProxmox,
@@ -11,6 +12,7 @@ import {
   syncVpsMetricsFromProxmox,
 } from "../proxmox";
 import { withIdempotency } from "../core/events/idempotency";
+import { enqueueJob } from "../lib/queue";
 import { allocateIpTransactional, releaseIpTransactional } from "../core/inventory/service";
 import {
   markProvisioningComplete,
@@ -168,7 +170,10 @@ export async function runVpsProvisionPipeline(payload: {
         primaryIp: assignedIp ?? undefined,
       });
       vmid = result.vmid;
-      if (!assignedIp) assignedIp = result.ip;
+      let resolvedIp = result.ip?.trim() || null;
+      if (assignedIp && isPlaceholderIp(assignedIp)) assignedIp = null;
+      if (resolvedIp && isPlaceholderIp(resolvedIp)) resolvedIp = null;
+      if (!assignedIp) assignedIp = resolvedIp;
       await markStep(steps, 1, "done", 55, payload.jobId);
 
       await markStep(steps, 2, "running", 65, payload.jobId);
@@ -177,12 +182,20 @@ export async function runVpsProvisionPipeline(payload: {
       await markStep(steps, 3, "running", 80, payload.jobId);
       await prisma.vpsInstance.update({
         where: { id: payload.vpsId },
-        data: { primaryIp: assignedIp, proxmoxVmid: vmid, nodeId: vps.nodeId },
+        data: {
+          primaryIp: assignedIp || null,
+          proxmoxVmid: vmid,
+          nodeId: vps.nodeId,
+        },
       });
       await markStep(steps, 3, "done", 90, payload.jobId);
 
       await markStep(steps, 4, "running", 95, payload.jobId);
       await markStep(steps, 4, "done", 100, payload.jobId);
+
+      if (vmid && !assignedIp) {
+        await enqueueJob("vps.sync_ip", { vpsId: payload.vpsId }).catch(() => {});
+      }
 
       await markProvisioningComplete({
         serviceId: payload.serviceId,

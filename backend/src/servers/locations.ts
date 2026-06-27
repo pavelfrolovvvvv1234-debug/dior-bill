@@ -1,6 +1,6 @@
 import { prisma } from "@dior/database";
 import { getProxmoxConfig } from "../proxmox/config";
-import { isProxmoxIpPoolConfigured, syncProxmoxIpPoolFromEnv } from "../proxmox/ip-pool";
+import { isProxmoxIpPoolConfigured, syncProxmoxIpPoolFromEnv, purgePlaceholderIpsFromInventory } from "../proxmox/ip-pool";
 
 /** Proxmox API node name — use PROXMOX_NODE from .env when set (single cluster). */
 function resolveProxmoxNodeForLocation(locCode: string): string {
@@ -122,6 +122,11 @@ export async function ensureBulletproofVpsLocations() {
 
   if (isProxmoxIpPoolConfigured()) {
     await syncProxmoxIpPoolFromEnv();
+  } else if (process.env.PROXMOX_BASE_URL?.trim() || process.env.PROXMOX_API_URL?.trim()) {
+    const removed = await purgePlaceholderIpsFromInventory();
+    if (removed > 0) {
+      console.log(`[locations] removed ${removed} placeholder demo IPs from inventory`);
+    }
   }
 
   bulletproofEnsured = true;

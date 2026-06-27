@@ -3,6 +3,7 @@ import { DOMAIN_EVENTS } from "@dior/shared";
 import { ValidationError } from "@dior/shared";
 import { appendDomainEvent } from "../events/store";
 import { isProxmoxConfigured } from "../../proxmox/config";
+import { isPlaceholderIp, isProxmoxIpPoolConfigured } from "../../proxmox/ip-pool";
 
 function usesProxmoxTemplateNetwork(): boolean {
   return isProxmoxConfigured() && !(process.env.PROXMOX_IP_POOL?.trim());
@@ -49,16 +50,29 @@ export async function allocateIpTransactional(params: {
   }
 
   const address = await prisma.$transaction(async (tx) => {
-    const ip = await tx.ipAddress.findFirst({
+    const candidates = await tx.ipAddress.findMany({
       where: {
         locationId: params.locationId,
         status: "available",
         ...(params.nodeId ? { nodeId: params.nodeId } : {}),
       },
       orderBy: { createdAt: "asc" },
+      take: isProxmoxConfigured() && !isProxmoxIpPoolConfigured() ? 0 : 50,
     });
 
+    const ip =
+      isProxmoxConfigured() && !isProxmoxIpPoolConfigured()
+        ? null
+        : candidates.find((row) => !isPlaceholderIp(row.address)) ??
+          candidates[0] ??
+          null;
+
     if (!ip) {
+      if (isProxmoxConfigured() && !isProxmoxIpPoolConfigured()) {
+        throw new ValidationError(
+          "Proxmox template mode — IP is assigned on the VM, not from billing inventory",
+        );
+      }
       throw new ValidationError("No IPv4 addresses available");
     }
 

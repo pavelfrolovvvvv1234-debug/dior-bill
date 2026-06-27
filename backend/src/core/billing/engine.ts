@@ -67,6 +67,11 @@ export async function emitPaymentConfirmed(params: {
       idempotencyKey: `payment.confirmed:${params.idempotencyKey}`,
       correlationId: params.correlationId,
     });
+
+    if (serviceIds.length > 0) {
+      const { kickVpsProvisioningForServiceIds } = await import("../provisioning/kick");
+      await kickVpsProvisioningForServiceIds(serviceIds, params.idempotencyKey);
+    }
   });
 }
 

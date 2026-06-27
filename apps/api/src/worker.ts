@@ -22,6 +22,7 @@ import {
   renewService,
   resumeAllStuckVpsProvisioning,
   reportOperationalIssue,
+  purgePlaceholderIpsFromInventory,
 } from "@dior/backend";
 import { prisma } from "@dior/database";
 import { createNotification, deliverTelegramNotification } from "@dior/backend";
@@ -70,6 +71,9 @@ async function run() {
   resumeAllStuckVpsProvisioning().catch((e) =>
     console.error("Initial stuck VPS resume:", e),
   );
+  purgePlaceholderIpsFromInventory()
+    .then((n) => n > 0 && console.log(`Purged ${n} placeholder IPs from inventory`))
+    .catch((e) => console.error("Placeholder IP purge:", e));
   runBillingScheduler().catch((e) => console.error("Initial billing scheduler:", e));
   // eslint-disable-next-line no-constant-condition
   while (true) {

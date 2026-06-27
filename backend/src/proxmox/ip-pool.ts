@@ -27,6 +27,17 @@ export function isProxmoxIpPoolConfigured(): boolean {
   return parseProxmoxIpPool().length > 0;
 }
 
+/** Remove demo seed IPs so purchases never get fake 185.234.* addresses. */
+export async function purgePlaceholderIpsFromInventory(): Promise<number> {
+  const result = await prisma.ipAddress.deleteMany({
+    where: {
+      status: "available",
+      OR: [{ address: { startsWith: "185.234." } }, { address: { startsWith: "10.0." } }],
+    },
+  });
+  return result.count;
+}
+
 /**
  * Import routable IPv4s from PROXMOX_IP_POOL into the billing inventory.
  * Removes unused placeholder 185.234.* rows on that node.

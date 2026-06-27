@@ -467,6 +467,30 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
       });
     }
   }
+
+  const reinstalling = await prisma.service.findMany({
+    where: { userId, type: "VPS", status: "REINSTALLING" },
+    include: { vpsInstance: true },
+  });
+  for (const service of reinstalling) {
+    const vps = service.vpsInstance;
+    if (!vps) continue;
+    if (vps.proxmoxVmid) {
+      try {
+        const { syncVpsIpFromProxmox } = await import("../../proxmox");
+        await syncVpsIpFromProxmox(vps.id);
+      } catch (err) {
+        console.error(`[resume-provision] REINSTALLING ${vps.hostname}:`, err);
+      }
+      continue;
+    }
+    try {
+      const { retryVpsProvisioningForInstance } = await import("../../provisioning/retry");
+      await retryVpsProvisioningForInstance({ hostname: vps.hostname, force: true });
+    } catch (err) {
+      console.error(`[resume-provision] REINSTALLING retry ${vps.hostname}:`, err);
+    }
+  }
 }
 
 const PENDING_ALERT_MS = 10 * 60 * 1000;
@@ -484,7 +508,7 @@ export async function resumeAllStuckVpsProvisioning(): Promise<{
   const stuckUsers = await prisma.service.findMany({
     where: {
       type: "VPS",
-      status: { in: ["PENDING", "FAILED", "ROLLBACK", "PROVISIONING"] },
+      status: { in: ["PENDING", "FAILED", "ROLLBACK", "PROVISIONING", "REINSTALLING"] },
     },
     select: { userId: true },
     distinct: ["userId"],

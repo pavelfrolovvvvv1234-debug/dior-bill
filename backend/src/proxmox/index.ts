@@ -20,6 +20,7 @@ export {
   isPlaceholderIp,
   isProxmoxIpPoolConfigured,
   parseProxmoxIpPool,
+  purgePlaceholderIpsFromInventory,
   syncProxmoxIpPoolFromEnv,
 } from "./ip-pool";
 
