@@ -5,6 +5,7 @@ import { captureReferralOnResponse } from "@/lib/referral-cookie-response";
 
 function isPublicPath(pathname: string) {
   if (pathname === "/login" || pathname === "/register" || pathname === "/") return true;
+  if (pathname.startsWith("/api/auth/clear-session")) return true;
   if (pathname.startsWith("/r/")) return true;
   if (pathname.startsWith("/api/public")) return true;
   if (pathname.startsWith("/api/referral/")) return true;

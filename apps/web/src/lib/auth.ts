@@ -72,7 +72,7 @@ export async function requireSession(): Promise<AppSession> {
   if (!session) {
     const cookieStore = await cookies();
     if (cookieStore.get(COOKIE_NAME)?.value) {
-      cookieStore.delete(COOKIE_NAME);
+      redirect("/api/auth/clear-session");
     }
     redirect("/login");
   }
