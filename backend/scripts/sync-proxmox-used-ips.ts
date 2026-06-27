@@ -28,9 +28,14 @@ async function main() {
   });
 
   console.log(`Subnet: ${network.prefix}.0/${network.cidr} gw ${network.gateway}`);
-  console.log(`Used on Proxmox + billing: ${used.size} (newly reserved in DB: ${sync.reserved})`);
+  console.log(`Used (Proxmox + billing + reserved): ${used.size}`);
+  console.log(`Free slots in /24 (approx): ${Math.max(0, 245 - used.size)}`);
   console.log("Occupied:", sorted.join(", ") || "(none detected)");
-  console.log("Next free for web billing:", sync.nextFree ?? "NONE — expand subnet or release IPs");
+  console.log("Next free for web billing:", sync.nextFree ?? "NONE — subnet full or undetected IPs missing from scan");
+  if (!sync.nextFree) {
+    console.error("Add more IPs via PROXMOX_NETWORK (wider pool) or export TG bot IPs to PROXMOX_RESERVED_IPS");
+    process.exit(1);
+  }
 }
 
 main().catch((err) => {

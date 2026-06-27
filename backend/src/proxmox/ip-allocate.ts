@@ -88,17 +88,6 @@ function configuredStartHost(fallback: number): number {
   return Number.isFinite(n) && n >= 2 && n <= 254 ? n : fallback;
 }
 
-function computeStartHost(network: ProxmoxNetworkSpec, used: Set<string>): number {
-  const floor = configuredStartHost(network.startHost);
-  let maxOctet = floor - 1;
-  for (const ip of used) {
-    if (!isInSubnet(ip, network.prefix)) continue;
-    const last = Number.parseInt(ip.split(".")[3] ?? "", 10);
-    if (Number.isFinite(last)) maxOctet = Math.max(maxOctet, last);
-  }
-  return Math.min(network.endHost, Math.max(floor, maxOctet + 1));
-}
-
 /** Resolve routable subnet for new VMs (env → template → Proxmox host IP). */
 export async function resolveProxmoxNetwork(os: string): Promise<ProxmoxNetworkSpec> {
   const config = getProxmoxConfig();
@@ -264,9 +253,8 @@ export async function syncProxmoxUsedIpsToInventory(
     ? await reserveProxmoxOccupiedIps({ locationId: locId, nodeId, used })
     : 0;
 
-  const start = computeStartHost(network, used);
   let nextFree: string | null = null;
-  for (let host = start; host <= network.endHost; host++) {
+  for (let host = configuredStartHost(network.startHost); host <= network.endHost; host++) {
     const candidate = `${network.prefix}.${host}`;
     if (candidate === network.gateway) continue;
     if (!used.has(candidate)) {
@@ -282,8 +270,8 @@ function pickNextFreeIp(
   network: ProxmoxNetworkSpec,
   used: Set<string>,
 ): string | null {
-  const start = computeStartHost(network, used);
-  for (let host = start; host <= network.endHost; host++) {
+  const floor = configuredStartHost(network.startHost);
+  for (let host = floor; host <= network.endHost; host++) {
     const candidate = `${network.prefix}.${host}`;
     if (candidate === network.gateway) continue;
     if (!used.has(candidate)) return candidate;
