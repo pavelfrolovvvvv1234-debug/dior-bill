@@ -3,7 +3,7 @@ import { prisma } from "@dior/database";
 import { NotFoundError, ValidationError } from "@dior/shared";
 import { encrypt } from "../lib/crypto";
 import { getProxmoxClient, getProxmoxNodeName, ProxmoxApiError } from "./client";
-import { getProxmoxConfig, isProxmoxConfigured } from "./config";
+import { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint } from "./config";
 import { resolveTemplateVmid } from "./os-templates";
 
 export {
@@ -12,7 +12,7 @@ export {
   getProxmoxClient,
   getProxmoxNodeName,
 } from "./client";
-export { getProxmoxConfig, isProxmoxConfigured } from "./config";
+export { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint } from "./config";
 export { resolveTemplateVmid } from "./os-templates";
 
 export async function verifyProxmoxIntegration(): Promise<{

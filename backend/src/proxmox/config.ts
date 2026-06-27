@@ -5,23 +5,29 @@ export type ProxmoxRuntimeConfig = {
   node: string;
   storage: string;
   bridge: string;
-  verifyTls: boolean;
+  /** Accept self-signed / private CA certs (default for Proxmox). */
+  insecureTls: boolean;
   caCertPath?: string;
   templateMap: Record<string, number>;
 };
 
 /** Proxmox clusters almost always use self-signed certs unless you install a real CA. */
-function parseProxmoxTlsVerify(): boolean {
+export function parseProxmoxInsecureTls(): boolean {
   const insecure = process.env.PROXMOX_INSECURE_TLS?.trim().toLowerCase();
-  if (insecure === "1" || insecure === "true" || insecure === "yes") return false;
+  if (insecure === "1" || insecure === "true" || insecure === "yes") return true;
+  if (insecure === "0" || insecure === "false" || insecure === "no") return false;
 
   const verify = process.env.PROXMOX_VERIFY_TLS?.trim().toLowerCase();
-  if (verify === "1" || verify === "true" || verify === "yes") return true;
+  if (verify === "1" || verify === "true" || verify === "yes") return false;
 
-  // Legacy: PROXMOX_INSECURE_TLS=0 explicitly requests verification
-  if (insecure === "0" || insecure === "false" || insecure === "no") return true;
+  return true;
+}
 
-  return false;
+export function proxmoxTlsHint(errorMessage: string): string | null {
+  if (!/unable to verify the first certificate|self[- ]signed certificate|UNABLE_TO_VERIFY_LEAF_SIGNATURE/i.test(errorMessage)) {
+    return null;
+  }
+  return "Proxmox uses a self-signed TLS cert. Set PROXMOX_INSECURE_TLS=1 in .env (or PROXMOX_CA_CERT_PATH) and restart dior-worker.";
 }
 
 function parseTemplateMap(raw: string | undefined): Record<string, number> {
@@ -58,7 +64,7 @@ export function getProxmoxConfig(): ProxmoxRuntimeConfig | null {
     node: process.env.PROXMOX_NODE?.trim() || "pve01",
     storage: process.env.PROXMOX_STORAGE?.trim() || "local-lvm",
     bridge: process.env.PROXMOX_BRIDGE?.trim() || "vmbr0",
-    verifyTls: parseProxmoxTlsVerify(),
+    insecureTls: parseProxmoxInsecureTls(),
     caCertPath: process.env.PROXMOX_CA_CERT_PATH?.trim() || undefined,
     templateMap: parseTemplateMap(process.env.PROXMOX_TEMPLATE_MAP),
   };

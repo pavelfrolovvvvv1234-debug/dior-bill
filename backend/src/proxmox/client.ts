@@ -42,7 +42,7 @@ export class ProxmoxClient {
       ? readFileSync(config.caCertPath)
       : undefined;
     this.agent = new https.Agent({
-      rejectUnauthorized: config.verifyTls,
+      rejectUnauthorized: !config.insecureTls,
       ...(ca ? { ca } : {}),
     });
   }

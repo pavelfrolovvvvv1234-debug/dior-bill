@@ -13,6 +13,7 @@ async function main() {
   console.log("API URL:", config.apiUrl);
   console.log("Node:", config.node);
   console.log("Storage:", config.storage);
+  console.log("TLS:", config.insecureTls ? "insecure (self-signed OK)" : "strict verify");
   console.log("Templates:", Object.keys(config.templateMap).length);
 
   const result = await verifyProxmoxIntegration();

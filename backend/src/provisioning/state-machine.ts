@@ -4,6 +4,7 @@ import {
   destroyProxmoxVmIfExists,
   getProxmoxNodeName,
   provisionVmOnProxmox,
+  proxmoxTlsHint,
   syncVpsMetricsFromProxmox,
 } from "../proxmox";
 import { withIdempotency } from "../core/events/idempotency";
@@ -178,7 +179,9 @@ export async function runVpsProvisionPipeline(payload: {
         data: { completedAt: new Date() },
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Provision failed";
+      const raw = err instanceof Error ? err.message : "Provision failed";
+      const hint = proxmoxTlsHint(raw);
+      const message = hint ? `${raw}. ${hint}` : raw;
       await updateJob(payload.jobId, {
         status: attempts < job.maxAttempts ? "queued" : "failed",
         error: message,
