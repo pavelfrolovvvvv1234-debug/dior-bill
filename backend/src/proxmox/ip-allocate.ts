@@ -426,13 +426,14 @@ export async function allocateStaticIpForVps(params: {
 
   const vpsRow = await prisma.vpsInstance.findUnique({
     where: { id: params.vpsId },
-    select: { hostname: true },
+    select: { hostname: true, serviceId: true },
   });
 
   if (isSharedIpRegistryEnabled()) {
     const address = await reserveBillingIpInSharedRegistry({
       network,
       vpsId: params.vpsId,
+      serviceId: vpsRow?.serviceId,
       hostname: vpsRow?.hostname,
     });
 

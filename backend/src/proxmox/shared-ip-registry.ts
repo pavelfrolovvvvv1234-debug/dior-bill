@@ -1,15 +1,18 @@
 import { prisma } from "@dior/database";
 import { ValidationError } from "@dior/shared";
+import {
+  pickNextFreeInSubnet,
+  shouldReuseReleasedRegistryRow,
+} from "./shared-ip-registry-logic";
+import type { SharedRegistrySubnet } from "./shared-ip-registry-types";
+
+export type { SharedRegistrySubnet } from "./shared-ip-registry-types";
+export {
+  pickNextFreeInSubnet,
+  shouldReuseReleasedRegistryRow,
+} from "./shared-ip-registry-logic";
 
 const OCCUPIED_STATUSES = ["reserved", "active"] as const;
-
-export type SharedRegistrySubnet = {
-  prefix: string;
-  cidr: number;
-  gateway: string;
-  startHost: number;
-  endHost: number;
-};
 
 export function isSharedIpRegistryEnabled(): boolean {
   if (process.env.SHARED_IP_REGISTRY === "1") return true;
@@ -39,27 +42,6 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
-function allocationFloor(network: SharedRegistrySubnet): number {
-  const raw = process.env.PROXMOX_IP_START?.trim();
-  if (raw) {
-    const n = Number.parseInt(raw, 10);
-    if (Number.isFinite(n) && n >= 2 && n <= 254) return n;
-  }
-  return network.startHost;
-}
-
-function pickNextFreeInSubnet(
-  network: SharedRegistrySubnet,
-  occupied: Set<string>,
-): string | null {
-  for (let host = allocationFloor(network); host <= network.endHost; host++) {
-    const candidate = `${network.prefix}.${host}`;
-    if (candidate === network.gateway) continue;
-    if (!occupied.has(candidate)) return candidate;
-  }
-  return null;
-}
-
 export async function listOccupiedSharedRegistryIps(networkCidr: string): Promise<Set<string>> {
   const rows = await prisma.networkIpAllocation.findMany({
     where: {
@@ -78,6 +60,7 @@ export async function listOccupiedSharedRegistryIps(networkCidr: string): Promis
 export async function reserveBillingIpInSharedRegistry(params: {
   network: SharedRegistrySubnet;
   vpsId: string;
+  serviceId?: string;
   hostname?: string;
 }): Promise<string> {
   const networkCidr = getSharedRegistryNetwork(params.network);
@@ -91,58 +74,69 @@ export async function reserveBillingIpInSharedRegistry(params: {
   });
   if (existing) return existing.ip;
 
-  const occupied = await listOccupiedSharedRegistryIps(networkCidr);
+  return prisma.$transaction(
+    async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ ip: string }>>`
+        SELECT ip FROM network_ip_allocations
+        WHERE network = ${networkCidr} AND status IN ('reserved', 'active')
+        FOR UPDATE
+      `;
+      const occupied = new Set(locked.map((r) => r.ip));
 
-  for (let attempt = 0; attempt < 64; attempt++) {
-    const candidate = pickNextFreeInSubnet(params.network, occupied);
-    if (!candidate) {
-      throw new ValidationError(
-        `No free IPv4 in shared registry for ${networkCidr} (${occupied.size} occupied). Run: pnpm run sync-shared-ip-registry`,
-      );
-    }
+      for (let attempt = 0; attempt < 64; attempt++) {
+        const candidate = pickNextFreeInSubnet(params.network, occupied);
+        if (!candidate) {
+          throw new ValidationError(
+            `No free IPv4 in shared registry for ${networkCidr} (${occupied.size} occupied). Run: pnpm run sync-shared-ip-registry`,
+          );
+        }
 
-    try {
-      const prior = await prisma.networkIpAllocation.findUnique({ where: { ip: candidate } });
-      if (prior?.status === "released") {
-        await prisma.networkIpAllocation.update({
-          where: { ip: candidate },
-          data: {
-            network: networkCidr,
-            owner: "billing",
-            status: "reserved",
-            vpsId: params.vpsId,
-            hostname: params.hostname ?? null,
-            vmid: null,
-            releasedAt: null,
-            externalServiceId: null,
-          },
-        });
-        console.log(`[shared-ip] re-reserved ${candidate} for billing vps ${params.vpsId}`);
-        return candidate;
+        try {
+          const prior = await tx.networkIpAllocation.findUnique({ where: { ip: candidate } });
+          if (shouldReuseReleasedRegistryRow(prior)) {
+            await tx.networkIpAllocation.update({
+              where: { ip: candidate },
+              data: {
+                network: networkCidr,
+                owner: "billing",
+                status: "reserved",
+                vpsId: params.vpsId,
+                externalServiceId: params.serviceId ?? null,
+                hostname: params.hostname ?? null,
+                vmid: null,
+                releasedAt: null,
+              },
+            });
+            console.log(`[shared-ip] re-reserved ${candidate} for billing vps ${params.vpsId}`);
+            return candidate;
+          }
+
+          await tx.networkIpAllocation.create({
+            data: {
+              ip: candidate,
+              network: networkCidr,
+              owner: "billing",
+              status: "reserved",
+              vpsId: params.vpsId,
+              externalServiceId: params.serviceId ?? null,
+              hostname: params.hostname ?? null,
+            },
+          });
+          console.log(`[shared-ip] reserved ${candidate} for billing vps ${params.vpsId}`);
+          return candidate;
+        } catch (err) {
+          if (isUniqueViolation(err)) {
+            occupied.add(candidate);
+            continue;
+          }
+          throw err;
+        }
       }
 
-      await prisma.networkIpAllocation.create({
-        data: {
-          ip: candidate,
-          network: networkCidr,
-          owner: "billing",
-          status: "reserved",
-          vpsId: params.vpsId,
-          hostname: params.hostname ?? null,
-        },
-      });
-      console.log(`[shared-ip] reserved ${candidate} for billing vps ${params.vpsId}`);
-      return candidate;
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        occupied.add(candidate);
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  throw new ValidationError("Could not reserve IPv4 in shared registry (concurrent conflict)");
+      throw new ValidationError("Could not reserve IPv4 in shared registry (concurrent conflict)");
+    },
+    { timeout: 15_000 },
+  );
 }
 
 export async function activateSharedRegistryIp(params: {
