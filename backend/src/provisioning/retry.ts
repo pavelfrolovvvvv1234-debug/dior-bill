@@ -111,6 +111,9 @@ export async function retryVpsProvisioningForInstance(params: {
     });
   }
 
+  // Brief pause so Proxmox releases VMID/config after destroy before re-clone.
+  await new Promise((r) => setTimeout(r, 3000));
+
   if (vps.primaryIp && (isPlaceholderIp(vps.primaryIp) || params.force)) {
     await teardownVpsNetworkResources({
       vpsId: vps.id,

@@ -167,6 +167,76 @@ export class ProxmoxClient {
     return typeof data === "number" ? data : Number(data);
   }
 
+  /** All QEMU + LXC VMIDs on the cluster (for collision-safe allocation). */
+  async collectAllVmidsOnCluster(): Promise<Set<number>> {
+    const ids = new Set<number>();
+    const nodes = await this.listNodes();
+    for (const { node } of nodes) {
+      try {
+        for (const vm of await this.listVms(node)) ids.add(vm.vmid);
+      } catch {
+        /* node offline */
+      }
+      try {
+        const lxcs = await this.request<Array<{ vmid: number }>>(
+          "GET",
+          `/api2/json/nodes/${node}/lxc`,
+        );
+        for (const ct of lxcs) ids.add(ct.vmid);
+      } catch {
+        /* no LXC */
+      }
+    }
+    return ids;
+  }
+
+  async vmConfigExists(node: string, vmid: number): Promise<boolean> {
+    try {
+      await this.getVmConfig(node, vmid);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Pick a VMID not used on the cluster. Proxmox cluster/nextid can return IDs whose
+   * config still exists after interrupted clones — verify before clone.
+   */
+  async allocateFreeVmid(preferredNode?: string): Promise<number> {
+    const occupied = await this.collectAllVmidsOnCluster();
+    const node = preferredNode ?? this.config.node;
+    let candidate = await this.getNextVmid();
+
+    for (let attempt = 0; attempt < 64; attempt++) {
+      if (!occupied.has(candidate) && !(await this.vmConfigExists(node, candidate))) {
+        return candidate;
+      }
+      occupied.add(candidate);
+      const raw = await this.request<string | number>(
+        "GET",
+        `/api2/json/cluster/nextid?vmid=${candidate}`,
+      );
+      candidate = typeof raw === "number" ? raw : Number(raw);
+      if (!Number.isFinite(candidate)) break;
+    }
+
+    throw new ProxmoxApiError(
+      500,
+      `Could not allocate free VMID (${occupied.size} IDs on cluster)`,
+    );
+  }
+
+  /** Poll until VM config is gone after delete (interrupted clones leave stale configs). */
+  async waitUntilVmidGone(node: string, vmid: number, timeoutMs = 120_000): Promise<void> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      if (!(await this.vmConfigExists(node, vmid))) return;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    throw new ProxmoxApiError(504, `VMID ${vmid} still exists on ${node} after destroy`);
+  }
+
   async listNodes(): Promise<Array<{ node: string; status: string }>> {
     return this.request("GET", "/api2/json/nodes");
   }

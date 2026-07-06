@@ -101,7 +101,7 @@ export async function provisionVmOnProxmox(spec: {
   const useStaticIp = !!spec.primaryIp && !isPlaceholderIp(spec.primaryIp);
 
   const node = spec.nodeName || config.node;
-  const vmid = await client.getNextVmid();
+  const vmid = await client.allocateFreeVmid(node);
   const templateVmid = resolveTemplateVmid(spec.os, config);
   const rootPassword = randomBytes(10).toString("base64url").slice(0, 16) + "A1!";
 
@@ -279,6 +279,14 @@ export async function destroyProxmoxVmIfExists(node: string, vmid: number): Prom
     await client.deleteVm(node, vmid);
   } catch {
     /* already gone */
+  }
+  try {
+    await client.waitUntilVmidGone(node, vmid);
+  } catch (err) {
+    console.warn(
+      `[proxmox] vmid ${vmid} destroy wait:`,
+      err instanceof Error ? err.message : err,
+    );
   }
 }
 
