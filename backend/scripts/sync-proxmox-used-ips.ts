@@ -28,12 +28,22 @@ async function main() {
   });
 
   console.log(`Subnet: ${network.prefix}.0/${network.cidr} gw ${network.gateway}`);
-  console.log(`Total blocked for billing (visible IPs + gap fill): ${used.size}`);
-  console.log(`Free slots in /24 (approx): ${Math.max(0, 245 - used.size)}`);
-  console.log("Occupied:", sorted.join(", ") || "(none detected)");
-  console.log("Next free for web billing:", sync.nextFree ?? "NONE — subnet full or undetected IPs missing from scan");
+  if (process.env.PROXMOX_REQUIRE_SHARED_IP_REGISTRY === "1") {
+    console.log(`Registry mode: network_ip_allocations is the only source of truth`);
+    console.log(`Occupied (reserved+active): ${used.size}`);
+    console.log("Next free (from registry):", sync.nextFree ?? "NONE");
+  } else {
+    console.log(`Total blocked for billing (visible IPs + gap fill): ${used.size}`);
+    console.log(`Free slots in /24 (approx): ${Math.max(0, 245 - used.size)}`);
+    console.log("Occupied:", sorted.join(", ") || "(none detected)");
+    console.log("Next free for web billing:", sync.nextFree ?? "NONE — subnet full or undetected IPs missing from scan");
+  }
   if (!sync.nextFree) {
-    console.error("Fix: install qemu-guest-agent in TG-bot template, or set ipconfig0 on each VM in Proxmox");
+    console.error(
+      process.env.PROXMOX_REQUIRE_SHARED_IP_REGISTRY === "1"
+        ? "No free IP in network_ip_allocations range — check PROXMOX_IP_START/END"
+        : "Fix: install qemu-guest-agent in TG-bot template, or set ipconfig0 on each VM in Proxmox",
+    );
     process.exit(1);
   }
 }

@@ -17,6 +17,7 @@ import { allocateIpTransactional } from "../core/inventory/service";
 import {
   activateSharedRegistryIp,
   isSharedIpRegistryEnabled,
+  isSharedIpRegistryRequired,
 } from "../proxmox/shared-ip-registry";
 import { teardownVpsNetworkResources } from "../proxmox/vps-network-teardown";
 import {
@@ -188,7 +189,7 @@ export async function runVpsProvisionPipeline(payload: {
       });
       await markStep(steps, 3, "done", 90, payload.jobId);
 
-      if (assignedIp && vmid && isSharedIpRegistryEnabled()) {
+      if (assignedIp && vmid && (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled())) {
         await activateSharedRegistryIp({
           ip: assignedIp,
           vmid,
@@ -268,7 +269,7 @@ export async function runVpsProvisionPipeline(payload: {
 
       if (isLifecycleError && vmid) {
         try {
-          if (assignedIp && isSharedIpRegistryEnabled()) {
+          if (assignedIp && (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled())) {
             await activateSharedRegistryIp({
               ip: assignedIp,
               vmid,

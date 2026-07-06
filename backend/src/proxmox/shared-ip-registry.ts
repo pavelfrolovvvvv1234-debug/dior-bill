@@ -2,6 +2,8 @@ import { prisma } from "@dior/database";
 import { ValidationError } from "@dior/shared";
 import {
   pickNextFreeInSubnet,
+  resolveSubnetHostBounds,
+  SHARED_REGISTRY_RESERVE_MAX_ATTEMPTS,
   shouldReuseReleasedRegistryRow,
 } from "./shared-ip-registry-logic";
 import type { SharedRegistrySubnet } from "./shared-ip-registry-types";
@@ -9,6 +11,8 @@ import type { SharedRegistrySubnet } from "./shared-ip-registry-types";
 export type { SharedRegistrySubnet } from "./shared-ip-registry-types";
 export {
   pickNextFreeInSubnet,
+  resolveSubnetHostBounds,
+  SHARED_REGISTRY_RESERVE_MAX_ATTEMPTS,
   shouldReuseReleasedRegistryRow,
 } from "./shared-ip-registry-logic";
 
@@ -53,6 +57,48 @@ export async function listOccupiedSharedRegistryIps(networkCidr: string): Promis
   return new Set(rows.map((r) => r.ip));
 }
 
+/** Next free IPv4 from registry occupied set only (no Proxmox scan). */
+export async function pickNextFreeFromSharedRegistry(
+  network: SharedRegistrySubnet,
+): Promise<string | null> {
+  const networkCidr = getSharedRegistryNetwork(network);
+  const occupied = await listOccupiedSharedRegistryIps(networkCidr);
+  occupied.add(network.gateway);
+  return pickNextFreeInSubnet(network, occupied);
+}
+
+async function collectOccupiedForReserve(
+  tx: {
+    $queryRaw: typeof prisma.$queryRaw;
+    networkIpAllocation: typeof prisma.networkIpAllocation;
+  },
+  networkCidr: string,
+  network: SharedRegistrySubnet,
+): Promise<Set<string>> {
+  const locked = await tx.$queryRaw<Array<{ ip: string }>>`
+    SELECT ip FROM network_ip_allocations
+    WHERE network = ${networkCidr} AND status IN ('reserved', 'active')
+    FOR UPDATE
+  `;
+  const occupied = new Set(locked.map((r) => r.ip));
+  occupied.add(network.gateway);
+
+  if (process.env.SHARED_IP_PROXMOX_SCAN_FALLBACK !== "0") {
+    const { getProxmoxClient } = await import("./client");
+    const client = getProxmoxClient();
+    if (client) {
+      try {
+        const scan = await client.collectUsedIpsOnClusterDetailed(network.prefix);
+        for (const ip of scan.ips) occupied.add(ip);
+      } catch {
+        /* Proxmox offline — registry rows are still authoritative */
+      }
+    }
+  }
+
+  return occupied;
+}
+
 /**
  * Reserve IPv4 in shared registry before Proxmox create (owner=billing, status=reserved).
  * UNIQUE(ip) prevents race with TG bot.
@@ -76,14 +122,9 @@ export async function reserveBillingIpInSharedRegistry(params: {
 
   return prisma.$transaction(
     async (tx) => {
-      const locked = await tx.$queryRaw<Array<{ ip: string }>>`
-        SELECT ip FROM network_ip_allocations
-        WHERE network = ${networkCidr} AND status IN ('reserved', 'active')
-        FOR UPDATE
-      `;
-      const occupied = new Set(locked.map((r) => r.ip));
+      const occupied = await collectOccupiedForReserve(tx, networkCidr, params.network);
 
-      for (let attempt = 0; attempt < 64; attempt++) {
+      for (let attempt = 0; attempt < SHARED_REGISTRY_RESERVE_MAX_ATTEMPTS; attempt++) {
         const candidate = pickNextFreeInSubnet(params.network, occupied);
         if (!candidate) {
           throw new ValidationError(

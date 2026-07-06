@@ -57,8 +57,17 @@ PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1
 PROXMOX_NETWORK=45.74.7.0/24
 PROXMOX_GATEWAY=45.74.7.1
 PROXMOX_IP_START=175
+PROXMOX_IP_START=100
+PROXMOX_IP_END=250
 SHARED_IP_RESERVE_TTL_MINUTES=30
 ```
+
+When `PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1`:
+
+- **Only** `network_ip_allocations` is used for pick/reserve/next-free
+- Legacy `ip_addresses` table is **not** written during VPS create
+- Proxmox scan / gap-fill / TG-bot SQL are **disabled** for occupancy
+- Optional: during reserve, Proxmox `ipconfig0` scan is merged as safety net (disable with `SHARED_IP_PROXMOX_SCAN_FALLBACK=0`)
 
 Do **not** enable registry on billing only — bot must write too.
 

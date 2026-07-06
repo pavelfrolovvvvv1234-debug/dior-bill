@@ -23,6 +23,7 @@ import {
   listOccupiedSharedRegistryIps,
   reserveBillingIpInSharedRegistry,
 } from "./shared-ip-registry";
+import { resolveSubnetHostBounds, pickNextFreeInSubnet } from "./shared-ip-registry-logic";
 
 export type ProxmoxNetworkSpec = {
   prefix: string;
@@ -165,6 +166,7 @@ export async function resolveProxmoxNetwork(os: string): Promise<ProxmoxNetworkS
   const gatewayEnv = config?.gateway ?? getProxmoxGateway();
 
   const networkEnv = process.env.PROXMOX_NETWORK?.trim();
+  const hostBounds = resolveSubnetHostBounds(100, 250);
   if (networkEnv) {
     const parsed = parseCidrNetwork(networkEnv, fallbackCidr);
     if (parsed) {
@@ -172,8 +174,8 @@ export async function resolveProxmoxNetwork(os: string): Promise<ProxmoxNetworkS
         prefix: parsed.prefix,
         cidr: parsed.cidr,
         gateway: gatewayEnv ?? `${parsed.prefix}.1`,
-        startHost: 10,
-        endHost: 254,
+        startHost: hostBounds.startHost,
+        endHost: hostBounds.endHost,
       };
     }
   }
@@ -185,7 +187,13 @@ export async function resolveProxmoxNetwork(os: string): Promise<ProxmoxNetworkS
       const tplCfg = await client.getVmConfig(config.node, templateVmid);
       const ipconfig0 = tplCfg.ipconfig0 ?? tplCfg.ipconfig1 ?? "";
       const fromTpl = parseIpconfigNetwork(ipconfig0, gatewayEnv, fallbackCidr);
-      if (fromTpl) return fromTpl;
+      if (fromTpl) {
+        return {
+          ...fromTpl,
+          startHost: hostBounds.startHost,
+          endHost: hostBounds.endHost,
+        };
+      }
     } catch {
       /* template may not expose ipconfig */
     }
@@ -200,8 +208,8 @@ export async function resolveProxmoxNetwork(os: string): Promise<ProxmoxNetworkS
           prefix,
           cidr: fallbackCidr,
           gateway: gatewayEnv ?? `${prefix}.1`,
-          startHost: 10,
-          endHost: 254,
+          startHost: hostBounds.startHost,
+          endHost: hostBounds.endHost,
         };
       }
     } catch {
@@ -224,6 +232,14 @@ export async function collectAllUsedProxmoxIps(
 ): Promise<Set<string>> {
   const used = new Set<string>();
   let noIpDetected = 0;
+
+  if (isSharedIpRegistryRequired()) {
+    const networkCidr = getSharedRegistryNetwork(network);
+    const registry = await listOccupiedSharedRegistryIps(networkCidr);
+    for (const ip of registry) used.add(ip);
+    used.add(network.gateway);
+    return used;
+  }
 
   if (isSharedIpRegistryEnabled()) {
     try {
@@ -320,12 +336,21 @@ export async function reserveProxmoxOccupiedIps(params: {
   return reserved;
 }
 
-/** Worker/admin: sync live Proxmox occupancy into inventory. */
+/** Worker/admin: sync occupancy / next-free (registry-only when PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1). */
 export async function syncProxmoxUsedIpsToInventory(
   locationId?: string,
   os = "debian12",
 ): Promise<{ used: number; reserved: number; nextFree: string | null }> {
   const network = await resolveProxmoxNetwork(os);
+
+  if (isSharedIpRegistryRequired()) {
+    const networkCidr = getSharedRegistryNetwork(network);
+    const occupied = await listOccupiedSharedRegistryIps(networkCidr);
+    occupied.add(network.gateway);
+    const nextFree = pickNextFreeInSubnet(network, occupied);
+    return { used: occupied.size, reserved: 0, nextFree };
+  }
+
   const nodeName = getProxmoxNodeName();
   const used = await collectAllUsedProxmoxIps(network, nodeName);
 
@@ -429,38 +454,18 @@ export async function allocateStaticIpForVps(params: {
     select: { hostname: true, serviceId: true },
   });
 
-  if (isSharedIpRegistryEnabled()) {
+  if (isSharedIpRegistryRequired() && !isSharedIpRegistryEnabled()) {
+    throw new ValidationError(
+      "PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1 — set PROXMOX_NETWORK and run migrate + sync-shared-ip-registry",
+    );
+  }
+
+  if (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled()) {
     const address = await reserveBillingIpInSharedRegistry({
       network,
       vpsId: params.vpsId,
       serviceId: vpsRow?.serviceId,
       hostname: vpsRow?.hostname,
-    });
-
-    await prisma.$transaction(async (tx) => {
-      await tx.ipAddress.upsert({
-        where: { address },
-        create: {
-          address,
-          locationId: params.locationId,
-          nodeId: params.nodeId ?? null,
-          status: "assigned",
-          vpsId: params.vpsId,
-        },
-        update: {
-          status: "assigned",
-          vpsId: params.vpsId,
-          locationId: params.locationId,
-          nodeId: params.nodeId ?? null,
-        },
-      });
-
-      if (params.nodeId) {
-        await tx.node.updateMany({
-          where: { id: params.nodeId },
-          data: { activeVps: { increment: 1 } },
-        });
-      }
     });
 
     await appendDomainEvent({
@@ -477,7 +482,7 @@ export async function allocateStaticIpForVps(params: {
       idempotencyKey: `ip.alloc:${params.idempotencyKey}`,
     });
 
-    console.log(`[shared-ip] allocated ${address} for vps ${params.vpsId}`);
+    console.log(`[shared-ip] reserved ${address} for vps ${params.vpsId} (registry-only)`);
     return address;
   }
 

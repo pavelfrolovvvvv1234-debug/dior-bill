@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   pickNextFreeInSubnet,
+  resolveSubnetHostBounds,
   shouldReuseReleasedRegistryRow,
 } from "../shared-ip-registry-logic.js";
 
@@ -9,26 +10,37 @@ const TEST_NET = {
   prefix: "45.74.7",
   cidr: 24,
   gateway: "45.74.7.1",
-  startHost: 175,
-  endHost: 180,
+  startHost: 100,
+  endHost: 250,
 };
 
 describe("shared-ip-registry", () => {
   describe("pickNextFreeInSubnet", () => {
     it("skips gateway and occupied hosts", () => {
-      const occupied = new Set(["45.74.7.1", "45.74.7.175", "45.74.7.176"]);
-      assert.equal(pickNextFreeInSubnet(TEST_NET, occupied), "45.74.7.177");
+      const occupied = new Set(["45.74.7.1", "45.74.7.100", "45.74.7.101"]);
+      assert.equal(pickNextFreeInSubnet(TEST_NET, occupied), "45.74.7.102");
+    });
+
+    it("respects PROXMOX_IP_START and PROXMOX_IP_END env", () => {
+      const prevStart = process.env.PROXMOX_IP_START;
+      const prevEnd = process.env.PROXMOX_IP_END;
+      process.env.PROXMOX_IP_START = "175";
+      process.env.PROXMOX_IP_END = "180";
+      try {
+        const bounds = resolveSubnetHostBounds(100, 250);
+        assert.equal(bounds.startHost, 175);
+        assert.equal(bounds.endHost, 180);
+      } finally {
+        if (prevStart === undefined) delete process.env.PROXMOX_IP_START;
+        else process.env.PROXMOX_IP_START = prevStart;
+        if (prevEnd === undefined) delete process.env.PROXMOX_IP_END;
+        else process.env.PROXMOX_IP_END = prevEnd;
+      }
     });
 
     it("returns null when subnet slice is full", () => {
-      const occupied = new Set([
-        "45.74.7.175",
-        "45.74.7.176",
-        "45.74.7.177",
-        "45.74.7.178",
-        "45.74.7.179",
-        "45.74.7.180",
-      ]);
+      const occupied = new Set<string>();
+      for (let h = 100; h <= 250; h++) occupied.add(`45.74.7.${h}`);
       assert.equal(pickNextFreeInSubnet(TEST_NET, occupied), null);
     });
   });
