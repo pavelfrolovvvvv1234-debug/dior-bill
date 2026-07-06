@@ -6,6 +6,10 @@ import {
   SHARED_REGISTRY_RESERVE_MAX_ATTEMPTS,
   shouldReuseReleasedRegistryRow,
 } from "./shared-ip-registry-logic";
+import {
+  invalidateProxmoxRegistrySyncCache,
+  syncProxmoxClusterToRegistry,
+} from "./proxmox-registry-sync";
 import type { SharedRegistrySubnet } from "./shared-ip-registry-types";
 
 export type { SharedRegistrySubnet } from "./shared-ip-registry-types";
@@ -84,20 +88,13 @@ async function collectRegistryOccupiedForUpdate(
   return occupied;
 }
 
-/** Proxmox live IPs — outside prisma.$transaction (registry rows can be stale after rollback). */
-async function collectProxmoxLiveOccupied(network: SharedRegistrySubnet): Promise<Set<string>> {
-  const extra = new Set<string>();
-  const { getProxmoxClient } = await import("./client");
-  const client = getProxmoxClient();
-  if (!client) return extra;
-
-  try {
-    const scan = await client.collectUsedIpsOnClusterDetailed(network.prefix);
-    for (const ip of scan.ips) extra.add(ip);
-  } catch {
-    /* Proxmox offline — registry rows only */
-  }
-  return extra;
+/** Proxmox cluster → registry (source of truth for occupied IPs). */
+async function ensureProxmoxOccupancySynced(
+  network: SharedRegistrySubnet,
+): Promise<Set<string>> {
+  invalidateProxmoxRegistrySyncCache();
+  const sync = await syncProxmoxClusterToRegistry(network, { force: true, quiet: true });
+  return sync.occupied;
 }
 
 /**
@@ -121,7 +118,7 @@ export async function reserveBillingIpInSharedRegistry(params: {
   });
   if (existing) return existing.ip;
 
-  const proxmoxLiveOccupied = await collectProxmoxLiveOccupied(params.network);
+  const proxmoxLiveOccupied = await ensureProxmoxOccupancySynced(params.network);
 
   return prisma.$transaction(
     async (tx) => {
@@ -148,6 +145,10 @@ export async function reserveBillingIpInSharedRegistry(params: {
         try {
           const prior = await tx.networkIpAllocation.findUnique({ where: { ip: candidate } });
           if (shouldReuseReleasedRegistryRow(prior)) {
+            if (proxmoxLiveOccupied.has(candidate)) {
+              occupied.add(candidate);
+              continue;
+            }
             await tx.networkIpAllocation.update({
               where: { ip: candidate },
               data: {

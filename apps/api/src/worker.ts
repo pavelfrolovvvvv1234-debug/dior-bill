@@ -29,6 +29,8 @@ import {
   isSharedIpRegistryEnabled,
   isSharedIpRegistryRequired,
   isProxmoxConfigured,
+  syncProxmoxClusterToRegistry,
+  resolveProxmoxNetwork,
 } from "@dior/backend";
 import { prisma } from "@dior/database";
 import { createNotification, deliverTelegramNotification } from "@dior/backend";
@@ -72,10 +74,28 @@ const TOPUP_SYNC_INTERVAL_MS = 90 * 1000;
 let lastWorkerErrorAlert = 0;
 const WORKER_ERROR_ALERT_MS = 5 * 60 * 1000;
 
-let lastSharedIpReconcile = 0;
-const SHARED_IP_RECONCILE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+let lastProxmoxRegistrySync = 0;
+const PROXMOX_REGISTRY_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+
+async function runProxmoxRegistrySyncIfDue(): Promise<void> {
+  if (!isSharedIpRegistryEnabled() || !isProxmoxConfigured()) return;
+  if (Date.now() - lastProxmoxRegistrySync < PROXMOX_REGISTRY_SYNC_INTERVAL_MS) return;
+  lastProxmoxRegistrySync = Date.now();
+  try {
+    const network = await resolveProxmoxNetwork("debian12");
+    const r = await syncProxmoxClusterToRegistry(network, { force: true });
+    console.log(
+      `[shared-ip] periodic Proxmox sync: ${r.occupied.size} IPs, ${r.vmCount} VMs, ` +
+        `+${r.imported} new, ${r.reactivated} reactivated`,
+    );
+  } catch (e) {
+    console.error("Proxmox registry periodic sync:", e);
+  }
+}
 let lastStaleIpCleanup = 0;
 const STALE_IP_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+let lastSharedIpReconcile = 0;
+const SHARED_IP_RECONCILE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 async function run() {
   console.log("Dior worker started (event-driven control plane)");
@@ -111,6 +131,15 @@ async function run() {
     )
     .catch((e) => console.error("Proxmox IP occupancy sync:", e));
   if (isSharedIpRegistryEnabled()) {
+    resolveProxmoxNetwork("debian12")
+      .then((network) => syncProxmoxClusterToRegistry(network, { force: true }))
+      .then((r) =>
+        console.log(
+          `[shared-ip] startup Proxmox sync: ${r.occupied.size} IPs, ${r.vmCount} VMs, ` +
+            `+${r.imported} new, ${r.reactivated} reactivated`,
+        ),
+      )
+      .catch((e) => console.error("Proxmox registry startup sync:", e));
     reconcileSharedRegistryWithProxmox()
       .then((r) =>
         console.log(
@@ -143,6 +172,7 @@ async function run() {
       }
 
       if (isSharedIpRegistryEnabled()) {
+        await runProxmoxRegistrySyncIfDue();
         if (Date.now() - lastStaleIpCleanup > STALE_IP_CLEANUP_INTERVAL_MS) {
           lastStaleIpCleanup = Date.now();
           releaseStaleSharedRegistryReservations().catch((e) =>

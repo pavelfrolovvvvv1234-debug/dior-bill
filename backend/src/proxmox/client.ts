@@ -167,27 +167,126 @@ export class ProxmoxClient {
     return typeof data === "number" ? data : Number(data);
   }
 
-  /** All QEMU + LXC VMIDs on the cluster (for collision-safe allocation). */
+  /** All QEMU + LXC VMIDs on the cluster (templates excluded). */
   async collectAllVmidsOnCluster(): Promise<Set<number>> {
     const ids = new Set<number>();
     const nodes = await this.listNodes();
     for (const { node } of nodes) {
       try {
-        for (const vm of await this.listVms(node)) ids.add(vm.vmid);
+        for (const vm of await this.listVms(node)) {
+          if (vm.template === 1) continue;
+          ids.add(vm.vmid);
+        }
       } catch {
         /* node offline */
       }
       try {
-        const lxcs = await this.request<Array<{ vmid: number }>>(
-          "GET",
-          `/api2/json/nodes/${node}/lxc`,
-        );
-        for (const ct of lxcs) ids.add(ct.vmid);
+        const lxcs = await this.request<
+          Array<{ vmid: number; template?: number }>
+        >("GET", `/api2/json/nodes/${node}/lxc`);
+        for (const ct of lxcs) {
+          if (ct.template === 1) continue;
+          ids.add(ct.vmid);
+        }
       } catch {
         /* no LXC */
       }
     }
     return ids;
+  }
+
+  /** Every guest VM/LXC on the cluster with detected IPs (for registry sync). */
+  async collectClusterVmInventory(subnetPrefix?: string): Promise<
+    Array<{
+      vmid: number;
+      name: string;
+      node: string;
+      kind: "qemu" | "lxc";
+      ips: string[];
+    }>
+  > {
+    const out: Array<{
+      vmid: number;
+      name: string;
+      node: string;
+      kind: "qemu" | "lxc";
+      ips: string[];
+    }> = [];
+
+    let nodes: Array<{ node: string; status: string }>;
+    try {
+      nodes = await this.listNodes();
+    } catch {
+      return out;
+    }
+
+    for (const { node } of nodes) {
+      let vms: Array<{
+        vmid: number;
+        name?: string;
+        status?: string;
+        template?: number;
+      }>;
+      try {
+        vms = await this.listVms(node);
+      } catch {
+        vms = [];
+      }
+
+      for (const vm of vms) {
+        if (vm.template === 1) continue;
+        const ips = new Set<string>();
+        try {
+          const cfg = await this.getVmConfig(node, vm.vmid);
+          for (const ip of this.parseIpsFromVmConfig(cfg, subnetPrefix)) ips.add(ip);
+        } catch {
+          /* mid-clone */
+        }
+        if (vm.status === "running") {
+          for (const ip of await this.getGuestAgentIps(node, vm.vmid, subnetPrefix)) {
+            ips.add(ip);
+          }
+        }
+        out.push({
+          vmid: vm.vmid,
+          name: vm.name ?? `vm-${vm.vmid}`,
+          node,
+          kind: "qemu",
+          ips: [...ips],
+        });
+      }
+
+      let lxcs: Array<{
+        vmid: number;
+        name?: string;
+        template?: number;
+      }>;
+      try {
+        lxcs = await this.listLxc(node);
+      } catch {
+        lxcs = [];
+      }
+
+      for (const ct of lxcs) {
+        if (ct.template === 1) continue;
+        const ips = new Set<string>();
+        try {
+          const cfg = await this.getLxcConfig(node, ct.vmid);
+          for (const ip of this.parseIpsFromVmConfig(cfg, subnetPrefix)) ips.add(ip);
+        } catch {
+          /* mid-create */
+        }
+        out.push({
+          vmid: ct.vmid,
+          name: ct.name ?? `ct-${ct.vmid}`,
+          node,
+          kind: "lxc",
+          ips: [...ips],
+        });
+      }
+    }
+
+    return out;
   }
 
   async vmConfigExists(node: string, vmid: number): Promise<boolean> {
