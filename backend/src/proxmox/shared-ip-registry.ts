@@ -84,13 +84,9 @@ async function collectRegistryOccupiedForUpdate(
   return occupied;
 }
 
-/** Slow Proxmox cluster scan — must run outside prisma.$transaction. */
-async function collectProxmoxScanOccupied(network: SharedRegistrySubnet): Promise<Set<string>> {
+/** Proxmox live IPs — outside prisma.$transaction (registry rows can be stale after rollback). */
+async function collectProxmoxLiveOccupied(network: SharedRegistrySubnet): Promise<Set<string>> {
   const extra = new Set<string>();
-  const scanFallback =
-    !isSharedIpRegistryRequired() && process.env.SHARED_IP_PROXMOX_SCAN_FALLBACK !== "0";
-  if (!scanFallback) return extra;
-
   const { getProxmoxClient } = await import("./client");
   const client = getProxmoxClient();
   if (!client) return extra;
@@ -99,7 +95,7 @@ async function collectProxmoxScanOccupied(network: SharedRegistrySubnet): Promis
     const scan = await client.collectUsedIpsOnClusterDetailed(network.prefix);
     for (const ip of scan.ips) extra.add(ip);
   } catch {
-    /* Proxmox offline — registry rows are still authoritative */
+    /* Proxmox offline — registry rows only */
   }
   return extra;
 }
@@ -125,7 +121,7 @@ export async function reserveBillingIpInSharedRegistry(params: {
   });
   if (existing) return existing.ip;
 
-  const proxmoxScanOccupied = await collectProxmoxScanOccupied(params.network);
+  const proxmoxLiveOccupied = await collectProxmoxLiveOccupied(params.network);
 
   return prisma.$transaction(
     async (tx) => {
@@ -134,7 +130,7 @@ export async function reserveBillingIpInSharedRegistry(params: {
         networkCidr,
         params.network,
       );
-      for (const ip of proxmoxScanOccupied) occupied.add(ip);
+      for (const ip of proxmoxLiveOccupied) occupied.add(ip);
 
       for (let attempt = 0; attempt < SHARED_REGISTRY_RESERVE_MAX_ATTEMPTS; attempt++) {
         const candidate = pickNextFreeInSubnet(params.network, occupied);
@@ -142,6 +138,11 @@ export async function reserveBillingIpInSharedRegistry(params: {
           throw new ValidationError(
             `No free IPv4 in shared registry for ${networkCidr} (${occupied.size} occupied). Run: pnpm run sync-shared-ip-registry`,
           );
+        }
+
+        if (proxmoxLiveOccupied.has(candidate)) {
+          occupied.add(candidate);
+          continue;
         }
 
         try {

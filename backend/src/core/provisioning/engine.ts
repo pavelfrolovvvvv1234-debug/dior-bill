@@ -257,12 +257,20 @@ export async function startProvisioning(params: {
       ) {
         throw new ValidationError(`Cannot provision from status ${fresh.status}`);
       }
-      await transitionServiceLifecycle({
-        serviceId: params.serviceId,
-        to: "PROVISIONING",
-        idempotencyKey: `lifecycle:prov:${params.idempotencyKey}`,
-        correlationId: params.correlationId,
-      });
+      try {
+        await transitionServiceLifecycle({
+          serviceId: params.serviceId,
+          to: "PROVISIONING",
+          idempotencyKey: `lifecycle:prov:${params.idempotencyKey}`,
+          correlationId: params.correlationId,
+        });
+      } catch (err) {
+        const again = await prisma.service.findUnique({
+          where: { id: params.serviceId },
+          select: { status: true },
+        });
+        if (again?.status !== "PROVISIONING") throw err;
+      }
     }
 
     const vps = fresh.vpsInstance;
