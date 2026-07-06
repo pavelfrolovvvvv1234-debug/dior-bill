@@ -87,12 +87,8 @@ export function getProxmoxCiUser(): string {
   return process.env.PROXMOX_CIUSER?.trim() || "root";
 }
 
-/** OS-specific cloud-init user (Ubuntu images expect `ubuntu`, Debian uses `root`). */
+/** Cloud-init login user (default root — matches Proxmox templates on this cluster). */
 export function resolveProxmoxCiUser(os: string): string {
-  const lower = os.trim().toLowerCase();
-  if (lower.includes("windows")) return "Administrator";
-  if (lower.includes("ubuntu")) {
-    return process.env.PROXMOX_CIUSER_UBUNTU?.trim() || "ubuntu";
-  }
+  if (os.trim().toLowerCase().includes("windows")) return "Administrator";
   return getProxmoxCiUser();
 }

@@ -42,8 +42,8 @@ describe("assessVpsCredentialFields", () => {
     assert.equal(errors.length, 0);
   });
 
-  it("uses ubuntu login for Ubuntu cloud images", () => {
-    assert.equal(resolveVpsLoginUser("ubuntu-24.04"), "ubuntu");
+  it("uses root login for Linux including Ubuntu", () => {
+    assert.equal(resolveVpsLoginUser("ubuntu-24.04"), "root");
     assert.equal(resolveVpsLoginUser("debian-12"), "root");
   });
 });
