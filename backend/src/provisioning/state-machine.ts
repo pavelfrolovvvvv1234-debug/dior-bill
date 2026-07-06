@@ -134,8 +134,9 @@ export async function runVpsProvisionPipeline(payload: {
     let vmid: number | null = null;
     const proxmoxNode = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
 
+    const useProxmoxIpPath = isProxmoxConfigured() || isSharedIpRegistryRequired();
     try {
-      if (isProxmoxConfigured()) {
+      if (useProxmoxIpPath) {
         await markStep(steps, 0, "running", 15, payload.jobId);
         assignedIp = await allocateStaticIpForVps({
           locationId: vps.locationId,

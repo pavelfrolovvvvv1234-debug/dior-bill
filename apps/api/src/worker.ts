@@ -27,6 +27,8 @@ import {
   releaseStaleSharedRegistryReservations,
   reconcileSharedRegistryWithProxmox,
   isSharedIpRegistryEnabled,
+  isSharedIpRegistryRequired,
+  isProxmoxConfigured,
 } from "@dior/backend";
 import { prisma } from "@dior/database";
 import { createNotification, deliverTelegramNotification } from "@dior/backend";
@@ -77,6 +79,24 @@ const STALE_IP_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 async function run() {
   console.log("Dior worker started (event-driven control plane)");
+  console.log(
+    `[worker] proxmox=${isProxmoxConfigured() ? "yes" : "NO"} ` +
+      `sharedIpRegistry=${isSharedIpRegistryEnabled() ? "yes" : "no"} ` +
+      `requireRegistry=${isSharedIpRegistryRequired() ? "yes" : "no"} ` +
+      `cwd=${process.cwd()}`,
+  );
+  if (isSharedIpRegistryRequired() && !isProxmoxConfigured()) {
+    console.warn(
+      "[worker] PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1 but Proxmox API creds missing — " +
+        "IP reserve uses registry; VM create will fail until PROXMOX_BASE_URL/TOKEN_* are set",
+    );
+  }
+  if (!isProxmoxConfigured() && !isSharedIpRegistryRequired()) {
+    console.warn(
+      "[worker] Proxmox not configured — VPS provision will use legacy ip_addresses table " +
+        '("No IPv4 addresses available" if pool is empty). Stop duplicate Docker worker if PM2 is primary.',
+    );
+  }
   resumeAllStuckVpsProvisioning().catch((e) =>
     console.error("Initial stuck VPS resume:", e),
   );

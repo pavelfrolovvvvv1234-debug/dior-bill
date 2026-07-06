@@ -52,6 +52,11 @@ services:
       context: .
       dockerfile: docker/Dockerfile.worker
     restart: unless-stopped
+    profiles:
+      - docker-worker
+    # Production uses PM2 (dior-worker) with full .env — do not run this alongside PM2.
+    env_file:
+      - .env
     environment:
       DATABASE_URL: mysql://dior:dior_secret@mysql:3306/dior_billing
       REDIS_URL: redis://redis:6379

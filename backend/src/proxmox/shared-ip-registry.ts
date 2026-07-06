@@ -83,7 +83,9 @@ async function collectOccupiedForReserve(
   const occupied = new Set(locked.map((r) => r.ip));
   occupied.add(network.gateway);
 
-  if (process.env.SHARED_IP_PROXMOX_SCAN_FALLBACK !== "0") {
+  const scanFallback =
+    !isSharedIpRegistryRequired() && process.env.SHARED_IP_PROXMOX_SCAN_FALLBACK !== "0";
+  if (scanFallback) {
     const { getProxmoxClient } = await import("./client");
     const client = getProxmoxClient();
     if (client) {
