@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { encrypt } from "../../lib/crypto.js";
-import { assessVpsCredentialFields } from "../vps-access.js";
+import { assessVpsCredentialFields, resolveVpsLoginUser } from "../vps-access.js";
 
 describe("assessVpsCredentialFields", () => {
   const base = {
@@ -40,5 +40,10 @@ describe("assessVpsCredentialFields", () => {
       rootPasswordEnc: encrypt("TestPass123!A1"),
     });
     assert.equal(errors.length, 0);
+  });
+
+  it("uses ubuntu login for Ubuntu cloud images", () => {
+    assert.equal(resolveVpsLoginUser("ubuntu-24.04"), "ubuntu");
+    assert.equal(resolveVpsLoginUser("debian-12"), "root");
   });
 });

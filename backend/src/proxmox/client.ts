@@ -20,6 +20,7 @@ export interface VmSpec {
   gateway?: string;
   ipCidr?: number;
   rootPassword?: string;
+  ciuser?: string;
   storage: string;
   bridge: string;
 }
@@ -388,7 +389,7 @@ export class ProxmoxClient {
     if (spec.primaryIp) {
       fields.net0 = `virtio,bridge=${spec.bridge}`;
       fields.boot = "order=scsi0";
-      fields.ciuser = getProxmoxCiUser();
+      fields.ciuser = spec.ciuser ?? getProxmoxCiUser();
       fields.nameserver = "1.1.1.1";
       fields.searchdomain = "local";
       const gw = spec.gateway ?? guessGateway(spec.primaryIp);
@@ -428,9 +429,10 @@ export class ProxmoxClient {
     node: string,
     vmid: number,
     password: string,
+    ciuser?: string,
   ): Promise<void> {
     await this.requestForm("PUT", `/api2/json/nodes/${node}/qemu/${vmid}/config`, {
-      ciuser: getProxmoxCiUser(),
+      ciuser: ciuser ?? getProxmoxCiUser(),
       cipassword: password,
     });
   }

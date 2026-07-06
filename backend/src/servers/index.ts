@@ -20,8 +20,7 @@ import {
   reinstallVpsOnProxmox,
   startVpsOnProxmox,
   stopVpsOnProxmox,
-  getProxmoxClient,
-  getProxmoxNodeName,
+  ensureVpsProxmoxAccess,
 } from "../proxmox";
 import { createHash, randomBytes } from "crypto";
 import {
@@ -312,12 +311,7 @@ export async function vpsAction(
         data: { rootPasswordEnc: encrypt(password) },
       });
       if (isProxmoxConfigured() && vps.proxmoxVmid) {
-        const client = getProxmoxClient();
-        const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
-        if (client) {
-          await client.updateVmCloudInitCredentials(node, vps.proxmoxVmid, password);
-          await rebootVpsOnProxmox(vpsId, userId);
-        }
+        await ensureVpsProxmoxAccess(vpsId, { reboot: true });
       }
       return { password };
     }

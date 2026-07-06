@@ -87,6 +87,9 @@ export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise
 
   if (!primaryIp) return false;
 
+  const { ensureVpsProxmoxAccess } = await import("../proxmox/ensure-vps-access");
+  await ensureVpsProxmoxAccess(vps.id, { reboot: true });
+
   const { markProvisioningComplete } = await import("../core/provisioning/engine");
   const {
     activateSharedRegistryIp,

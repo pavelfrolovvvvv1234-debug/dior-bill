@@ -1,7 +1,7 @@
 import { NotFoundError } from "@dior/shared";
 import { decrypt } from "../lib/crypto";
 import { getProxmoxClient, getProxmoxNodeName } from "../proxmox/client";
-import { getProxmoxCiUser, isProxmoxConfigured } from "../proxmox/config";
+import { resolveProxmoxCiUser } from "../proxmox/config";
 
 function isFakeDemoIp(address: string): boolean {
   const ip = address.trim();
@@ -9,8 +9,7 @@ function isFakeDemoIp(address: string): boolean {
 }
 
 export function resolveVpsLoginUser(os: string): string {
-  if (os.toLowerCase().includes("windows")) return "Administrator";
-  return getProxmoxCiUser();
+  return resolveProxmoxCiUser(os);
 }
 
 export function formatVpsOsLabel(os: string): string {
