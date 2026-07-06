@@ -67,10 +67,9 @@ export async function pickNextFreeFromSharedRegistry(
   return pickNextFreeInSubnet(network, occupied);
 }
 
-async function collectOccupiedForReserve(
+async function collectRegistryOccupiedForUpdate(
   tx: {
     $queryRaw: typeof prisma.$queryRaw;
-    networkIpAllocation: typeof prisma.networkIpAllocation;
   },
   networkCidr: string,
   network: SharedRegistrySubnet,
@@ -82,23 +81,27 @@ async function collectOccupiedForReserve(
   `;
   const occupied = new Set(locked.map((r) => r.ip));
   occupied.add(network.gateway);
+  return occupied;
+}
 
+/** Slow Proxmox cluster scan — must run outside prisma.$transaction. */
+async function collectProxmoxScanOccupied(network: SharedRegistrySubnet): Promise<Set<string>> {
+  const extra = new Set<string>();
   const scanFallback =
     !isSharedIpRegistryRequired() && process.env.SHARED_IP_PROXMOX_SCAN_FALLBACK !== "0";
-  if (scanFallback) {
-    const { getProxmoxClient } = await import("./client");
-    const client = getProxmoxClient();
-    if (client) {
-      try {
-        const scan = await client.collectUsedIpsOnClusterDetailed(network.prefix);
-        for (const ip of scan.ips) occupied.add(ip);
-      } catch {
-        /* Proxmox offline — registry rows are still authoritative */
-      }
-    }
-  }
+  if (!scanFallback) return extra;
 
-  return occupied;
+  const { getProxmoxClient } = await import("./client");
+  const client = getProxmoxClient();
+  if (!client) return extra;
+
+  try {
+    const scan = await client.collectUsedIpsOnClusterDetailed(network.prefix);
+    for (const ip of scan.ips) extra.add(ip);
+  } catch {
+    /* Proxmox offline — registry rows are still authoritative */
+  }
+  return extra;
 }
 
 /**
@@ -122,9 +125,16 @@ export async function reserveBillingIpInSharedRegistry(params: {
   });
   if (existing) return existing.ip;
 
+  const proxmoxScanOccupied = await collectProxmoxScanOccupied(params.network);
+
   return prisma.$transaction(
     async (tx) => {
-      const occupied = await collectOccupiedForReserve(tx, networkCidr, params.network);
+      const occupied = await collectRegistryOccupiedForUpdate(
+        tx,
+        networkCidr,
+        params.network,
+      );
+      for (const ip of proxmoxScanOccupied) occupied.add(ip);
 
       for (let attempt = 0; attempt < SHARED_REGISTRY_RESERVE_MAX_ATTEMPTS; attempt++) {
         const candidate = pickNextFreeInSubnet(params.network, occupied);
@@ -178,7 +188,7 @@ export async function reserveBillingIpInSharedRegistry(params: {
 
       throw new ValidationError("Could not reserve IPv4 in shared registry (concurrent conflict)");
     },
-    { timeout: 15_000 },
+    { timeout: 30_000 },
   );
 }
 
