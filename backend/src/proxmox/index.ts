@@ -181,8 +181,9 @@ export async function provisionVmOnProxmox(spec: {
     data: { rootPasswordEnc: encrypt(rootPassword), proxmoxVmid: vmid },
   });
 
+  // Let first-boot cloud-init finish — do not stop/reboot again here.
   if (useStaticIp) {
-    await client.waitForGuestIp(node, vmid, 90_000).catch(() => null);
+    await client.waitForGuestIp(node, vmid, 120_000).catch(() => null);
   }
 
   let ip: string | null = useStaticIp ? (spec.primaryIp ?? null) : null;

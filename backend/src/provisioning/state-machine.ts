@@ -251,8 +251,8 @@ export async function runVpsProvisionPipeline(payload: {
         }
       }
 
-      const { ensureVpsProxmoxAccess } = await import("../proxmox/ensure-vps-access");
-      await ensureVpsProxmoxAccess(payload.vpsId, { reboot: true, waitForGuest: false });
+      // Do NOT reboot here — provisionVmOnProxmox already configured cloud-init before first boot.
+      // ensureVpsProxmoxAccess(stop/start) breaks Debian cloud-init network on first boot.
 
       await markProvisioningComplete({
         serviceId: payload.serviceId,
