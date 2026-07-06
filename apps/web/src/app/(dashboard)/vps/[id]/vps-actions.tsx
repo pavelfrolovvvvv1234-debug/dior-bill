@@ -43,8 +43,12 @@ export function VpsActions({
     startTransition(async () => {
       try {
         const result = await vpsControlAction(vpsId, action.id);
-        if (action.id === "reset_password" && result && "password" in result && result.password) {
-          setSuccess("New password generated — see Access credentials.");
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        if (action.id === "reset_password") {
+          setSuccess("Password reset — VM rebooting (wait ~2 min, then refresh page).");
           onPasswordReset?.();
         } else {
           setSuccess(`${action.label} completed`);

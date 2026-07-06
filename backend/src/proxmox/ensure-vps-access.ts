@@ -15,7 +15,7 @@ function generateRootPassword(): string {
  */
 export async function ensureVpsProxmoxAccess(
   vpsId: string,
-  options?: { reboot?: boolean },
+  options?: { reboot?: boolean; waitForGuest?: boolean },
 ): Promise<{ ip: string | null; ciuser: string }> {
   const vps = await prisma.vpsInstance.findUnique({
     where: { id: vpsId },
@@ -53,8 +53,9 @@ export async function ensureVpsProxmoxAccess(
 
   const primaryIp = vps.primaryIp;
   const useStaticIp = !!primaryIp && !isPlaceholderIp(primaryIp);
+  const forceReboot = options?.reboot ?? false;
 
-  let needsReboot = options?.reboot ?? false;
+  let needsReboot = forceReboot;
   if (useStaticIp) {
     const cfg = await client.getVmConfig(node, vmid);
     const pveIp = client.parseIpFromConfig(cfg);
@@ -92,16 +93,18 @@ export async function ensureVpsProxmoxAccess(
 
     await client.startVm(node, vmid);
 
-    const guestIp = await client.waitForGuestIp(node, vmid, 120_000);
-    if (guestIp && guestIp !== primaryIp) {
-      console.warn(
-        `[proxmox] ${vps.hostname} guest IP ${guestIp} != billing ${primaryIp} — cloud-init may still be applying`,
-      );
-    } else if (guestIp && guestIp === primaryIp) {
-      await prisma.vpsInstance.update({
-        where: { id: vpsId },
-        data: { primaryIp: guestIp },
-      });
+    if (options?.waitForGuest !== false) {
+      const guestIp = await client.waitForGuestIp(node, vmid, 90_000).catch(() => null);
+      if (guestIp && guestIp !== primaryIp) {
+        console.warn(
+          `[proxmox] ${vps.hostname} guest IP ${guestIp} != billing ${primaryIp} — cloud-init may still be applying`,
+        );
+      } else if (guestIp && guestIp === primaryIp) {
+        await prisma.vpsInstance.update({
+          where: { id: vpsId },
+          data: { primaryIp: guestIp },
+        });
+      }
     }
   } else {
     await client.updateVmCloudInitCredentials(node, vmid, password, ciuser);

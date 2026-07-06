@@ -229,6 +229,15 @@ async function run() {
             await syncVpsIpFromProxmox(vpsId);
             break;
           }
+          case "vps.ensure_access": {
+            const payload = job.payload as { vpsId: string; reboot?: boolean };
+            const { ensureVpsProxmoxAccess } = await import("@dior/backend");
+            await ensureVpsProxmoxAccess(payload.vpsId, {
+              reboot: payload.reboot !== false,
+              waitForGuest: false,
+            });
+            break;
+          }
           case "event.process": {
             const { eventId } = job.payload as { eventId: string };
             await processEventById(eventId);

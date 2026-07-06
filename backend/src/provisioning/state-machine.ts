@@ -251,6 +251,9 @@ export async function runVpsProvisionPipeline(payload: {
         }
       }
 
+      const { ensureVpsProxmoxAccess } = await import("../proxmox/ensure-vps-access");
+      await ensureVpsProxmoxAccess(payload.vpsId, { reboot: true, waitForGuest: false });
+
       await markProvisioningComplete({
         serviceId: payload.serviceId,
         idempotencyKey: idemKey,

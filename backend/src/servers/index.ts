@@ -20,7 +20,6 @@ import {
   reinstallVpsOnProxmox,
   startVpsOnProxmox,
   stopVpsOnProxmox,
-  ensureVpsProxmoxAccess,
 } from "../proxmox";
 import { createHash, randomBytes } from "crypto";
 import {
@@ -311,9 +310,9 @@ export async function vpsAction(
         data: { rootPasswordEnc: encrypt(password) },
       });
       if (isProxmoxConfigured() && vps.proxmoxVmid) {
-        await ensureVpsProxmoxAccess(vpsId, { reboot: true });
+        await enqueueJob("vps.ensure_access", { vpsId, reboot: true });
       }
-      return { password };
+      return { success: true, passwordResetQueued: true };
     }
   }
 

@@ -384,12 +384,14 @@ export class ProxmoxClient {
 
     if (spec.rootPassword) {
       fields.cipassword = spec.rootPassword;
+      fields.ciuser = spec.ciuser ?? getProxmoxCiUser();
+      fields.sshkeys = "";
+      fields.citype = "configdrive2";
     }
 
     if (spec.primaryIp) {
       fields.net0 = `virtio,bridge=${spec.bridge}`;
       fields.boot = "order=scsi0";
-      fields.ciuser = spec.ciuser ?? getProxmoxCiUser();
       fields.nameserver = "1.1.1.1";
       fields.searchdomain = "local";
       const gw = spec.gateway ?? guessGateway(spec.primaryIp);
@@ -434,6 +436,8 @@ export class ProxmoxClient {
     await this.requestForm("PUT", `/api2/json/nodes/${node}/qemu/${vmid}/config`, {
       ciuser: ciuser ?? getProxmoxCiUser(),
       cipassword: password,
+      sshkeys: "",
+      citype: "configdrive2",
     });
   }
 
