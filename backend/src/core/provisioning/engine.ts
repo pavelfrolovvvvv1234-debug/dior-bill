@@ -8,7 +8,7 @@ import { ValidationError, NotFoundError } from "@dior/shared";
 import { appendDomainEvent } from "../events/store";
 import { enqueueJob } from "../../lib/queue";
 import { initProvisioningJob } from "../../provisioning/state-machine";
-import { provisionPipelineKey, tryCompleteStuckProvisionedVps } from "../../provisioning/pipeline-guard";
+import { provisionPipelineKey, tryCompleteStuckProvisionedVps, clearProvisionPipelineIdempotency } from "../../provisioning/pipeline-guard";
 import { notifyAdminsNewService, notifyAdminsProvisioningFailed } from "../../telegram";
 import { reportOperationalIssue } from "../../lib/operational-alerts";
 import { releaseStuckAbuseRestrictions } from "../abuse/engine";
@@ -495,7 +495,7 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
     },
   });
 
-  const STALL_MS = 15 * 60 * 1000;
+  const STALL_MS = 5 * 60 * 1000;
 
   for (const service of stalled) {
     const job = service.provisioningJobs[0];
@@ -521,6 +521,7 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
 
     const idempotencyKey = provisionPipelineKey(service.id);
     try {
+      await clearProvisionPipelineIdempotency(service.id);
       await enqueueJob("vps.provision", {
         serviceId: service.id,
         vpsId: vps.id,

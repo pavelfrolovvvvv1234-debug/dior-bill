@@ -11,7 +11,6 @@ import {
   syncVpsMetricsFromProxmox,
   allocateStaticIpForVps,
 } from "../proxmox";
-import { withIdempotency } from "../core/events/idempotency";
 import { enqueueJob } from "../lib/queue";
 import { allocateIpTransactional } from "../core/inventory/service";
 import {
@@ -25,6 +24,7 @@ import {
   markProvisioningFailed,
 } from "../core/provisioning/engine";
 import {
+  clearProvisionPipelineIdempotency,
   isDuplicateProvisionRun,
   provisionPipelineKey,
   tryCompleteStuckProvisionedVps,
@@ -121,41 +121,45 @@ export async function runVpsProvisionPipeline(payload: {
     where: { id: payload.serviceId },
     select: { status: true },
   });
-  const idemCacheKey =
-    serviceRow?.status === "REINSTALLING"
-      ? `${pipelineKey}:reinstall:${payload.jobId}`
-      : pipelineKey;
+  if (serviceRow?.status === "ACTIVE") return;
 
-  await withIdempotency("provision_pipeline", idemCacheKey, async () => {
-    const idemKey = payload.idempotencyKey ?? pipelineKey;
-    const job = await prisma.provisioningJob.findUniqueOrThrow({
-      where: { id: payload.jobId },
-    });
+  const jobRow = await prisma.provisioningJob.findUnique({
+    where: { id: payload.jobId },
+    select: { status: true },
+  });
+  if (jobRow?.status === "completed") return;
 
-    const steps = (job.steps as unknown as ProvisioningStep[]) ?? [...DEFAULT_STEPS];
-    const attempts = job.attempts + 1;
+  await clearProvisionPipelineIdempotency(payload.serviceId);
 
-    await prisma.provisioningJob.update({
-      where: { id: payload.jobId },
-      data: {
-        status: "running",
-        attempts,
-        startedAt: job.startedAt ?? new Date(),
-      },
-    });
+  const idemKey = payload.idempotencyKey ?? pipelineKey;
+  const job = await prisma.provisioningJob.findUniqueOrThrow({
+    where: { id: payload.jobId },
+  });
 
-    const vps = await prisma.vpsInstance.findUniqueOrThrow({
-      where: { id: payload.vpsId },
-      include: { node: true, location: true, service: true },
-    });
+  const steps = (job.steps as unknown as ProvisioningStep[]) ?? [...DEFAULT_STEPS];
+  const attempts = job.attempts + 1;
 
-    let assignedIp: string | null = null;
-    let vmid: number | null = null;
-    let cloneCompleted = false;
-    const proxmoxNode = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+  await prisma.provisioningJob.update({
+    where: { id: payload.jobId },
+    data: {
+      status: "running",
+      attempts,
+      startedAt: job.startedAt ?? new Date(),
+    },
+  });
 
-    const useProxmoxIpPath = isProxmoxConfigured() || isSharedIpRegistryRequired();
-    try {
+  const vps = await prisma.vpsInstance.findUniqueOrThrow({
+    where: { id: payload.vpsId },
+    include: { node: true, location: true, service: true },
+  });
+
+  let assignedIp: string | null = null;
+  let vmid: number | null = null;
+  let cloneCompleted = false;
+  const proxmoxNode = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+
+  const useProxmoxIpPath = isProxmoxConfigured() || isSharedIpRegistryRequired();
+  try {
       if (useProxmoxIpPath && isSharedIpRegistryRequired()) {
         const { syncProxmoxClusterToRegistry } = await import("../proxmox/proxmox-registry-sync");
         const { resolveProxmoxNetwork } = await import("../proxmox/ip-allocate");
@@ -315,6 +319,7 @@ export async function runVpsProvisionPipeline(payload: {
       }
 
       if (attempts < job.maxAttempts && !isLifecycleError) {
+        await clearProvisionPipelineIdempotency(payload.serviceId);
         await enqueueJob("vps.provision", {
           serviceId: payload.serviceId,
           vpsId: payload.vpsId,
@@ -373,7 +378,6 @@ export async function runVpsProvisionPipeline(payload: {
 
       throw err;
     }
-  });
 }
 
 async function rollbackProvision(ctx: {

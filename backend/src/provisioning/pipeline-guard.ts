@@ -5,6 +5,17 @@ export function provisionPipelineKey(serviceId: string): string {
   return `provision:${serviceId}`;
 }
 
+/** Stale pipeline cache blocks all retries after a failed attempt — clear before re-run. */
+export async function clearProvisionPipelineIdempotency(serviceId: string): Promise<void> {
+  const key = provisionPipelineKey(serviceId);
+  await prisma.processedIdempotencyKey.deleteMany({
+    where: {
+      scope: "provision_pipeline",
+      OR: [{ key }, { key: { startsWith: `${key}:` } }],
+    },
+  });
+}
+
 const RUNNING_JOB_TTL_MS = 25 * 60 * 1000;
 
 /** Another worker/job is already cloning this VPS — skip duplicate pipeline. */
