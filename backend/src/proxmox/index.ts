@@ -171,7 +171,9 @@ export async function provisionVmOnProxmox(spec: {
   );
 
   await client.cloneFromTemplate(vmSpec);
+  await client.ensureCloudInitDrive(node, vmid, config.storage);
   await client.configureVm(vmSpec);
+  await client.regenerateCloudInit(node, vmid);
   await client.startVm(node, vmid);
 
   await prisma.vpsInstance.update({
