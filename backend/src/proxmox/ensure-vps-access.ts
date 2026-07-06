@@ -2,8 +2,8 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@dior/database";
 import { decrypt, encrypt } from "../lib/crypto";
 import { getProxmoxClient, getProxmoxNodeName } from "./client";
-import { getProxmoxConfig, getProxmoxGateway, isProxmoxConfigured, resolveProxmoxCiUser } from "./config";
-import { isPlaceholderIp } from "./ip-pool";
+import { getProxmoxConfig, isProxmoxConfigured, resolveProxmoxCiUser } from "./config";
+import { getProxmoxGateway, isPlaceholderIp } from "./ip-pool";
 
 function generateRootPassword(): string {
   return randomBytes(10).toString("base64url").slice(0, 16) + "A1!";

@@ -1,7 +1,7 @@
 import { NotFoundError } from "@dior/shared";
 import { decrypt } from "../lib/crypto";
 import { getProxmoxClient, getProxmoxNodeName } from "../proxmox/client";
-import { resolveProxmoxCiUser } from "../proxmox/config";
+import { isProxmoxConfigured, resolveProxmoxCiUser } from "../proxmox/config";
 
 function isFakeDemoIp(address: string): boolean {
   const ip = address.trim();
