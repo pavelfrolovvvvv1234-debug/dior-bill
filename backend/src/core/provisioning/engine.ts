@@ -372,6 +372,22 @@ export async function markProvisioningComplete(params: {
       });
     }
 
+    if (params.ip || params.vmid) {
+      const svc = await prisma.service.findUnique({
+        where: { id: params.serviceId },
+        select: { vpsInstance: { select: { id: true } } },
+      });
+      if (svc?.vpsInstance) {
+        await prisma.vpsInstance.update({
+          where: { id: svc.vpsInstance.id },
+          data: {
+            ...(params.ip ? { primaryIp: params.ip } : {}),
+            ...(params.vmid ? { proxmoxVmid: params.vmid } : {}),
+          },
+        });
+      }
+    }
+
     await prisma.provisioningOperation.updateMany({
       where: { idempotencyKey: params.idempotencyKey },
       data: { status: "completed", completedAt: new Date() },
@@ -530,10 +546,12 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
   for (const service of reinstalling) {
     const vps = service.vpsInstance;
     if (!vps) continue;
+    if (await tryCompleteStuckProvisionedVps(service.id)) continue;
     if (vps.proxmoxVmid) {
       try {
         const { syncVpsIpFromProxmox } = await import("../../proxmox");
         await syncVpsIpFromProxmox(vps.id);
+        await tryCompleteStuckProvisionedVps(service.id);
       } catch (err) {
         console.error(`[resume-provision] REINSTALLING ${vps.hostname}:`, err);
       }

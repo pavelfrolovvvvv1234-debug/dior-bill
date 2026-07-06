@@ -30,44 +30,62 @@ export async function isDuplicateProvisionRun(params: {
   return false;
 }
 
-/** VM exists in DB + on Proxmox — finish lifecycle without re-clone. */
+/** VM exists on Proxmox — finish lifecycle without re-clone (PROVISIONING / REINSTALLING). */
 export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise<boolean> {
   const row = await prisma.service.findUnique({
     where: { id: serviceId },
     include: {
       vpsInstance: {
-        select: {
-          id: true,
-          proxmoxVmid: true,
-          primaryIp: true,
-          rootPasswordEnc: true,
-          hostname: true,
-        },
+        include: { node: true },
       },
       provisioningJobs: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
   const vps = row?.vpsInstance;
-  if (!row || row.status === "ACTIVE" || !vps?.proxmoxVmid || !vps.primaryIp) {
-    return false;
-  }
-  if (!vps.rootPasswordEnc) return false;
+  if (!row || row.status === "ACTIVE" || !vps) return false;
 
   const { getProxmoxClient, getProxmoxNodeName } = await import("../proxmox/client");
   const { isProxmoxConfigured } = await import("../proxmox/config");
+  const { findProxmoxVmidByHostname } = await import("../proxmox");
   if (!isProxmoxConfigured()) return false;
 
   const client = getProxmoxClient();
   if (!client) return false;
 
-  const vpsFull = await prisma.vpsInstance.findUnique({
-    where: { serviceId },
-    include: { node: true },
-  });
-  if (!vpsFull?.proxmoxVmid) return false;
+  const nodeName = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+  let vmid = vps.proxmoxVmid;
+  let primaryIp = vps.primaryIp;
 
-  const nodeName = getProxmoxNodeName(vpsFull.node?.proxmoxNode ?? vpsFull.node?.name);
-  if (!(await client.vmConfigExists(nodeName, vpsFull.proxmoxVmid))) return false;
+  if (!vmid || !(await client.vmConfigExists(nodeName, vmid))) {
+    const linked = await findProxmoxVmidByHostname(vps.hostname, nodeName);
+    if (!linked) return false;
+    vmid = linked.vmid;
+    await prisma.vpsInstance.update({
+      where: { id: vps.id },
+      data: { proxmoxVmid: vmid },
+    });
+  }
+
+  if (!primaryIp) {
+    try {
+      const cfg = await client.getVmConfig(nodeName, vmid);
+      primaryIp = client.parseIpFromConfig(cfg) ?? null;
+      if (!primaryIp) {
+        const ips = await client.getGuestAgentIps(nodeName, vmid);
+        primaryIp = ips[0] ?? null;
+      }
+      if (primaryIp) {
+        await prisma.vpsInstance.update({
+          where: { id: vps.id },
+          data: { primaryIp },
+        });
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  if (!primaryIp) return false;
 
   const { markProvisioningComplete } = await import("../core/provisioning/engine");
   const {
@@ -78,8 +96,8 @@ export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise
 
   if (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled()) {
     await activateSharedRegistryIp({
-      ip: vps.primaryIp,
-      vmid: vps.proxmoxVmid,
+      ip: primaryIp,
+      vmid,
       vpsId: vps.id,
       hostname: vps.hostname,
     });
@@ -88,8 +106,8 @@ export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise
   await markProvisioningComplete({
     serviceId,
     idempotencyKey: `${provisionPipelineKey(serviceId)}:recover`,
-    ip: vps.primaryIp,
-    vmid: vps.proxmoxVmid,
+    ip: primaryIp,
+    vmid,
   });
 
   const job = row.provisioningJobs[0];
@@ -107,7 +125,7 @@ export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise
   }
 
   console.log(
-    `[provision] recovered stuck ACTIVE path for ${vps.hostname} vmid=${vps.proxmoxVmid} ip=${vps.primaryIp}`,
+    `[provision] recovered → ACTIVE: ${vps.hostname} vmid=${vmid} ip=${primaryIp}`,
   );
   return true;
 }

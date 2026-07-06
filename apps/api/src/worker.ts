@@ -117,9 +117,11 @@ async function run() {
         '("No IPv4 addresses available" if pool is empty). Stop duplicate Docker worker if PM2 is primary.',
     );
   }
-  resumeAllStuckVpsProvisioning().catch((e) =>
-    console.error("Initial stuck VPS resume:", e),
-  );
+  setTimeout(() => {
+    resumeAllStuckVpsProvisioning().catch((e) =>
+      console.error("Initial stuck VPS resume:", e),
+    );
+  }, 60_000);
   purgePlaceholderIpsFromInventory()
     .then((n) => n > 0 && console.log(`Purged ${n} placeholder IPs from inventory`))
     .catch((e) => console.error("Placeholder IP purge:", e));

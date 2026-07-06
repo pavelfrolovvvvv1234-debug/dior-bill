@@ -123,11 +123,6 @@ export async function provisionVmOnProxmox(spec: {
 
   if (useStaticIp && spec.primaryIp) {
     const prefix = spec.primaryIp.split(".").slice(0, 3).join(".");
-    const { syncProxmoxClusterToRegistry } = await import("./proxmox-registry-sync");
-    const { resolveProxmoxNetwork } = await import("./ip-allocate");
-    const network = await resolveProxmoxNetwork(spec.os);
-    await syncProxmoxClusterToRegistry(network, { force: true, quiet: true });
-
     if (await client.isIpInUseOnCluster(spec.primaryIp, prefix)) {
       const linked = await findProxmoxVmidByHostname(spec.hostname, node);
       if (linked) {

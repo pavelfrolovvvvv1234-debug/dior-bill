@@ -27,6 +27,7 @@ import {
 import {
   isDuplicateProvisionRun,
   provisionPipelineKey,
+  tryCompleteStuckProvisionedVps,
 } from "./pipeline-guard";
 
 export type ProvisioningPhase =
@@ -112,6 +113,8 @@ export async function runVpsProvisionPipeline(payload: {
 }): Promise<void> {
   const pipelineKey = provisionPipelineKey(payload.serviceId);
 
+  if (await tryCompleteStuckProvisionedVps(payload.serviceId)) return;
+
   if (await isDuplicateProvisionRun(payload)) return;
 
   const serviceRow = await prisma.service.findUnique({
@@ -153,6 +156,13 @@ export async function runVpsProvisionPipeline(payload: {
 
     const useProxmoxIpPath = isProxmoxConfigured() || isSharedIpRegistryRequired();
     try {
+      if (useProxmoxIpPath && isSharedIpRegistryRequired()) {
+        const { syncProxmoxClusterToRegistry } = await import("../proxmox/proxmox-registry-sync");
+        const { resolveProxmoxNetwork } = await import("../proxmox/ip-allocate");
+        const net = await resolveProxmoxNetwork(vps.os);
+        await syncProxmoxClusterToRegistry(net, { quiet: true });
+      }
+
       if (useProxmoxIpPath) {
         await markStep(steps, 0, "running", 15, payload.jobId);
         assignedIp = await allocateStaticIpForVps({

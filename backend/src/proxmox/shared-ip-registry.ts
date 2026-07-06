@@ -88,13 +88,63 @@ async function collectRegistryOccupiedForUpdate(
   return occupied;
 }
 
-/** Proxmox cluster → registry (source of truth for occupied IPs). */
+/** Proxmox cluster → registry (cached 2 min — one scan per purchase, not per step). */
 async function ensureProxmoxOccupancySynced(
   network: SharedRegistrySubnet,
 ): Promise<Set<string>> {
-  invalidateProxmoxRegistrySyncCache();
-  const sync = await syncProxmoxClusterToRegistry(network, { force: true, quiet: true });
+  const sync = await syncProxmoxClusterToRegistry(network, { quiet: true });
   return sync.occupied;
+}
+
+async function releaseBillingReservationForVps(vpsId: string): Promise<void> {
+  await prisma.networkIpAllocation.updateMany({
+    where: {
+      vpsId,
+      owner: "billing",
+      status: { in: [...OCCUPIED_STATUSES] },
+    },
+    data: {
+      status: "released",
+      releasedAt: new Date(),
+      vpsId: null,
+      vmid: null,
+      externalServiceId: null,
+    },
+  });
+}
+
+/** Reuse billing row only if IP is still free on Proxmox or already ours. */
+async function resolveExistingBillingReservation(params: {
+  network: SharedRegistrySubnet;
+  vpsId: string;
+  existing: { ip: string; vmid: number | null };
+}): Promise<string | null> {
+  const proxmoxLiveOccupied = await ensureProxmoxOccupancySynced(params.network);
+  if (!proxmoxLiveOccupied.has(params.existing.ip)) {
+    return params.existing.ip;
+  }
+
+  const vps = await prisma.vpsInstance.findUnique({
+    where: { id: params.vpsId },
+    select: { proxmoxVmid: true, primaryIp: true },
+  });
+
+  if (
+    params.existing.vmid != null &&
+    vps?.proxmoxVmid === params.existing.vmid
+  ) {
+    return params.existing.ip;
+  }
+  if (vps?.primaryIp === params.existing.ip) {
+    return params.existing.ip;
+  }
+
+  console.warn(
+    `[shared-ip] stale reserve ${params.existing.ip} for vps ${params.vpsId} — occupied on Proxmox, picking new IP`,
+  );
+  await releaseBillingReservationForVps(params.vpsId);
+  invalidateProxmoxRegistrySyncCache();
+  return null;
 }
 
 /**
@@ -116,7 +166,14 @@ export async function reserveBillingIpInSharedRegistry(params: {
       status: { in: [...OCCUPIED_STATUSES] },
     },
   });
-  if (existing) return existing.ip;
+  if (existing) {
+    const kept = await resolveExistingBillingReservation({
+      network: params.network,
+      vpsId: params.vpsId,
+      existing,
+    });
+    if (kept) return kept;
+  }
 
   const proxmoxLiveOccupied = await ensureProxmoxOccupancySynced(params.network);
 
@@ -213,9 +270,50 @@ export async function activateSharedRegistryIp(params: {
       hostname: params.hostname ?? undefined,
     },
   });
-  if (result.count === 0) {
-    console.warn(`[shared-ip] activate skipped — no billing row for ${params.ip}`);
+  if (result.count > 0) return;
+
+  const row = await prisma.networkIpAllocation.findUnique({ where: { ip: params.ip } });
+  if (row?.status === "released") {
+    await prisma.networkIpAllocation.update({
+      where: { ip: params.ip },
+      data: {
+        owner: "billing",
+        status: "active",
+        vmid: params.vmid,
+        vpsId: params.vpsId ?? null,
+        hostname: params.hostname ?? null,
+        releasedAt: null,
+      },
+    });
+    return;
   }
+
+  const networkCidr =
+    process.env.PROXMOX_NETWORK?.trim() ||
+    process.env.SHARED_IP_NETWORK?.trim() ||
+    `${params.ip.split(".").slice(0, 3).join(".")}.0/24`;
+
+  await prisma.networkIpAllocation.upsert({
+    where: { ip: params.ip },
+    create: {
+      ip: params.ip,
+      network: networkCidr,
+      owner: "billing",
+      status: "active",
+      vmid: params.vmid,
+      vpsId: params.vpsId ?? null,
+      hostname: params.hostname ?? null,
+      notes: "activate: billing row created on provision complete",
+    },
+    update: {
+      owner: "billing",
+      status: "active",
+      vmid: params.vmid,
+      vpsId: params.vpsId ?? null,
+      hostname: params.hostname ?? null,
+      releasedAt: null,
+    },
+  });
 }
 
 export async function releaseSharedRegistryIp(ip: string): Promise<void> {

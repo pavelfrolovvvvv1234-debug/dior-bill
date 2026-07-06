@@ -344,8 +344,10 @@ export async function syncProxmoxUsedIpsToInventory(
   const network = await resolveProxmoxNetwork(os);
 
   if (isSharedIpRegistryRequired()) {
+    const { syncProxmoxClusterToRegistry } = await import("./proxmox-registry-sync");
     const networkCidr = getSharedRegistryNetwork(network);
-    const occupied = await listOccupiedSharedRegistryIps(networkCidr);
+    const sync = await syncProxmoxClusterToRegistry(network, { quiet: true });
+    const occupied = sync.occupied;
     occupied.add(network.gateway);
     const nextFree = pickNextFreeInSubnet(network, occupied);
     return { used: occupied.size, reserved: 0, nextFree };
