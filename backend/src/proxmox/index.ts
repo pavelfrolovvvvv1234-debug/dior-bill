@@ -101,6 +101,42 @@ export async function provisionVmOnProxmox(spec: {
   const useStaticIp = !!spec.primaryIp && !isPlaceholderIp(spec.primaryIp);
 
   const node = spec.nodeName || config.node;
+
+  const vpsRow = await prisma.vpsInstance.findUnique({
+    where: { id: spec.vpsId },
+    select: { proxmoxVmid: true, primaryIp: true, rootPasswordEnc: true },
+  });
+
+  if (vpsRow?.proxmoxVmid && (await client.vmConfigExists(node, vpsRow.proxmoxVmid))) {
+    const ip = useStaticIp
+      ? (spec.primaryIp ?? vpsRow.primaryIp ?? "")
+      : (vpsRow.primaryIp ?? spec.primaryIp ?? "");
+    console.log(
+      `[proxmox] ${spec.hostname} vmid=${vpsRow.proxmoxVmid} already on ${node} — skip clone`,
+    );
+    return { vmid: vpsRow.proxmoxVmid, ip };
+  }
+
+  if (useStaticIp && spec.primaryIp) {
+    const prefix = spec.primaryIp.split(".").slice(0, 3).join(".");
+    if (await client.isIpInUseOnCluster(spec.primaryIp, prefix)) {
+      const linked = await findProxmoxVmidByHostname(spec.hostname, node);
+      if (linked) {
+        await prisma.vpsInstance.update({
+          where: { id: spec.vpsId },
+          data: { proxmoxVmid: linked.vmid },
+        });
+        console.log(
+          `[proxmox] ${spec.hostname} linked to existing vmid=${linked.vmid} ip=${spec.primaryIp}`,
+        );
+        return { vmid: linked.vmid, ip: spec.primaryIp };
+      }
+      throw new ValidationError(
+        `IPv4 ${spec.primaryIp} is already in use on Proxmox (TG bot or another VM)`,
+      );
+    }
+  }
+
   const vmid = await client.allocateFreeVmid(node);
   const templateVmid = resolveTemplateVmid(spec.os, config);
   const rootPassword = randomBytes(10).toString("base64url").slice(0, 16) + "A1!";
@@ -124,15 +160,6 @@ export async function provisionVmOnProxmox(spec: {
   console.log(
     `[proxmox] provision ${spec.hostname} from template ${templateVmid}${useStaticIp ? ` static ${spec.primaryIp}` : " (no static IP)"}`,
   );
-
-  if (useStaticIp && spec.primaryIp) {
-    const prefix = spec.primaryIp.split(".").slice(0, 3).join(".");
-    if (await client.isIpInUseOnCluster(spec.primaryIp, prefix)) {
-      throw new ValidationError(
-        `IPv4 ${spec.primaryIp} is already in use on Proxmox (TG bot or another VM)`,
-      );
-    }
-  }
 
   await client.cloneFromTemplate(vmSpec);
   await client.configureVm(vmSpec);

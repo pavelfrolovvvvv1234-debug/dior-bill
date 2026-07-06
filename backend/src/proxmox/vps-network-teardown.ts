@@ -1,11 +1,35 @@
 import { prisma } from "@dior/database";
 import { releaseIpTransactional } from "../core/inventory/service";
-import { getProxmoxNodeName } from "./client";
+import { getProxmoxClient, getProxmoxNodeName } from "./client";
 import {
   releaseSharedRegistryIp,
   releaseSharedRegistryIpByVpsId,
   isSharedIpRegistryEnabled,
 } from "./shared-ip-registry";
+
+async function shouldReleaseRegistryIp(
+  vps: { id: string; proxmoxVmid: number | null; primaryIp: string | null; node: { proxmoxNode: string | null; name: string } | null },
+  ip: string,
+): Promise<boolean> {
+  const client = getProxmoxClient();
+  if (!client) return true;
+
+  const prefix = ip.split(".").slice(0, 3).join(".");
+  const inUse = await client.isIpInUseOnCluster(ip, prefix);
+  if (!inUse) return true;
+
+  if (vps.proxmoxVmid) {
+    const node = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
+    if (await client.vmConfigExists(node, vps.proxmoxVmid)) {
+      console.warn(
+        `[shared-ip] skip release ${ip} — VMID ${vps.proxmoxVmid} still on Proxmox`,
+      );
+      return false;
+    }
+  }
+
+  return true;
+}
 
 /**
  * Release billing IP inventory + shared registry row when a VPS is removed.
@@ -29,7 +53,9 @@ export async function teardownVpsNetworkResources(params: {
 
   if (isSharedIpRegistryEnabled()) {
     if (vps.primaryIp) {
-      await releaseSharedRegistryIp(vps.primaryIp);
+      if (await shouldReleaseRegistryIp(vps, vps.primaryIp)) {
+        await releaseSharedRegistryIp(vps.primaryIp);
+      }
     } else {
       await releaseSharedRegistryIpByVpsId(vps.id);
     }

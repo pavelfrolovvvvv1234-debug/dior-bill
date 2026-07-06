@@ -8,6 +8,7 @@ import { ValidationError, NotFoundError } from "@dior/shared";
 import { appendDomainEvent } from "../events/store";
 import { enqueueJob } from "../../lib/queue";
 import { initProvisioningJob } from "../../provisioning/state-machine";
+import { provisionPipelineKey, tryCompleteStuckProvisionedVps } from "../../provisioning/pipeline-guard";
 import { notifyAdminsNewService, notifyAdminsProvisioningFailed } from "../../telegram";
 import { reportOperationalIssue } from "../../lib/operational-alerts";
 import { releaseStuckAbuseRestrictions } from "../abuse/engine";
@@ -205,6 +206,9 @@ export async function startProvisioning(params: {
       orderBy: { createdAt: "desc" },
     });
     const vps = service.vpsInstance;
+    if (vps && (await tryCompleteStuckProvisionedVps(params.serviceId))) {
+      return { jobId: job?.id ?? "", vpsId: vps.id };
+    }
     if (job && vps && (job.status === "failed" || job.status === "queued")) {
       await enqueueJob("vps.provision", {
         serviceId: params.serviceId,
@@ -248,6 +252,33 @@ export async function startProvisioning(params: {
       include: { vpsInstance: true },
     });
     if (!fresh) throw new NotFoundError("Service not found");
+
+    if (fresh.status === "ACTIVE") {
+      const job = await prisma.provisioningJob.findFirst({
+        where: { serviceId: params.serviceId },
+        orderBy: { createdAt: "desc" },
+      });
+      return { jobId: job?.id ?? "", vpsId: fresh.vpsInstance?.id };
+    }
+
+    if (await tryCompleteStuckProvisionedVps(params.serviceId)) {
+      const job = await prisma.provisioningJob.findFirst({
+        where: { serviceId: params.serviceId },
+        orderBy: { createdAt: "desc" },
+      });
+      return { jobId: job?.id ?? "", vpsId: fresh.vpsInstance?.id };
+    }
+
+    const runningJob = await prisma.provisioningJob.findFirst({
+      where: {
+        serviceId: params.serviceId,
+        status: "running",
+        startedAt: { gt: new Date(Date.now() - 25 * 60 * 1000) },
+      },
+    });
+    if (runningJob && fresh.vpsInstance) {
+      return { jobId: runningJob.id, vpsId: fresh.vpsInstance.id };
+    }
 
     if (fresh.status !== "PROVISIONING") {
       if (
@@ -299,7 +330,7 @@ export async function startProvisioning(params: {
       serviceId: params.serviceId,
       vpsId: vps.id,
       jobId: job.id,
-      idempotencyKey: params.idempotencyKey,
+      idempotencyKey: provisionPipelineKey(params.serviceId),
     };
 
     await enqueueJob("vps.provision", pipelinePayload);
@@ -455,6 +486,8 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
     const vps = service.vpsInstance;
     if (!job || !vps) continue;
 
+    if (await tryCompleteStuckProvisionedVps(service.id)) continue;
+
     const jobAge = Date.now() - (job.startedAt ?? job.createdAt).getTime();
     const shouldRetry =
       job.status === "failed" ||
@@ -470,7 +503,7 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
       });
     }
 
-    const idempotencyKey = `resume-job:${job.id}:${Math.floor(Date.now() / STALL_MS)}`;
+    const idempotencyKey = provisionPipelineKey(service.id);
     try {
       await enqueueJob("vps.provision", {
         serviceId: service.id,

@@ -24,6 +24,10 @@ import {
   markProvisioningComplete,
   markProvisioningFailed,
 } from "../core/provisioning/engine";
+import {
+  isDuplicateProvisionRun,
+  provisionPipelineKey,
+} from "./pipeline-guard";
 
 export type ProvisioningPhase =
   | "queued"
@@ -106,9 +110,21 @@ export async function runVpsProvisionPipeline(payload: {
   jobId: string;
   idempotencyKey?: string;
 }): Promise<void> {
-  const idemKey = payload.idempotencyKey ?? `provision:${payload.serviceId}:${payload.jobId}`;
+  const pipelineKey = provisionPipelineKey(payload.serviceId);
 
-  await withIdempotency("provision_pipeline", idemKey, async () => {
+  if (await isDuplicateProvisionRun(payload)) return;
+
+  const serviceRow = await prisma.service.findUnique({
+    where: { id: payload.serviceId },
+    select: { status: true },
+  });
+  const idemCacheKey =
+    serviceRow?.status === "REINSTALLING"
+      ? `${pipelineKey}:reinstall:${payload.jobId}`
+      : pipelineKey;
+
+  await withIdempotency("provision_pipeline", idemCacheKey, async () => {
+    const idemKey = payload.idempotencyKey ?? pipelineKey;
     const job = await prisma.provisioningJob.findUniqueOrThrow({
       where: { id: payload.jobId },
     });
@@ -132,6 +148,7 @@ export async function runVpsProvisionPipeline(payload: {
 
     let assignedIp: string | null = null;
     let vmid: number | null = null;
+    let cloneCompleted = false;
     const proxmoxNode = getProxmoxNodeName(vps.node?.proxmoxNode ?? vps.node?.name);
 
     const useProxmoxIpPath = isProxmoxConfigured() || isSharedIpRegistryRequired();
@@ -170,6 +187,7 @@ export async function runVpsProvisionPipeline(payload: {
         primaryIp: assignedIp ?? undefined,
       });
       vmid = result.vmid;
+      cloneCompleted = true;
       let resolvedIp = result.ip?.trim() || null;
       if (assignedIp && isPlaceholderIp(assignedIp)) assignedIp = null;
       if (resolvedIp && isPlaceholderIp(resolvedIp)) resolvedIp = null;
@@ -249,8 +267,51 @@ export async function runVpsProvisionPipeline(payload: {
         rollbackState: { assignedIp, vmid },
       });
 
-      if (vmid && !isLifecycleError) {
+      // Never destroy a VM that finished clone — only tear down failed partial creates.
+      if (vmid && !cloneCompleted && !isLifecycleError) {
         await destroyProxmoxVmIfExists(proxmoxNode, vmid);
+      }
+
+      if (cloneCompleted && vmid && assignedIp) {
+        try {
+          if (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled()) {
+            await activateSharedRegistryIp({
+              ip: assignedIp,
+              vmid,
+              vpsId: payload.vpsId,
+              hostname: vps.hostname,
+            });
+          }
+          await markProvisioningComplete({
+            serviceId: payload.serviceId,
+            idempotencyKey: `${pipelineKey}:post-clone-recover`,
+            ip: assignedIp,
+            vmid,
+          });
+          await updateJob(payload.jobId, {
+            status: "completed",
+            progress: 100,
+            currentStep: "completed",
+            error: null,
+          });
+          await prisma.provisioningJob.update({
+            where: { id: payload.jobId },
+            data: { completedAt: new Date() },
+          });
+          return;
+        } catch (recoverErr) {
+          console.error("[provision] post-clone recovery failed:", recoverErr);
+        }
+      }
+
+      if (attempts < job.maxAttempts && !isLifecycleError) {
+        await enqueueJob("vps.provision", {
+          serviceId: payload.serviceId,
+          vpsId: payload.vpsId,
+          jobId: payload.jobId,
+          idempotencyKey: pipelineKey,
+        }).catch((e) => console.warn("[provision] re-queue failed:", e));
+        return;
       }
 
       if (attempts >= job.maxAttempts && !isLifecycleError) {

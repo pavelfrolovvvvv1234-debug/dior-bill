@@ -253,7 +253,14 @@ async function run() {
         }
         await completeJob(job.id);
       } catch (err) {
-        await failJob(job, err instanceof Error ? err.message : "Unknown error");
+        const message = err instanceof Error ? err.message : "Unknown error";
+        if (job.type === "vps.provision") {
+          // Pipeline manages DB job retries — avoid duplicate Redis re-queue.
+          await completeJob(job.id);
+          console.error(`[worker] vps.provision failed:`, message);
+        } else {
+          await failJob(job, message);
+        }
       }
     } catch (err) {
       console.error("Worker loop error:", err);
