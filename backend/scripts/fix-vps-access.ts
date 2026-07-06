@@ -29,7 +29,7 @@ async function main() {
   console.log(
     `Fixing ${vps.hostname} vmid=${vps.proxmoxVmid} ip=${vps.primaryIp} status=${vps.service.status}`,
   );
-  const result = await ensureVpsProxmoxAccess(vps.id, { reboot: true });
+  const result = await ensureVpsProxmoxAccess(vps.id, { reboot: true, waitForGuest: false });
   const user = resolveVpsLoginUser(vps.os);
   const password = vps.rootPasswordEnc
     ? decrypt(vps.rootPasswordEnc)

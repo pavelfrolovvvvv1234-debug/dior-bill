@@ -77,6 +77,10 @@ async function main() {
   const pveUser = cfg.ciuser ?? "(none)";
   console.log(`ipconfig0=${cfg.ipconfig0 ?? "MISSING"}`);
   console.log(`ciuser=${pveUser} net0=${cfg.net0 ?? "MISSING"}`);
+  console.log(`ide2=${cfg.ide2 ?? "MISSING — cloud-init drive not attached!"}`);
+
+  const agentUp = await client.pingGuestAgent(node, vmid);
+  console.log(`guest-agent=${agentUp ? "up" : "DOWN (OS likely has no IP yet — PuTTY will timeout)"}`);
 
   if (vps.primaryIp && pveIp && vps.primaryIp !== pveIp) {
     console.warn(`MISMATCH: billing IP ${vps.primaryIp} != Proxmox ${pveIp}`);

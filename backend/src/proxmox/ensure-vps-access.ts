@@ -91,9 +91,19 @@ export async function ensureVpsProxmoxAccess(
       bridge: config.bridge,
     });
 
+    await client.ensureCloudInitDrive(node, vmid, config.storage);
+    await client.regenerateCloudInit(node, vmid);
+
     await client.startVm(node, vmid);
 
-    if (options?.waitForGuest !== false) {
+    const agentUp = await client.pingGuestAgent(node, vmid);
+    if (!agentUp) {
+      console.warn(
+        `[proxmox] ${vps.hostname} guest-agent down after boot — cloud-init may still be applying network`,
+      );
+    }
+
+    if (options?.waitForGuest === true) {
       const guestIp = await client.waitForGuestIp(node, vmid, 90_000).catch(() => null);
       if (guestIp && guestIp !== primaryIp) {
         console.warn(

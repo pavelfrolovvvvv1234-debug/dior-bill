@@ -426,6 +426,33 @@ export class ProxmoxClient {
     return this.request("GET", `/api2/json/nodes/${node}/lxc/${vmid}/config`);
   }
 
+  /** Regenerate cloud-init ISO (forces guest to re-apply network/password on next boot). */
+  async regenerateCloudInit(node: string, vmid: number): Promise<void> {
+    try {
+      await this.requestForm(
+        "PUT",
+        `/api2/json/nodes/${node}/qemu/${vmid}/cloudinit`,
+        {},
+        { timeoutMs: 60_000 },
+      );
+    } catch (e) {
+      console.warn(
+        `[proxmox] cloudinit regenerate vmid ${vmid}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
+  /** Attach cloud-init drive if missing (required for ipconfig0/cipassword). */
+  async ensureCloudInitDrive(node: string, vmid: number, storage: string): Promise<void> {
+    const cfg = await this.getVmConfig(node, vmid);
+    if (cfg.ide2?.includes("cloudinit")) return;
+    await this.requestForm("PUT", `/api2/json/nodes/${node}/qemu/${vmid}/config`, {
+      ide2: `${storage}:cloudinit`,
+      citype: "configdrive2",
+    });
+  }
+
   /** Update cloud-init login (requires reboot inside guest to apply password change). */
   async updateVmCloudInitCredentials(
     node: string,
