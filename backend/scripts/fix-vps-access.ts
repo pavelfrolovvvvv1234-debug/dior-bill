@@ -1,6 +1,8 @@
 /**
  * Push billing credentials to Proxmox cloud-init and reboot VM.
- * Usage: pnpm exec tsx scripts/fix-vps-access.ts hostname
+ * WARNING: stop/reboot during first-boot cloud-init breaks Debian network.
+ * Use rebuild-vps-fresh.ts for broken fresh provisions instead.
+ * Usage: pnpm exec tsx scripts/fix-vps-access.ts hostname [--force-reboot]
  */
 import { loadMonorepoEnv } from "../src/lib/load-env";
 import { prisma } from "@dior/database";
@@ -29,7 +31,17 @@ async function main() {
   console.log(
     `Fixing ${vps.hostname} vmid=${vps.proxmoxVmid} ip=${vps.primaryIp} status=${vps.service.status}`,
   );
-  const result = await ensureVpsProxmoxAccess(vps.id, { reboot: true, waitForGuest: false });
+  const forceReboot = process.argv.includes("--force-reboot");
+  if (!forceReboot) {
+    console.warn(
+      "No --force-reboot: will NOT stop a running VM during cloud-init grace. Use rebuild-vps-fresh.ts for broken new VPS.",
+    );
+  }
+  const result = await ensureVpsProxmoxAccess(vps.id, {
+    reboot: true,
+    waitForGuest: false,
+    forceStop: forceReboot,
+  });
   const user = resolveVpsLoginUser(vps.os);
   const password = vps.rootPasswordEnc
     ? decrypt(vps.rootPasswordEnc)

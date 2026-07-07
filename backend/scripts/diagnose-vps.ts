@@ -77,6 +77,9 @@ async function main() {
   const pveUser = cfg.ciuser ?? "(none)";
   console.log(`ipconfig0=${cfg.ipconfig0 ?? "MISSING"}`);
   console.log(`ciuser=${pveUser} net0=${cfg.net0 ?? "MISSING"}`);
+  if (cfg.net0?.includes("firewall=1")) {
+    console.warn("net0 has firewall=1 — Proxmox blocks SSH! Run: pnpm run fix-vm-network -- serv");
+  }
   console.log(`ide2=${cfg.ide2 ?? "MISSING — cloud-init drive not attached!"}`);
 
   const agentUp = await client.pingGuestAgent(node, vmid);
@@ -104,9 +107,13 @@ async function main() {
   }
 
   if (vps.primaryIp) {
-    console.log(`\n=== TCP probe ${vps.primaryIp}:22 (from billing server) ===`);
+    console.log(`\n=== TCP probe ${vps.primaryIp}:22 (from billing server — may fail if different network) ===`);
     const open = await tcpProbe(vps.primaryIp, 22);
-    console.log(open ? "Port 22 OPEN — SSH reachable" : "Port 22 TIMEOUT — network/IP problem (not password)");
+    console.log(
+      open
+        ? "Port 22 OPEN from billing host"
+        : "Port 22 not reachable from billing host (try PuTTY from your PC anyway)",
+    );
   }
 
   const needsFix =
@@ -115,8 +122,15 @@ async function main() {
     (vps.primaryIp && pveIp !== vps.primaryIp);
 
   if (needsFix || process.argv.includes("--fix")) {
-    console.log("\n>>> Applying cloud-init + reboot (ensureVpsProxmoxAccess)...");
-    await ensureVpsProxmoxAccess(vps.id, { reboot: true, waitForGuest: false });
+    const forceReboot = process.argv.includes("--force-reboot");
+    console.log(
+      `\n>>> Applying cloud-init${forceReboot ? " + forced reboot" : " (no stop if VM running)"}...`,
+    );
+    await ensureVpsProxmoxAccess(vps.id, {
+      reboot: true,
+      waitForGuest: false,
+      forceStop: forceReboot,
+    });
     await new Promise((r) => setTimeout(r, 15_000));
     if (vps.primaryIp) {
       const open2 = await tcpProbe(vps.primaryIp, 22, 8000);

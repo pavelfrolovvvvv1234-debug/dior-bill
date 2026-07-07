@@ -361,12 +361,59 @@ export class ProxmoxClient {
     }
   }
 
-  async resizeDisk(node: string, vmid: number, sizeGb: number, storage: string): Promise<void> {
+  /** Primary boot disk from cloned template (scsi0 vs virtio0). */
+  resolvePrimaryBootDisk(config: Record<string, string>): string {
+    for (const key of ["scsi0", "virtio0", "sata0", "ide0"]) {
+      const val = config[key];
+      if (val && !val.includes("cloudinit") && !val.includes("media=cdrom")) {
+        return key;
+      }
+    }
+    return "scsi0";
+  }
+
+  /**
+   * Normalize net0 for routable SSH — preserve MAC from clone, disable Proxmox firewall.
+   * Template 902 often has firewall=1 which blocks all traffic until manual rules exist.
+   */
+  buildNet0(existing: string | undefined, bridge: string): string {
+    const mac = existing?.match(
+      /(?:virtio|e1000|rtl8139|vmxnet3)=([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})/i,
+    )?.[1];
+    const model =
+      existing?.match(/^(virtio|e1000|rtl8139|vmxnet3)=/i)?.[1]?.toLowerCase() ?? "virtio";
+    if (mac) {
+      return `${model}=${mac},bridge=${bridge},firewall=0`;
+    }
+    return `virtio,bridge=${bridge},firewall=0`;
+  }
+
+  isCloudInitNetworkReady(
+    cfg: Record<string, string>,
+    expectedIp: string | undefined,
+    ciuser: string,
+  ): boolean {
+    if (!cfg.ide2?.includes("cloudinit")) return false;
+    if (!cfg.ipconfig0?.trim()) return false;
+    if (cfg.ciuser?.trim() !== ciuser) return false;
+    if (!cfg.cipassword?.trim()) return false;
+    if (expectedIp && this.parseIpFromConfig(cfg) !== expectedIp) return false;
+    const net0 = cfg.net0 ?? "";
+    if (net0.includes("firewall=1")) return false;
+    return true;
+  }
+
+  async resizeDisk(
+    node: string,
+    vmid: number,
+    sizeGb: number,
+    disk: string = "scsi0",
+  ): Promise<void> {
     const upid = await this.requestForm<string>(
       "PUT",
       `/api2/json/nodes/${node}/qemu/${vmid}/resize`,
       {
-        disk: "scsi0",
+        disk,
         size: `${sizeGb}G`,
       },
     );
@@ -376,6 +423,9 @@ export class ProxmoxClient {
   }
 
   async configureVm(spec: VmSpec): Promise<void> {
+    const existingCfg = await this.getVmConfig(spec.node, spec.vmid);
+    const bootDisk = this.resolvePrimaryBootDisk(existingCfg);
+
     const fields: Record<string, string | number | undefined> = {
       cores: spec.cores,
       memory: spec.memoryMb,
@@ -390,8 +440,8 @@ export class ProxmoxClient {
     }
 
     if (spec.primaryIp) {
-      fields.net0 = `virtio,bridge=${spec.bridge}`;
-      fields.boot = "order=scsi0";
+      fields.net0 = this.buildNet0(existingCfg.net0, spec.bridge);
+      fields.boot = `order=${bootDisk}`;
       fields.nameserver = "1.1.1.1";
       fields.searchdomain = "local";
       const gw = spec.gateway ?? guessGateway(spec.primaryIp);
@@ -406,7 +456,7 @@ export class ProxmoxClient {
     );
 
     try {
-      await this.resizeDisk(spec.node, spec.vmid, spec.diskGb, spec.storage);
+      await this.resizeDisk(spec.node, spec.vmid, spec.diskGb, bootDisk);
     } catch {
       /* template disk may already match plan size */
     }
@@ -428,19 +478,12 @@ export class ProxmoxClient {
 
   /** Regenerate cloud-init ISO (forces guest to re-apply network/password on next boot). */
   async regenerateCloudInit(node: string, vmid: number): Promise<void> {
-    try {
-      await this.requestForm(
-        "PUT",
-        `/api2/json/nodes/${node}/qemu/${vmid}/cloudinit`,
-        {},
-        { timeoutMs: 60_000 },
-      );
-    } catch (e) {
-      console.warn(
-        `[proxmox] cloudinit regenerate vmid ${vmid}:`,
-        e instanceof Error ? e.message : e,
-      );
-    }
+    await this.requestForm(
+      "PUT",
+      `/api2/json/nodes/${node}/qemu/${vmid}/cloudinit`,
+      {},
+      { timeoutMs: 60_000 },
+    );
   }
 
   /** Attach cloud-init drive if missing (required for ipconfig0/cipassword). */
@@ -776,13 +819,23 @@ export class ProxmoxClient {
   async getVmStatus(
     node: string,
     vmid: number,
-  ): Promise<{ status: string; cpu?: number; mem?: number; maxmem?: number }> {
+  ): Promise<{ status: string; uptime?: number; cpu?: number; mem?: number; maxmem?: number }> {
     return this.request(
       "GET",
       `/api2/json/nodes/${node}/qemu/${vmid}/status/current`,
       undefined,
       { timeoutMs: 8_000 },
     );
+  }
+
+  async getVmUptimeSec(node: string, vmid: number): Promise<number> {
+    try {
+      const st = await this.getVmStatus(node, vmid);
+      if (st.status !== "running") return 0;
+      return typeof st.uptime === "number" ? st.uptime : 0;
+    } catch {
+      return 0;
+    }
   }
 }
 

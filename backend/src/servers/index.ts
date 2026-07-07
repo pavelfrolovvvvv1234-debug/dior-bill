@@ -310,7 +310,7 @@ export async function vpsAction(
         data: { rootPasswordEnc: encrypt(password) },
       });
       if (isProxmoxConfigured() && vps.proxmoxVmid) {
-        await enqueueJob("vps.ensure_access", { vpsId, reboot: true });
+        await enqueueJob("vps.ensure_access", { vpsId, reboot: true, forceStop: false });
       }
       return { success: true, passwordResetQueued: true };
     }

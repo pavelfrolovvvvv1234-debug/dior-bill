@@ -19,7 +19,11 @@
     "sync-shared-ip-registry": "tsx scripts/sync-shared-ip-registry.ts",
     "reconcile-shared-ip-registry": "tsx scripts/reconcile-shared-ip-registry.ts",
     "sync-vps-ip": "tsx scripts/sync-vps-ip.ts",
-    "verify-vps-credentials": "tsx scripts/verify-vps-credentials.ts"
+    "verify-vps-credentials": "tsx scripts/verify-vps-credentials.ts",
+    "rebuild-vps-fresh": "tsx scripts/rebuild-vps-fresh.ts",
+    "fix-vm-network": "tsx scripts/fix-vm-network.ts",
+    "diagnose-vps": "tsx scripts/diagnose-vps.ts",
+    "compare-vm-config": "tsx scripts/compare-vm-config.ts"
   },
   "dependencies": {
     "@dior/database": "workspace:*",

@@ -69,6 +69,7 @@ export async function dispatchInlineJob(
       await ensureVpsProxmoxAccess(payload.vpsId as string, {
         reboot: payload.reboot !== false,
         waitForGuest: false,
+        forceStop: payload.forceStop === true,
       });
       break;
     }

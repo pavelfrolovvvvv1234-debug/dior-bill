@@ -290,6 +290,13 @@ export async function runVpsProvisionPipeline(payload: {
       }
 
       if (cloneCompleted && vmid && assignedIp) {
+        const isNetworkNotReady =
+          err instanceof ValidationError && raw.includes("Guest network not ready");
+        if (isNetworkNotReady) {
+          console.warn(`[provision] ${vps.hostname} clone OK but network pending — stay PROVISIONING`);
+          await enqueueJob("vps.sync_ip", { vpsId: payload.vpsId }).catch(() => {});
+          return;
+        }
         try {
           if (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled()) {
             await activateSharedRegistryIp({

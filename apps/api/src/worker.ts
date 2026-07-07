@@ -230,11 +230,12 @@ async function run() {
             break;
           }
           case "vps.ensure_access": {
-            const payload = job.payload as { vpsId: string; reboot?: boolean };
+            const payload = job.payload as { vpsId: string; reboot?: boolean; forceStop?: boolean };
             const { ensureVpsProxmoxAccess } = await import("@dior/backend");
             await ensureVpsProxmoxAccess(payload.vpsId, {
               reboot: payload.reboot !== false,
               waitForGuest: false,
+              forceStop: payload.forceStop === true,
             });
             break;
           }

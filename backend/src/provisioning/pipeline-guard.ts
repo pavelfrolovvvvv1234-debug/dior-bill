@@ -1,4 +1,5 @@
 import { prisma } from "@dior/database";
+import { resolveProxmoxCiUser } from "../proxmox/config";
 
 /** Stable idempotency key — one successful provision per service. */
 export function provisionPipelineKey(serviceId: string): string {
@@ -17,6 +18,7 @@ export async function clearProvisionPipelineIdempotency(serviceId: string): Prom
 }
 
 const RUNNING_JOB_TTL_MS = 25 * 60 * 1000;
+const RECOVERY_MIN_UPTIME_SEC = 90;
 
 /** Another worker/job is already cloning this VPS — skip duplicate pipeline. */
 export async function isDuplicateProvisionRun(params: {
@@ -41,7 +43,10 @@ export async function isDuplicateProvisionRun(params: {
   return false;
 }
 
-/** VM exists on Proxmox — finish lifecycle without re-clone (PROVISIONING / REINSTALLING). */
+/**
+ * VM exists on Proxmox — finish lifecycle without re-clone.
+ * Never reboots: stop/start during first-boot cloud-init breaks SSH.
+ */
 export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise<boolean> {
   const row = await prisma.service.findUnique({
     where: { id: serviceId },
@@ -96,10 +101,32 @@ export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise
     }
   }
 
-  if (!primaryIp) return false;
+  if (!primaryIp || !vps.rootPasswordEnc) return false;
 
-  const { ensureVpsProxmoxAccess } = await import("../proxmox/ensure-vps-access");
-  await ensureVpsProxmoxAccess(vps.id, { reboot: true });
+  const cfg = await client.getVmConfig(nodeName, vmid);
+  const pveIp = client.parseIpFromConfig(cfg);
+  const ciuser = resolveProxmoxCiUser(vps.os);
+  if (!cfg.ipconfig0 || pveIp !== primaryIp || cfg.ciuser?.trim() !== ciuser) {
+    return false;
+  }
+  if ((cfg.net0 ?? "").includes("firewall=1")) {
+    return false;
+  }
+
+  const vmStatus = await client.getVmStatus(nodeName, vmid).catch(() => ({ status: "unknown" }));
+  if (vmStatus.status !== "running") {
+    try {
+      await client.startVm(nodeName, vmid);
+    } catch {
+      return false;
+    }
+    return false;
+  }
+
+  const uptime = await client.getVmUptimeSec(nodeName, vmid);
+  if (uptime < RECOVERY_MIN_UPTIME_SEC) {
+    return false;
+  }
 
   const { markProvisioningComplete } = await import("../core/provisioning/engine");
   const {
@@ -139,7 +166,7 @@ export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise
   }
 
   console.log(
-    `[provision] recovered → ACTIVE: ${vps.hostname} vmid=${vmid} ip=${primaryIp}`,
+    `[provision] recovered → ACTIVE (no reboot): ${vps.hostname} vmid=${vmid} ip=${primaryIp}`,
   );
   return true;
 }
