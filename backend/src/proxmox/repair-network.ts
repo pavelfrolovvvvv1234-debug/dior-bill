@@ -47,7 +47,7 @@ export async function repairVpsCloudInitNetwork(
   await client.regenerateCloudInit(node, vmid);
   await client.startVm(node, vmid);
 
-  return waitForVpsProvisionReady(node, vmid, primaryIp);
+  return waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });
 }
 
 /** Worker job: stop → fix cloud-init → start; complete service if guest IP OK. */
