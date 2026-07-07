@@ -30,7 +30,12 @@ export async function repairVpsCloudInitNetwork(
     /* may already be stopped */
   }
 
-  await client.ensureCloudInitDrive(node, vmid, config.storage);
+  await client.ensureCloudInitDrive(node, vmid, config.storage).catch((e) => {
+    console.warn(
+      `[proxmox] ensureCloudInitDrive vmid ${vmid}:`,
+      e instanceof Error ? e.message : e,
+    );
+  });
   await client.configureVm({
     ...vmSpec,
     ciuser: vmSpec.ciuser ?? resolveProxmoxCiUser(vmSpec.os ?? "debian-12"),

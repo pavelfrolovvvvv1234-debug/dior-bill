@@ -488,11 +488,17 @@ export class ProxmoxClient {
     );
   }
 
-  /** Attach / refresh cloud-init drive on correct storage (cloned templates may keep stale ide2). */
+  /**
+   * Attach cloud-init drive if missing. If ide2 already has cloudinit, only regenerateCloudInit
+   * is needed — re-PUTting ide2 triggers lvcreate "already exists" on LVM.
+   */
   async ensureCloudInitDrive(node: string, vmid: number, storage: string): Promise<void> {
-    const target = `${storage}:cloudinit`;
+    const cfg = await this.getVmConfig(node, vmid);
+    if (cfg.ide2?.includes("cloudinit")) {
+      return;
+    }
     await this.requestForm("PUT", `/api2/json/nodes/${node}/qemu/${vmid}/config`, {
-      ide2: target,
+      ide2: `${storage}:cloudinit`,
       citype: "configdrive2",
     });
   }
