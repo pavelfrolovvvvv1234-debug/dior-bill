@@ -1,11 +1,49 @@
 import { prisma } from "@dior/database";
 import { decrypt } from "../lib/crypto";
+import { getProxmoxClient, getProxmoxNodeName, type VmSpec } from "./client";
 import { getProxmoxConfig, resolveProxmoxCiUser } from "./config";
 import { getProxmoxGateway } from "./ip-pool";
-import { getProxmoxNodeName } from "./client";
-import { repairVpsCloudInitNetwork } from "./repair-network";
+import { waitForVpsProvisionReady } from "./provision-ready";
 import { markProvisioningComplete } from "../core/provisioning/engine";
 import { provisionPipelineKey } from "../provisioning/pipeline-guard";
+
+/**
+ * Stop → re-apply cloud-init (net0 firewall=0, ide2) → start.
+ * Used when first boot did not bring up guest network / SSH.
+ */
+export async function repairVpsCloudInitNetwork(
+  vmSpec: VmSpec & { os?: string },
+): Promise<boolean> {
+  const client = getProxmoxClient();
+  const config = getProxmoxConfig();
+  if (!client || !config || !vmSpec.primaryIp) return false;
+
+  const { node, vmid, primaryIp } = vmSpec;
+  console.log(`[proxmox] repair cloud-init network vmid=${vmid} ip=${primaryIp}`);
+
+  try {
+    const st = await client.getVmStatus(node, vmid);
+    if (st.status === "running") {
+      await client.stopVm(node, vmid);
+    }
+  } catch {
+    /* may already be stopped */
+  }
+
+  await client.ensureCloudInitDrive(node, vmid, config.storage);
+  await client.configureVm({
+    ...vmSpec,
+    ciuser: vmSpec.ciuser ?? resolveProxmoxCiUser(vmSpec.os ?? "debian-12"),
+    gateway: vmSpec.gateway ?? config.gateway ?? getProxmoxGateway(),
+    ipCidr: vmSpec.ipCidr ?? config.ipCidr,
+    bridge: vmSpec.bridge ?? config.bridge,
+    storage: vmSpec.storage ?? config.storage,
+  });
+  await client.regenerateCloudInit(node, vmid);
+  await client.startVm(node, vmid);
+
+  return waitForVpsProvisionReady(node, vmid, primaryIp);
+}
 
 /** Worker job: stop → fix cloud-init → start; complete service if guest IP OK. */
 export async function runVpsNetworkRepairJob(vpsId: string): Promise<boolean> {
