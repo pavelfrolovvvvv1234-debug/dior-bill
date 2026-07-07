@@ -7,7 +7,10 @@ export async function getUserServices(
   type?: ServiceType,
   status?: ServiceStatus,
 ) {
-  await resumeStuckVpsProvisioningForUser(userId);
+  // Never block page render on background provisioning recovery (Proxmox/API errors must not crash UI).
+  void resumeStuckVpsProvisioningForUser(userId).catch((err) => {
+    console.error(`[getUserServices] resume provisioning user=${userId}:`, err);
+  });
 
   return prisma.service.findMany({
     where: {

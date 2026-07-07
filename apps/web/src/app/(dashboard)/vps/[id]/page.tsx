@@ -32,8 +32,19 @@ export default async function VpsDetailPage({
   }
 
   const [timeline, access] = await Promise.all([
-    getServiceTimeline(vps.serviceId),
-    getVpsAccessInfo(id, session.user.id),
+    getServiceTimeline(vps.serviceId).catch(() => []),
+    getVpsAccessInfo(id, session.user.id).catch(() => ({
+      username: "root",
+      password: null,
+      host: vps.primaryIp,
+      sshPort: 22,
+      sshCommand: null,
+      rdpTarget: null,
+      proxmoxVmid: vps.proxmoxVmid,
+      serviceStatus: vps.service.status,
+      rescueMode: vps.rescueMode,
+      canManage: false,
+    })),
   ]);
 
   const osLabel = formatVpsOsLabel(vps.os);
@@ -67,7 +78,7 @@ export default async function VpsDetailPage({
                   ["Primary IP", vps.primaryIp ?? "—"],
                   ["VM ID", vps.proxmoxVmid?.toString() ?? "—"],
                   ["Node", vps.node?.name ?? "—"],
-                  ["Location", vps.location.name],
+                  ["Location", vps.location?.name ?? "—"],
                   ["OS", osLabel],
                   [
                     "Plan",

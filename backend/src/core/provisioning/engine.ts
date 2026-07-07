@@ -502,7 +502,12 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
     const vps = service.vpsInstance;
     if (!job || !vps) continue;
 
-    if (await tryCompleteStuckProvisionedVps(service.id)) continue;
+    try {
+      if (await tryCompleteStuckProvisionedVps(service.id)) continue;
+    } catch (err) {
+      console.error(`[resume-provision] complete stalled ${service.id}:`, err);
+      continue;
+    }
 
     const jobAge = Date.now() - (job.startedAt ?? job.createdAt).getTime();
     const shouldRetry =
@@ -547,7 +552,12 @@ export async function resumeStuckVpsProvisioningForUser(userId: string): Promise
   for (const service of reinstalling) {
     const vps = service.vpsInstance;
     if (!vps) continue;
-    if (await tryCompleteStuckProvisionedVps(service.id)) continue;
+    try {
+      if (await tryCompleteStuckProvisionedVps(service.id)) continue;
+    } catch (err) {
+      console.error(`[resume-provision] complete reinstalling ${service.id}:`, err);
+      continue;
+    }
     if (vps.proxmoxVmid) {
       try {
         const { syncVpsIpFromProxmox } = await import("../../proxmox");

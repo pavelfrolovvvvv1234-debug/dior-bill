@@ -14,7 +14,7 @@ export async function getServiceTimeline(serviceId: string, limit = 50) {
       type: r.eventType,
       title: r.title,
       description: r.description,
-      severity: r.severity,
+      severity: r.severity ?? "info",
       createdAt: r.occurredAt,
     }));
   }
@@ -23,7 +23,16 @@ export async function getServiceTimeline(serviceId: string, limit = 50) {
     where: { serviceId },
     orderBy: { createdAt: "desc" },
     take: limit,
-  });
+  }).then((events) =>
+    events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      title: e.title,
+      description: e.description,
+      severity: e.severity ?? "info",
+      createdAt: e.createdAt,
+    })),
+  );
 }
 
 export async function recordServiceEvent(input: {

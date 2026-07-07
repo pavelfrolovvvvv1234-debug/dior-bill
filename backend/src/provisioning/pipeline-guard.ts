@@ -48,6 +48,18 @@ export async function isDuplicateProvisionRun(params: {
  * Never reboots: stop/start during first-boot cloud-init breaks SSH.
  */
 export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise<boolean> {
+  try {
+    return await tryCompleteStuckProvisionedVpsInner(serviceId);
+  } catch (err) {
+    console.warn(
+      `[provision] recover skipped for ${serviceId}:`,
+      err instanceof Error ? err.message : err,
+    );
+    return false;
+  }
+}
+
+async function tryCompleteStuckProvisionedVpsInner(serviceId: string): Promise<boolean> {
   const row = await prisma.service.findUnique({
     where: { id: serviceId },
     include: {
@@ -103,7 +115,12 @@ export async function tryCompleteStuckProvisionedVps(serviceId: string): Promise
 
   if (!primaryIp || !vps.rootPasswordEnc) return false;
 
-  const cfg = await client.getVmConfig(nodeName, vmid);
+  let cfg: Record<string, string>;
+  try {
+    cfg = await client.getVmConfig(nodeName, vmid);
+  } catch {
+    return false;
+  }
   const pveIp = client.parseIpFromConfig(cfg);
   const ciuser = resolveProxmoxCiUser(vps.os);
   if (!cfg.ipconfig0 || pveIp !== primaryIp || cfg.ciuser?.trim() !== ciuser) {
