@@ -6,6 +6,7 @@ import { getProxmoxClient, getProxmoxNodeName, ProxmoxApiError } from "./client"
 import { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint, resolveProxmoxCiUser } from "./config";
 import { resolveTemplateVmid } from "./os-templates";
 import { waitForVpsProvisionReady } from "./provision-ready";
+import { repairVpsCloudInitNetwork } from "./repair-network";
 import {
   getProxmoxGateway,
   isPlaceholderIp,
@@ -22,6 +23,7 @@ export {
 export { getProxmoxConfig, isProxmoxConfigured, getProxmoxCiUser, resolveProxmoxCiUser, proxmoxTlsHint } from "./config";
 export { ensureVpsProxmoxAccess } from "./ensure-vps-access";
 export { waitForVpsProvisionReady } from "./provision-ready";
+export { repairVpsCloudInitNetwork, runVpsNetworkRepairJob } from "./repair-network";
 export { resolveTemplateVmid } from "./os-templates";
 export {
   isPlaceholderIp,
@@ -222,7 +224,11 @@ export async function provisionVmOnProxmox(spec: {
   }
 
   if (useStaticIp && spec.primaryIp) {
-    const ready = await waitForVpsProvisionReady(node, vmid, spec.primaryIp);
+    let ready = await waitForVpsProvisionReady(node, vmid, spec.primaryIp);
+    if (!ready) {
+      console.warn(`[proxmox] ${spec.hostname} vmid=${vmid} network pending — cloud-init repair`);
+      ready = await repairVpsCloudInitNetwork({ ...vmSpec, os: spec.os });
+    }
     if (!ready) {
       throw new ValidationError(
         `Guest network not ready for ${spec.primaryIp} (vmid ${vmid}) — check net0 firewall=0 and cloud-init`,

@@ -66,11 +66,16 @@ export async function dispatchInlineJob(
     }
     case "vps.ensure_access": {
       const { ensureVpsProxmoxAccess } = await import("../proxmox/ensure-vps-access");
-      await ensureVpsProxmoxAccess(payload.vpsId as string, {
-        reboot: payload.reboot !== false,
-        waitForGuest: false,
-        forceStop: payload.forceStop === true,
-      });
+      const { runVpsNetworkRepairJob } = await import("../proxmox/repair-network");
+      if (payload.repairNetwork === true) {
+        await runVpsNetworkRepairJob(payload.vpsId as string);
+      } else {
+        await ensureVpsProxmoxAccess(payload.vpsId as string, {
+          reboot: payload.reboot !== false,
+          waitForGuest: false,
+          forceStop: payload.forceStop === true,
+        });
+      }
       break;
     }
     case "payment.retry": {

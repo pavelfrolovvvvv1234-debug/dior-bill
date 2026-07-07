@@ -145,6 +145,14 @@ async function tryCompleteStuckProvisionedVpsInner(serviceId: string): Promise<b
     return false;
   }
 
+  const guestIps = await client.getGuestAgentIps(nodeName, vmid).catch(() => [] as string[]);
+  if (!guestIps.includes(primaryIp)) {
+    console.log(
+      `[provision] recover skip ${vps.hostname} — guest IP not ${primaryIp} (agent: ${guestIps.join(",") || "down"})`,
+    );
+    return false;
+  }
+
   const { markProvisioningComplete } = await import("../core/provisioning/engine");
   const {
     activateSharedRegistryIp,

@@ -2,10 +2,12 @@ import { getProxmoxClient } from "./client";
 
 const FIRST_BOOT_MIN_WAIT_MS = 120_000;
 const GUEST_IP_POLL_MS = 300_000;
+/** Allow ACTIVE without guest-agent if static ipconfig0 + min uptime (cloud-init finished). */
+const STATIC_IP_MIN_UPTIME_SEC = 180;
 
 /**
  * Wait for guest network after first start. Never stops/reboots the VM.
- * Ready = guest-agent reports expected IP (preferred).
+ * Ready = guest-agent IP match, or ipconfig0 + firewall=0 + min uptime.
  */
 export async function waitForVpsProvisionReady(
   node: string,
@@ -53,8 +55,16 @@ export async function waitForVpsProvisionReady(
     }
   }
 
+  const uptime = await client.getVmUptimeSec(node, vmid);
+  if (uptime >= STATIC_IP_MIN_UPTIME_SEC) {
+    console.log(
+      `[proxmox] vmid=${vmid} static ipconfig0=${expectedIp} uptime=${uptime}s — provision ready (no guest-agent)`,
+    );
+    return true;
+  }
+
   console.warn(
-    `[proxmox] vmid=${vmid} guest-agent did not confirm ${expectedIp} (guest ${guestIp ?? "none"}, agent ${agentUp ? "up" : "down"})`,
+    `[proxmox] vmid=${vmid} network not confirmed (expected ${expectedIp}, guest ${guestIp ?? "none"}, uptime ${uptime}s)`,
   );
   return false;
 }

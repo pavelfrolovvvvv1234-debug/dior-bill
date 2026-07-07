@@ -437,6 +437,8 @@ export class ProxmoxClient {
       fields.ciuser = spec.ciuser ?? getProxmoxCiUser();
       fields.sshkeys = "";
       fields.citype = "configdrive2";
+      const user = String(fields.ciuser);
+      fields.ostype = user === "Administrator" ? "win10" : "l26";
     }
 
     if (spec.primaryIp) {
@@ -486,12 +488,11 @@ export class ProxmoxClient {
     );
   }
 
-  /** Attach cloud-init drive if missing (required for ipconfig0/cipassword). */
+  /** Attach / refresh cloud-init drive on correct storage (cloned templates may keep stale ide2). */
   async ensureCloudInitDrive(node: string, vmid: number, storage: string): Promise<void> {
-    const cfg = await this.getVmConfig(node, vmid);
-    if (cfg.ide2?.includes("cloudinit")) return;
+    const target = `${storage}:cloudinit`;
     await this.requestForm("PUT", `/api2/json/nodes/${node}/qemu/${vmid}/config`, {
-      ide2: `${storage}:cloudinit`,
+      ide2: target,
       citype: "configdrive2",
     });
   }

@@ -294,37 +294,12 @@ export async function runVpsProvisionPipeline(payload: {
           err instanceof ValidationError && raw.includes("Guest network not ready");
         if (isNetworkNotReady) {
           console.warn(`[provision] ${vps.hostname} clone OK but network pending — stay PROVISIONING`);
-          await enqueueJob("vps.sync_ip", { vpsId: payload.vpsId }).catch(() => {});
+          await enqueueJob("vps.ensure_access", {
+            vpsId: payload.vpsId,
+            forceStop: true,
+            repairNetwork: true,
+          }).catch(() => {});
           return;
-        }
-        try {
-          if (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled()) {
-            await activateSharedRegistryIp({
-              ip: assignedIp,
-              vmid,
-              vpsId: payload.vpsId,
-              hostname: vps.hostname,
-            });
-          }
-          await markProvisioningComplete({
-            serviceId: payload.serviceId,
-            idempotencyKey: `${pipelineKey}:post-clone-recover`,
-            ip: assignedIp,
-            vmid,
-          });
-          await updateJob(payload.jobId, {
-            status: "completed",
-            progress: 100,
-            currentStep: "completed",
-            error: null,
-          });
-          await prisma.provisioningJob.update({
-            where: { id: payload.jobId },
-            data: { completedAt: new Date() },
-          });
-          return;
-        } catch (recoverErr) {
-          console.error("[provision] post-clone recovery failed:", recoverErr);
         }
       }
 
@@ -355,35 +330,7 @@ export async function runVpsProvisionPipeline(payload: {
       }
 
       if (isLifecycleError && vmid) {
-        try {
-          if (assignedIp && (isSharedIpRegistryRequired() || isSharedIpRegistryEnabled())) {
-            await activateSharedRegistryIp({
-              ip: assignedIp,
-              vmid,
-              vpsId: payload.vpsId,
-              hostname: vps.hostname,
-            });
-          }
-          await markProvisioningComplete({
-            serviceId: payload.serviceId,
-            idempotencyKey: `${idemKey}:lifecycle-recover`,
-            ip: assignedIp ?? undefined,
-            vmid,
-          });
-          await updateJob(payload.jobId, {
-            status: "completed",
-            progress: 100,
-            currentStep: "completed",
-            error: null,
-          });
-          await prisma.provisioningJob.update({
-            where: { id: payload.jobId },
-            data: { completedAt: new Date() },
-          });
-          return;
-        } catch (recoverErr) {
-          console.error("[provision] lifecycle recovery failed:", recoverErr);
-        }
+        console.warn(`[provision] lifecycle error for ${vps.hostname} — re-queue, not forcing ACTIVE`);
       }
 
       throw err;
