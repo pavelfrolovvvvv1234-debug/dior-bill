@@ -17,8 +17,15 @@ const KEYS = [
   "boot",
   "scsi0",
   "virtio0",
+  "scsihw",
+  "bios",
+  "machine",
+  "ostype",
   "agent",
+  "onboot",
   "firewall",
+  "nameserver",
+  "searchdomain",
   "name",
 ];
 

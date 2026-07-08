@@ -30,11 +30,8 @@ export async function repairVpsCloudInitNetwork(
     /* may already be stopped */
   }
 
-  await client.ensureCloudInitDrive(node, vmid, config.storage).catch((e) => {
-    console.warn(
-      `[proxmox] ensureCloudInitDrive vmid ${vmid}:`,
-      e instanceof Error ? e.message : e,
-    );
+  await client.rebuildCloudInitDrive(node, vmid, config.storage).catch(async () => {
+    await client.ensureCloudInitDrive(node, vmid, config.storage);
   });
   await client.configureVm({
     ...vmSpec,

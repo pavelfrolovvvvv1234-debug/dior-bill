@@ -206,7 +206,9 @@ export async function provisionVmOnProxmox(spec: {
     }
   }
 
-  await client.ensureCloudInitDrive(node, vmid, config.storage);
+  await client.rebuildCloudInitDrive(node, vmid, config.storage).catch(async () => {
+    await client.ensureCloudInitDrive(node, vmid, config.storage);
+  });
   await client.configureVm(vmSpec);
   await client.regenerateCloudInit(node, vmid);
   await client.startVm(node, vmid);
@@ -505,7 +507,9 @@ export async function reinstallVpsOnProxmox(
   };
 
   await client.cloneFromTemplate(vmSpec);
-  await client.ensureCloudInitDrive(node, newVmid, config.storage);
+  await client.rebuildCloudInitDrive(node, newVmid, config.storage).catch(async () => {
+    await client.ensureCloudInitDrive(node, newVmid, config.storage);
+  });
   await client.configureVm(vmSpec);
   await client.regenerateCloudInit(node, newVmid);
   await client.startVm(node, newVmid);

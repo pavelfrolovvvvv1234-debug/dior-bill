@@ -7,6 +7,11 @@ import https from "node:https";
 import { URL } from "node:url";
 import type { ProxmoxRuntimeConfig } from "./config";
 import { getProxmoxCiUser, getProxmoxConfig } from "./config";
+import {
+  buildNet0LikeReference,
+  loadReferenceVmConfig,
+  pickReferenceHardwareFields,
+} from "./reference-vm-profile";
 
 export interface VmSpec {
   vmid: number;
@@ -373,19 +378,11 @@ export class ProxmoxClient {
   }
 
   /**
-   * Normalize net0 for routable SSH — preserve MAC from clone, disable Proxmox firewall.
-   * Template 902 often has firewall=1 which blocks all traffic until manual rules exist.
+   * Normalize net0 — preserve MAC from clone, disable Proxmox firewall.
+   * @deprecated Prefer buildNet0LikeReference when reference VM is available.
    */
   buildNet0(existing: string | undefined, bridge: string): string {
-    const mac = existing?.match(
-      /(?:virtio|e1000|rtl8139|vmxnet3)=([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})/i,
-    )?.[1];
-    const model =
-      existing?.match(/^(virtio|e1000|rtl8139|vmxnet3)=/i)?.[1]?.toLowerCase() ?? "virtio";
-    if (mac) {
-      return `${model}=${mac},bridge=${bridge},firewall=0`;
-    }
-    return `virtio,bridge=${bridge},firewall=0`;
+    return buildNet0LikeReference(existing, undefined, bridge);
   }
 
   isCloudInitNetworkReady(
@@ -425,11 +422,14 @@ export class ProxmoxClient {
   async configureVm(spec: VmSpec): Promise<void> {
     const existingCfg = await this.getVmConfig(spec.node, spec.vmid);
     const bootDisk = this.resolvePrimaryBootDisk(existingCfg);
+    const referenceCfg = await loadReferenceVmConfig(spec.node);
 
     const fields: Record<string, string | number | undefined> = {
       cores: spec.cores,
       memory: spec.memoryMb,
       agent: 1,
+      onboot: 1,
+      ...(referenceCfg ? pickReferenceHardwareFields(referenceCfg) : {}),
     };
 
     if (spec.rootPassword) {
@@ -438,14 +438,17 @@ export class ProxmoxClient {
       fields.sshkeys = "";
       fields.citype = "configdrive2";
       const user = String(fields.ciuser);
-      fields.ostype = user === "Administrator" ? "win10" : "l26";
+      fields.ostype = referenceCfg?.ostype ?? (user === "Administrator" ? "win10" : "l26");
     }
 
     if (spec.primaryIp) {
-      fields.net0 = this.buildNet0(existingCfg.net0, spec.bridge);
-      fields.boot = `order=${bootDisk}`;
-      fields.nameserver = "1.1.1.1";
-      fields.searchdomain = "local";
+      fields.net0 = buildNet0LikeReference(
+        existingCfg.net0,
+        referenceCfg?.net0,
+        spec.bridge,
+      );
+      fields.boot = referenceCfg?.boot ?? `order=${bootDisk}`;
+      fields.nameserver = "1.1.1.1 8.8.8.8";
       const gw = spec.gateway ?? guessGateway(spec.primaryIp);
       fields.ipconfig0 = `ip=${spec.primaryIp}/${spec.ipCidr ?? 24},gw=${gw}`;
       fields.citype = "configdrive2";
@@ -456,6 +459,17 @@ export class ProxmoxClient {
       `/api2/json/nodes/${spec.node}/qemu/${spec.vmid}/config`,
       fields,
     );
+
+    if (existingCfg.searchdomain) {
+      try {
+        await this.request(
+          "DELETE",
+          `/api2/json/nodes/${spec.node}/qemu/${spec.vmid}/config/searchdomain`,
+        );
+      } catch {
+        /* optional */
+      }
+    }
 
     try {
       await this.resizeDisk(spec.node, spec.vmid, spec.diskGb, bootDisk);
@@ -489,8 +503,7 @@ export class ProxmoxClient {
   }
 
   /**
-   * Attach cloud-init drive if missing. If ide2 already has cloudinit, only regenerateCloudInit
-   * is needed — re-PUTting ide2 triggers lvcreate "already exists" on LVM.
+   * Attach cloud-init drive if missing. If ide2 already has cloudinit, regenerateCloudInit is enough.
    */
   async ensureCloudInitDrive(node: string, vmid: number, storage: string): Promise<void> {
     const cfg = await this.getVmConfig(node, vmid);
@@ -501,6 +514,24 @@ export class ProxmoxClient {
       ide2: `${storage}:cloudinit`,
       citype: "configdrive2",
     });
+  }
+
+  /** Drop stale cloud-init ISO and recreate drive (fixes broken first-boot seeds). */
+  async rebuildCloudInitDrive(node: string, vmid: number, storage: string): Promise<void> {
+    const cfg = await this.getVmConfig(node, vmid);
+    if (cfg.ide2?.includes("cloudinit")) {
+      try {
+        await this.request(
+          "DELETE",
+          `/api2/json/nodes/${node}/qemu/${vmid}/config/ide2`,
+          undefined,
+          { timeoutMs: 60_000 },
+        );
+      } catch {
+        /* may already be detached */
+      }
+    }
+    await this.ensureCloudInitDrive(node, vmid, storage);
   }
 
   /** Update cloud-init login (requires reboot inside guest to apply password change). */
