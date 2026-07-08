@@ -69,7 +69,9 @@ export function buildNet0LikeReference(
   parts.push(`bridge=${bridge}`);
   if (ref.tag) parts.push(`tag=${ref.tag}`);
   if (ref.mtu) parts.push(`mtu=${ref.mtu}`);
-  parts.push("firewall=0");
+  if (clonedNet0?.includes("firewall=1") || referenceNet0?.includes("firewall=1")) {
+    parts.push("firewall=0");
+  }
   return parts.join(",");
 }
 

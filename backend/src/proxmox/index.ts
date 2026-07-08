@@ -7,6 +7,7 @@ import { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint, resolveProxmoxCi
 import { resolveTemplateVmid } from "./os-templates";
 import { waitForVpsProvisionReady } from "./provision-ready";
 import { repairVpsCloudInitNetwork } from "./repair-network";
+import { finalizeGuestNetworkAfterBoot } from "./guest-cloud-init";
 import {
   getProxmoxGateway,
   isPlaceholderIp,
@@ -100,6 +101,11 @@ async function bootVmWithCloudInit(
       `[proxmox] provision ${vmSpec.hostname} from template ${options.templateVmid}${vmSpec.primaryIp ? ` static ${vmSpec.primaryIp}` : ""}`,
     );
     await client.cloneFromTemplate({ ...vmSpec, vmid, templateVmid: options.templateVmid });
+    const stAfterClone = await client.getVmStatus(node, vmid).catch(() => ({ status: "stopped" }));
+    if (stAfterClone.status === "running") {
+      console.log(`[proxmox] stopping vmid ${vmid} after clone — apply cloud-init before first boot`);
+      await client.stopVm(node, vmid);
+    }
   } else {
     const st = await client.getVmStatus(node, vmid).catch(() => ({ status: "stopped" }));
     if (st.status === "running") {
@@ -281,6 +287,9 @@ export async function provisionVmOnProxmox(spec: {
         data: { proxmoxVmid: vmid, rootPasswordEnc: encrypt(rootPassword) },
       });
       ready = await waitForVpsProvisionReady(node, vmid, spec.primaryIp);
+    }
+    if (!ready) {
+      ready = await finalizeGuestNetworkAfterBoot(node, vmid, spec.primaryIp);
     }
     if (!ready) {
       const guestIps = await client.getGuestAgentIps(node, vmid);

@@ -448,10 +448,13 @@ export class ProxmoxClient {
         spec.bridge,
       );
       fields.boot = referenceCfg?.boot ?? `order=${bootDisk}`;
-      fields.nameserver = "1.1.1.1 8.8.8.8";
+      fields.nameserver = referenceCfg?.nameserver ?? "1.1.1.1";
+      if (referenceCfg?.searchdomain) {
+        fields.searchdomain = referenceCfg.searchdomain;
+      }
       const gw = spec.gateway ?? guessGateway(spec.primaryIp);
       fields.ipconfig0 = `ip=${spec.primaryIp}/${spec.ipCidr ?? 24},gw=${gw}`;
-      fields.citype = "configdrive2";
+      fields.citype = referenceCfg?.citype ?? "configdrive2";
     }
 
     await this.requestForm(
@@ -459,17 +462,6 @@ export class ProxmoxClient {
       `/api2/json/nodes/${spec.node}/qemu/${spec.vmid}/config`,
       fields,
     );
-
-    if (existingCfg.searchdomain) {
-      try {
-        await this.request(
-          "DELETE",
-          `/api2/json/nodes/${spec.node}/qemu/${spec.vmid}/config/searchdomain`,
-        );
-      } catch {
-        /* optional */
-      }
-    }
 
     try {
       await this.resizeDisk(spec.node, spec.vmid, spec.diskGb, bootDisk);
@@ -561,6 +553,66 @@ export class ProxmoxClient {
     } catch {
       return false;
     }
+  }
+
+  /** Run a command inside the guest via qemu-guest-agent. Returns exit code or null on timeout. */
+  async guestExec(
+    node: string,
+    vmid: number,
+    command: string,
+    args: string[] = [],
+  ): Promise<number | null> {
+    const params = new URLSearchParams();
+    params.set("command", command);
+    for (const arg of args) {
+      params.append("arguments", arg);
+    }
+    const started = await this.request<{ pid?: number }>(
+      "POST",
+      `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec`,
+      params,
+      { timeoutMs: 30_000 },
+    );
+    const pid = started?.pid;
+    if (pid == null) return null;
+
+    const deadline = Date.now() + 120_000;
+    while (Date.now() < deadline) {
+      const status = await this.request<{ exited?: number; exitcode?: number }>(
+        "GET",
+        `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec-status?pid=${pid}`,
+        undefined,
+        { timeoutMs: 15_000 },
+      );
+      if (status.exited === 1) {
+        return status.exitcode ?? 0;
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    return null;
+  }
+
+  /** Wipe stale cloud-init state cloned from template disk (required for template 902). */
+  async guestCloudInitClean(node: string, vmid: number): Promise<boolean> {
+    const attempts: Array<[string, string[]]> = [
+      ["cloud-init", ["clean", "--logs"]],
+      ["/usr/bin/cloud-init", ["clean", "--logs"]],
+    ];
+    for (const [command, args] of attempts) {
+      try {
+        const code = await this.guestExec(node, vmid, command, args);
+        if (code === 0) {
+          console.log(`[proxmox] vmid=${vmid} guest cloud-init clean succeeded`);
+          return true;
+        }
+      } catch (e) {
+        console.warn(
+          `[proxmox] vmid=${vmid} guest exec ${command}:`,
+          e instanceof Error ? e.message : e,
+        );
+      }
+    }
+    return false;
   }
 
   /** Poll qemu-guest-agent for the first non-loopback IPv4. */
