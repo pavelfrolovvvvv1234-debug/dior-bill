@@ -1,4 +1,23 @@
+import { createConnection } from "node:net";
 import { getProxmoxClient } from "./client";
+
+async function tcpProbe(host: string, port: number, timeoutMs = 6000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host, port });
+    let done = false;
+
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
+      socket.destroy();
+      resolve(ok);
+    };
+
+    socket.setTimeout(timeoutMs, () => finish(false));
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+  });
+}
 
 const DEFAULT_GUEST_POLL_MS = 90_000;
 const REPAIR_GUEST_POLL_MS = 20_000;
@@ -38,8 +57,14 @@ export async function waitForVpsProvisionReady(
   const started = Date.now();
   const guestIp = await client.waitForGuestIp(node, vmid, guestPollMs);
   if (guestIp === expectedIp) {
-    console.log(`[proxmox] vmid=${vmid} guest IP confirmed ${expectedIp}`);
-    return true;
+    const sshOpen = await tcpProbe(expectedIp, 22, 6000);
+    if (sshOpen) {
+      console.log(`[proxmox] vmid=${vmid} guest IP confirmed ${expectedIp} + SSH open`);
+      return true;
+    }
+    console.warn(
+      `[proxmox] vmid=${vmid} guest IP confirmed ${expectedIp}, but SSH :22 not reachable yet — waiting`,
+    );
   }
 
   while (Date.now() - started < maxWaitMs) {
@@ -59,10 +84,16 @@ export async function waitForVpsProvisionReady(
     } else {
       const uptime = await client.getVmUptimeSec(node, vmid);
       if (uptime >= minUptimeSec) {
-        console.log(
-          `[proxmox] vmid=${vmid} ready: ipconfig0=${expectedIp} uptime=${uptime}s (guest-agent ${guestIp ? "ok" : "down"})`,
+        const sshOpen = await tcpProbe(expectedIp, 22, repair ? 4000 : 6000);
+        if (sshOpen) {
+          console.log(
+            `[proxmox] vmid=${vmid} ready: ipconfig0=${expectedIp} uptime=${uptime}s (guest-agent ${guestIp ? "ok" : "down"}) SSH open`,
+          );
+          return true;
+        }
+        console.warn(
+          `[proxmox] vmid=${vmid} ipconfig0 OK (${expectedIp}) uptime=${uptime}s, but SSH :22 closed/timeout — keep waiting`,
         );
-        return true;
       }
       if (repair && Date.now() - started > 15_000) {
         console.log(
