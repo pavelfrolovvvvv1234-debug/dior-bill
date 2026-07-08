@@ -37,6 +37,11 @@ export async function tryGuestCloudInitReset(
     return false;
   }
 
+  const guestIps = await client.getGuestAgentIps(node, vmid);
+  console.log(
+    `[proxmox] vmid=${vmid} guest-agent up, IPs before clean: ${guestIps.length ? guestIps.join(", ") : "none"}`,
+  );
+
   const cleaned = await client.guestCloudInitClean(node, vmid);
   if (!cleaned) {
     console.warn(`[proxmox] vmid=${vmid} cloud-init clean via guest-agent failed`);

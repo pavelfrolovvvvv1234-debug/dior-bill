@@ -556,21 +556,11 @@ export class ProxmoxClient {
   }
 
   /** Run a command inside the guest via qemu-guest-agent. Returns exit code or null on timeout. */
-  async guestExec(
-    node: string,
-    vmid: number,
-    command: string,
-    args: string[] = [],
-  ): Promise<number | null> {
-    const params = new URLSearchParams();
-    params.set("command", command);
-    for (const arg of args) {
-      params.append("arguments", arg);
-    }
+  async guestExec(node: string, vmid: number, command: string[]): Promise<number | null> {
     const started = await this.request<{ pid?: number }>(
       "POST",
       `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec`,
-      params,
+      { command },
       { timeoutMs: 30_000 },
     );
     const pid = started?.pid;
@@ -578,13 +568,26 @@ export class ProxmoxClient {
 
     const deadline = Date.now() + 120_000;
     while (Date.now() < deadline) {
-      const status = await this.request<{ exited?: number; exitcode?: number }>(
+      const status = await this.request<{
+        exited?: number;
+        exitcode?: number;
+        "out-data"?: string;
+        "err-data"?: string;
+      }>(
         "GET",
         `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec-status?pid=${pid}`,
         undefined,
         { timeoutMs: 15_000 },
       );
       if (status.exited === 1) {
+        if (status.exitcode !== 0 && status["err-data"]) {
+          try {
+            const err = Buffer.from(status["err-data"], "base64").toString("utf8").trim();
+            if (err) console.warn(`[proxmox] vmid=${vmid} guest exec stderr: ${err.slice(0, 200)}`);
+          } catch {
+            /* ignore */
+          }
+        }
         return status.exitcode ?? 0;
       }
       await new Promise((r) => setTimeout(r, 2000));
@@ -594,20 +597,24 @@ export class ProxmoxClient {
 
   /** Wipe stale cloud-init state cloned from template disk (required for template 902). */
   async guestCloudInitClean(node: string, vmid: number): Promise<boolean> {
-    const attempts: Array<[string, string[]]> = [
-      ["cloud-init", ["clean", "--logs"]],
-      ["/usr/bin/cloud-init", ["clean", "--logs"]],
-    ];
-    for (const [command, args] of attempts) {
+    const attempts = [
+      ["/usr/bin/cloud-init", "clean", "--logs"],
+      ["/bin/bash", "-c", "cloud-init clean --logs"],
+      ["cloud-init", "clean", "--logs"],
+    ] as const;
+    for (const cmd of attempts) {
       try {
-        const code = await this.guestExec(node, vmid, command, args);
+        const code = await this.guestExec(node, vmid, [...cmd]);
         if (code === 0) {
-          console.log(`[proxmox] vmid=${vmid} guest cloud-init clean succeeded`);
+          console.log(`[proxmox] vmid=${vmid} guest cloud-init clean succeeded (${cmd.join(" ")})`);
           return true;
+        }
+        if (code != null) {
+          console.warn(`[proxmox] vmid=${vmid} guest exec exit ${code}: ${cmd.join(" ")}`);
         }
       } catch (e) {
         console.warn(
-          `[proxmox] vmid=${vmid} guest exec ${command}:`,
+          `[proxmox] vmid=${vmid} guest exec ${cmd.join(" ")}:`,
           e instanceof Error ? e.message : e,
         );
       }

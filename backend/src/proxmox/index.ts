@@ -286,9 +286,6 @@ export async function provisionVmOnProxmox(spec: {
         where: { id: spec.vpsId },
         data: { proxmoxVmid: vmid, rootPasswordEnc: encrypt(rootPassword) },
       });
-      ready = await waitForVpsProvisionReady(node, vmid, spec.primaryIp);
-    }
-    if (!ready) {
       ready = await finalizeGuestNetworkAfterBoot(node, vmid, spec.primaryIp);
     }
     if (!ready) {

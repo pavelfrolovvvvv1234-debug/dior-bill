@@ -2,7 +2,7 @@
  * Fix hypervisor net0 firewall + cloud-init on an existing VM (no re-clone).
  * Usage:
  *   pm2 stop dior-worker && pnpm exec tsx scripts/fix-vm-network.ts testepta
- *   pnpm exec tsx scripts/fix-vm-network.ts testepta --rebuild   # auto fresh re-clone if repair fails
+ *   pnpm exec tsx scripts/fix-vm-network.ts testepta --rebuild   # fresh re-clone (skips repair)
  */
 import { loadMonorepoEnv } from "../src/lib/load-env";
 import { prisma } from "@dior/database";
@@ -45,41 +45,44 @@ async function main() {
   const vps = await prisma.vpsInstance.findFirst({
     where: { OR: [{ hostname: name }, { service: { label: name } }] },
   });
-  if (!vps?.proxmoxVmid || !vps.primaryIp) {
-    console.error(`VPS not found or not linked: ${name}`);
+  if (!vps?.primaryIp) {
+    console.error(`VPS not found or no IP: ${name}`);
     process.exit(1);
   }
 
-  console.log(`Repair network ${vps.hostname} vmid=${vps.proxmoxVmid} ip=${vps.primaryIp}`);
-  let ready = await runVpsNetworkRepairJob(vps.id);
-  let sshOpen = await tcpProbe(vps.primaryIp, 22);
-  console.log(`SSH port 22 ${vps.primaryIp}: ${sshOpen ? "OPEN" : "closed/timeout"}`);
+  let ready = false;
+  let sshOpen = false;
+  let ip = vps.primaryIp;
 
-  if (!ready || !sshOpen) {
-    console.error(
-      "\n>>> Proxmox config is OK but guest OS has no SSH (cloud-init inside disk is broken).",
+  if (rebuild) {
+    console.log(`Fresh re-clone ${vps.hostname} ip=${ip} (skip repair, ~10-15 min — do NOT Ctrl+C)`);
+    const result = await rebuildVpsKeepingIp(vps.id);
+    ip = result.ip ?? ip;
+    sshOpen = ip ? await tcpProbe(ip, 22) : false;
+    ready = sshOpen;
+    console.log(
+      `Rebuild done: status=${result.status} ip=${ip} vmid=${result.vmid} SSH=${sshOpen ? "OPEN" : "closed"}`,
     );
-    if (rebuild) {
-      console.log(">>> Starting fresh re-clone (same IP, new disk)...");
-      const result = await rebuildVpsKeepingIp(vps.id);
-      sshOpen = result.ip ? await tcpProbe(result.ip, 22) : false;
-      ready = sshOpen;
-      console.log(
-        `Rebuild done: status=${result.status} ip=${result.ip} vmid=${result.vmid} SSH=${sshOpen ? "OPEN" : "closed"}`,
-      );
-    } else {
-      console.error(
-        `>>> Run: pnpm exec tsx scripts/fix-vm-network.ts ${vps.hostname} --rebuild`,
-      );
-      console.error(`>>> Or:  pnpm exec tsx scripts/rebuild-vps-fresh.ts ${vps.hostname}`);
+  } else {
+    if (!vps.proxmoxVmid) {
+      console.error(`VPS not linked to Proxmox: ${name}`);
+      process.exit(1);
+    }
+    console.log(`Repair network ${vps.hostname} vmid=${vps.proxmoxVmid} ip=${ip}`);
+    ready = await runVpsNetworkRepairJob(vps.id);
+    sshOpen = await tcpProbe(ip, 22);
+    console.log(`SSH port 22 ${ip}: ${sshOpen ? "OPEN" : "closed/timeout"}`);
+    if (!ready || !sshOpen) {
+      console.error("\n>>> Repair failed. Run with --rebuild for fresh re-clone:");
+      console.error(`>>> pnpm exec tsx scripts/fix-vm-network.ts ${vps.hostname} --rebuild`);
     }
   }
 
   const user = resolveVpsLoginUser(vps.os);
   console.log(
     ready && sshOpen
-      ? `OK — PuTTY: ${user}@${vps.primaryIp} (password from cabinet)`
-      : `FAILED — guest network/SSH not working on ${vps.primaryIp}`,
+      ? `OK — PuTTY: ${user}@${ip} (password from cabinet)`
+      : `FAILED — guest network/SSH not working on ${ip}`,
   );
 
   await prisma.$disconnect();
