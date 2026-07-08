@@ -2,7 +2,7 @@ import { randomBytes } from "crypto";
 import { prisma } from "@dior/database";
 import { NotFoundError, ValidationError } from "@dior/shared";
 import { encrypt } from "../lib/crypto";
-import { getProxmoxClient, getProxmoxNodeName, ProxmoxApiError } from "./client";
+import { getProxmoxClient, getProxmoxNodeName, type VmSpec } from "./client";
 import { getProxmoxConfig, isProxmoxConfigured, proxmoxTlsHint, resolveProxmoxCiUser } from "./config";
 import { resolveTemplateVmid } from "./os-templates";
 import { waitForVpsProvisionReady } from "./provision-ready";
@@ -24,6 +24,7 @@ export { getProxmoxConfig, isProxmoxConfigured, getProxmoxCiUser, resolveProxmox
 export { ensureVpsProxmoxAccess } from "./ensure-vps-access";
 export { waitForVpsProvisionReady } from "./provision-ready";
 export { repairVpsCloudInitNetwork, runVpsNetworkRepairJob } from "./repair-network";
+export { rebuildVpsKeepingIp } from "./rebuild-fresh";
 export { resolveTemplateVmid } from "./os-templates";
 export {
   isPlaceholderIp,
@@ -86,6 +87,49 @@ export async function verifyProxmoxIntegration(): Promise<{
   };
 }
 
+async function bootVmWithCloudInit(
+  client: NonNullable<ReturnType<typeof getProxmoxClient>>,
+  node: string,
+  vmid: number,
+  vmSpec: VmSpec,
+  config: NonNullable<ReturnType<typeof getProxmoxConfig>>,
+  options: { clone: boolean; templateVmid: number },
+): Promise<void> {
+  if (options.clone) {
+    console.log(
+      `[proxmox] provision ${vmSpec.hostname} from template ${options.templateVmid}${vmSpec.primaryIp ? ` static ${vmSpec.primaryIp}` : ""}`,
+    );
+    await client.cloneFromTemplate({ ...vmSpec, vmid, templateVmid: options.templateVmid });
+  } else {
+    const st = await client.getVmStatus(node, vmid).catch(() => ({ status: "stopped" }));
+    if (st.status === "running") {
+      console.log(`[proxmox] stopping vmid ${vmid} for cloud-init repair...`);
+      await client.stopVm(node, vmid);
+    }
+  }
+
+  await client.rebuildCloudInitDrive(node, vmid, config.storage).catch(async () => {
+    await client.ensureCloudInitDrive(node, vmid, config.storage);
+  });
+  await client.configureVm(vmSpec);
+  await client.regenerateCloudInit(node, vmid);
+  await client.startVm(node, vmid);
+}
+
+async function waitGuestSshReady(
+  node: string,
+  vmid: number,
+  primaryIp: string,
+  vmSpec: VmSpec & { os?: string },
+): Promise<boolean> {
+  let ready = await waitForVpsProvisionReady(node, vmid, primaryIp);
+  if (!ready) {
+    console.warn(`[proxmox] ${vmSpec.hostname} vmid=${vmid} network pending — cloud-init repair`);
+    ready = await repairVpsCloudInitNetwork({ ...vmSpec, os: vmSpec.os });
+  }
+  return ready;
+}
+
 export async function provisionVmOnProxmox(spec: {
   vpsId: string;
   nodeName: string;
@@ -125,21 +169,30 @@ export async function provisionVmOnProxmox(spec: {
   if (vmid && (await client.vmConfigExists(node, vmid))) {
     const cfg = await client.getVmConfig(node, vmid);
     if (client.isCloudInitNetworkReady(cfg, expectedIp, ciuser)) {
-      const ip =
-        expectedIp ??
-        client.parseIpFromConfig(cfg) ??
-        vpsRow?.primaryIp ??
-        spec.primaryIp ??
-        "";
-      console.log(
-        `[proxmox] ${spec.hostname} vmid=${vmid} cloud-init OK on ${node} — skip re-clone`,
+      if (expectedIp) {
+        const sshReady = await waitForVpsProvisionReady(node, vmid, expectedIp, { repair: true });
+        if (sshReady) {
+          console.log(`[proxmox] ${spec.hostname} vmid=${vmid} SSH ready — skip re-clone`);
+          return { vmid, ip: expectedIp };
+        }
+        console.warn(
+          `[proxmox] ${spec.hostname} vmid=${vmid} hypervisor OK but guest SSH down — destroying for fresh clone`,
+        );
+        await destroyProxmoxVmIfExists(node, vmid);
+        vmid = null;
+        needsClone = true;
+      } else {
+        const ip =
+          client.parseIpFromConfig(cfg) ?? vpsRow?.primaryIp ?? spec.primaryIp ?? "";
+        console.log(`[proxmox] ${spec.hostname} vmid=${vmid} cloud-init OK on ${node} — skip re-clone`);
+        return { vmid, ip };
+      }
+    } else {
+      console.warn(
+        `[proxmox] ${spec.hostname} vmid=${vmid} exists but cloud-init incomplete — reconfiguring (net0=${cfg.net0 ?? "?"})`,
       );
-      return { vmid, ip };
+      needsClone = false;
     }
-    console.warn(
-      `[proxmox] ${spec.hostname} vmid=${vmid} exists but cloud-init incomplete — reconfiguring (net0=${cfg.net0 ?? "?"})`,
-    );
-    needsClone = false;
   }
 
   if (useStaticIp && spec.primaryIp && needsClone) {
@@ -176,7 +229,7 @@ export async function provisionVmOnProxmox(spec: {
     }
   }
 
-  const vmSpec = {
+  const vmSpec: VmSpec = {
     vmid,
     node,
     hostname: spec.hostname,
@@ -193,25 +246,10 @@ export async function provisionVmOnProxmox(spec: {
     bridge: config.bridge,
   };
 
-  if (needsClone) {
-    console.log(
-      `[proxmox] provision ${spec.hostname} from template ${templateVmid}${useStaticIp ? ` static ${spec.primaryIp}` : " (no static IP)"}`,
-    );
-    await client.cloneFromTemplate(vmSpec);
-  } else {
-    const st = await client.getVmStatus(node, vmid).catch(() => ({ status: "stopped" }));
-    if (st.status === "running") {
-      console.log(`[proxmox] stopping vmid ${vmid} for cloud-init repair...`);
-      await client.stopVm(node, vmid);
-    }
-  }
-
-  await client.rebuildCloudInitDrive(node, vmid, config.storage).catch(async () => {
-    await client.ensureCloudInitDrive(node, vmid, config.storage);
+  await bootVmWithCloudInit(client, node, vmid, vmSpec, config, {
+    clone: needsClone,
+    templateVmid,
   });
-  await client.configureVm(vmSpec);
-  await client.regenerateCloudInit(node, vmid);
-  await client.startVm(node, vmid);
 
   if (needsClone || !vpsRow?.rootPasswordEnc) {
     await prisma.vpsInstance.update({
@@ -226,14 +264,28 @@ export async function provisionVmOnProxmox(spec: {
   }
 
   if (useStaticIp && spec.primaryIp) {
-    let ready = await waitForVpsProvisionReady(node, vmid, spec.primaryIp);
+    let ready = await waitGuestSshReady(node, vmid, spec.primaryIp, { ...vmSpec, os: spec.os });
     if (!ready) {
-      console.warn(`[proxmox] ${spec.hostname} vmid=${vmid} network pending — cloud-init repair`);
-      ready = await repairVpsCloudInitNetwork({ ...vmSpec, os: spec.os });
+      console.warn(
+        `[proxmox] ${spec.hostname} repair failed — fresh re-clone disk (keep IP ${spec.primaryIp})`,
+      );
+      await destroyProxmoxVmIfExists(node, vmid);
+      vmid = await client.allocateFreeVmid(node);
+      vmSpec.vmid = vmid;
+      await bootVmWithCloudInit(client, node, vmid, vmSpec, config, {
+        clone: true,
+        templateVmid,
+      });
+      await prisma.vpsInstance.update({
+        where: { id: spec.vpsId },
+        data: { proxmoxVmid: vmid, rootPasswordEnc: encrypt(rootPassword) },
+      });
+      ready = await waitForVpsProvisionReady(node, vmid, spec.primaryIp);
     }
     if (!ready) {
+      const guestIps = await client.getGuestAgentIps(node, vmid);
       throw new ValidationError(
-        `Guest network not ready for ${spec.primaryIp} (vmid ${vmid}) — check net0 firewall=0 and cloud-init`,
+        `Guest SSH not ready for ${spec.primaryIp} (vmid ${vmid}) — guest IPs: ${guestIps.join(",") || "none"}. Check DC routing for this IP.`,
       );
     }
   }

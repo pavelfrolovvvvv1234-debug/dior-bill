@@ -108,5 +108,9 @@ export async function waitForVpsProvisionReady(
   console.warn(
     `[proxmox] vmid=${vmid} network not confirmed after ${Math.round(maxWaitMs / 1000)}s (expected ${expectedIp})`,
   );
+  const guestIps = await client.getGuestAgentIps(node, vmid);
+  console.warn(
+    `[proxmox] vmid=${vmid} guest-agent IPs: ${guestIps.length ? guestIps.join(", ") : "none (OS has no routable IP — re-clone disk required)"}`,
+  );
   return false;
 }
