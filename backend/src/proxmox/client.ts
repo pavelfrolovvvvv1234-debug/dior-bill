@@ -622,6 +622,57 @@ export class ProxmoxClient {
     return false;
   }
 
+  /** Re-run cloud-init modules so guest re-reads Proxmox configdrive. */
+  async guestForceCloudInitRun(node: string, vmid: number): Promise<boolean> {
+    const steps = [
+      ["cloud-init", "init"],
+      ["cloud-init", "modules", "--mode=config"],
+      ["cloud-init", "modules", "--mode=final"],
+    ] as const;
+    for (const step of steps) {
+      let code = await this.guestExec(node, vmid, [...step]);
+      if (code !== 0) {
+        code = await this.guestExec(node, vmid, [`/usr/bin/${step[0]}`, ...step.slice(1)]);
+      }
+      if (code !== 0) {
+        console.warn(`[proxmox] vmid=${vmid} cloud-init step failed (${step.join(" ")}), exit=${code}`);
+        return false;
+      }
+    }
+    console.log(`[proxmox] vmid=${vmid} cloud-init modules completed`);
+    return true;
+  }
+
+  /**
+   * Last resort when template cloud-init ignores Proxmox ipconfig0.
+   * Configures IPv4 + default route inside guest via qemu-guest-agent.
+   */
+  async guestInjectStaticNetwork(
+    node: string,
+    vmid: number,
+    ip: string,
+    gateway: string,
+    cidr = 24,
+  ): Promise<boolean> {
+    const script = [
+      'IFACE=$(ip -o link show | awk -F": " \'/^[0-9]+: (eth|ens|enp)/ {gsub(/@.*/,"",$2); print $2; exit}\')',
+      '[ -n "$IFACE" ] || exit 1',
+      'ip link set "$IFACE" up || true',
+      'ip addr flush dev "$IFACE" 2>/dev/null || true',
+      `ip addr add ${ip}/${cidr} dev "$IFACE"`,
+      `ip route replace default via ${gateway}`,
+      'printf "nameserver 1.1.1.1\\n" > /etc/resolv.conf',
+      'systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || service ssh restart 2>/dev/null || true',
+    ].join("; ");
+    const code = await this.guestExec(node, vmid, ["/bin/bash", "-c", script]);
+    if (code === 0) {
+      console.log(`[proxmox] vmid=${vmid} guest static network injected ${ip}/${cidr} gw=${gateway}`);
+      return true;
+    }
+    console.warn(`[proxmox] vmid=${vmid} guest static network injection failed, exit=${code}`);
+    return false;
+  }
+
   /** Poll qemu-guest-agent for the first non-loopback IPv4. */
   async waitForGuestIp(node: string, vmid: number, timeoutMs = 300_000): Promise<string | null> {
     const started = Date.now();

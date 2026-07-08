@@ -270,28 +270,16 @@ export async function provisionVmOnProxmox(spec: {
   }
 
   if (useStaticIp && spec.primaryIp) {
+    const gw = spec.primaryIp ? (vmSpec.gateway ?? config.gateway ?? getProxmoxGateway()) : undefined;
     let ready = await waitGuestSshReady(node, vmid, spec.primaryIp, { ...vmSpec, os: spec.os });
     if (!ready) {
-      console.warn(
-        `[proxmox] ${spec.hostname} repair failed — fresh re-clone disk (keep IP ${spec.primaryIp})`,
-      );
-      await destroyProxmoxVmIfExists(node, vmid);
-      vmid = await client.allocateFreeVmid(node);
-      vmSpec.vmid = vmid;
-      await bootVmWithCloudInit(client, node, vmid, vmSpec, config, {
-        clone: true,
-        templateVmid,
-      });
-      await prisma.vpsInstance.update({
-        where: { id: spec.vpsId },
-        data: { proxmoxVmid: vmid, rootPasswordEnc: encrypt(rootPassword) },
-      });
-      ready = await finalizeGuestNetworkAfterBoot(node, vmid, spec.primaryIp);
+      ready = await finalizeGuestNetworkAfterBoot(node, vmid, spec.primaryIp, gw, config.ipCidr);
     }
     if (!ready) {
       const guestIps = await client.getGuestAgentIps(node, vmid);
+      const templateVmid = resolveTemplateVmid(spec.os, config);
       throw new ValidationError(
-        `Guest SSH not ready for ${spec.primaryIp} (vmid ${vmid}) — guest IPs: ${guestIps.join(",") || "none"}. Check DC routing for this IP.`,
+        `Guest SSH not ready for ${spec.primaryIp} (vmid ${vmid}) — guest IPs: ${guestIps.join(",") || "none"}. Template ${templateVmid} cloud-init broken; fix template on Proxmox (cloud-init clean → convert to template).`,
       );
     }
   }

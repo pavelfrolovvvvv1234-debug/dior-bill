@@ -5,6 +5,7 @@ import { getProxmoxConfig, resolveProxmoxCiUser } from "./config";
 import { getProxmoxGateway } from "./ip-pool";
 import { waitForVpsProvisionReady } from "./provision-ready";
 import { tryGuestCloudInitReset } from "./guest-cloud-init";
+import { tryGuestCloudInitReset } from "./guest-cloud-init";
 import { markProvisioningComplete } from "../core/provisioning/engine";
 import { provisionPipelineKey } from "../provisioning/pipeline-guard";
 
@@ -47,7 +48,14 @@ export async function repairVpsCloudInitNetwork(
 
   let ready = await waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });
   if (!ready) {
-    ready = await tryGuestCloudInitReset(node, vmid, primaryIp, config.storage);
+    const config = getProxmoxConfig();
+    ready = await tryGuestCloudInitReset(
+      node,
+      vmid,
+      primaryIp,
+      vmSpec.gateway ?? config?.gateway ?? getProxmoxGateway(),
+      vmSpec.ipCidr ?? config?.ipCidr,
+    );
   }
   return ready;
 }
