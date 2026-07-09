@@ -72,6 +72,12 @@ export async function reportOperationalIssue(params: {
           });
           break;
         case "worker.loop":
+          if (
+            process.env.TELEGRAM_ALERT_WORKER_LOOP === "0" ||
+            process.env.TELEGRAM_ALERT_WORKER_LOOP === "false"
+          ) {
+            break;
+          }
           await notifyAdminsWorkerError({ message: params.message });
           break;
         default:

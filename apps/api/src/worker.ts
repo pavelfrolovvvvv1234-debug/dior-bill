@@ -322,7 +322,10 @@ async function run() {
           category: "worker.loop",
           message: err instanceof Error ? err.message : "Unknown worker error",
           severity: "critical",
-          dedupeKey: `worker_loop:${Math.floor(Date.now() / WORKER_ERROR_ALERT_MS)}`,
+          dedupeKey: `worker_loop:${(err instanceof Error ? err.message : "unknown")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 120)}`,
         }).catch(() => {});
       }
       await new Promise((r) => setTimeout(r, 5000));
