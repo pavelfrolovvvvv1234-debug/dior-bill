@@ -5,7 +5,6 @@ import { getProxmoxConfig, resolveProxmoxCiUser } from "./config";
 import { getProxmoxGateway } from "./ip-pool";
 import { waitForVpsProvisionReady } from "./provision-ready";
 import { tryGuestCloudInitReset } from "./guest-cloud-init";
-import { tryGuestCloudInitReset } from "./guest-cloud-init";
 import { markProvisioningComplete } from "../core/provisioning/engine";
 import { provisionPipelineKey } from "../provisioning/pipeline-guard";
 
