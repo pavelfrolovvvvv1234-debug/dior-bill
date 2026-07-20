@@ -18,28 +18,31 @@ export function getStatsExcludedTelegramUsernames(): string[] {
   return [...DEFAULT_EXCLUDED];
 }
 
-function statsExcludedTelegramUserWhere(): Prisma.UserWhereInput | undefined {
+/**
+ * MySQL-safe user filter: never use Prisma `mode: "insensitive"` (Postgres-only —
+ * it crashes /control on MySQL). utf8mb4_*_ci collations already match case-insensitively.
+ * Explicitly keep users with null telegramUsername (SQL NOT + NULL would drop them).
+ */
+function statsExcludedUserFilter(): Prisma.UserWhereInput | undefined {
   const names = getStatsExcludedTelegramUsernames();
   if (names.length === 0) return undefined;
-  // MySQL (utf8mb4_*_ci) is case-insensitive by default — do NOT use mode:"insensitive"
-  // (Postgres-only; throws at runtime on MySQL and breaks /control).
   return {
-    telegramUsername: { in: names },
+    OR: [{ telegramUsername: null }, { telegramUsername: { notIn: names } }],
   };
 }
 
 /** Exclude internal/test accounts from top-up aggregates in admin analytics. */
 export function topUpStatsUserFilter(): Prisma.TopUpWhereInput {
-  const excluded = statsExcludedTelegramUserWhere();
-  if (!excluded) return {};
-  return { user: { NOT: excluded } };
+  const user = statsExcludedUserFilter();
+  if (!user) return {};
+  return { user };
 }
 
 /** Exclude commissions earned from internal account payments. */
 export function referralStatsSourceUserFilter(): Prisma.ReferralEarningWhereInput {
-  const excluded = statsExcludedTelegramUserWhere();
-  if (!excluded) return {};
-  return { sourceUser: { NOT: excluded } };
+  const user = statsExcludedUserFilter();
+  if (!user) return {};
+  return { sourceUser: user };
 }
 
 export function isStatsExcludedTelegramUsername(username: string | null | undefined): boolean {
