@@ -21,10 +21,10 @@ export function getStatsExcludedTelegramUsernames(): string[] {
 function statsExcludedTelegramUserWhere(): Prisma.UserWhereInput | undefined {
   const names = getStatsExcludedTelegramUsernames();
   if (names.length === 0) return undefined;
+  // MySQL (utf8mb4_*_ci) is case-insensitive by default — do NOT use mode:"insensitive"
+  // (Postgres-only; throws at runtime on MySQL and breaks /control).
   return {
-    OR: names.map((name) => ({
-      telegramUsername: { equals: name, mode: "insensitive" as const },
-    })),
+    telegramUsername: { in: names },
   };
 }
 
