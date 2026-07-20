@@ -1,8 +1,9 @@
 import { prisma } from "@dior/database";
 import { cacheGet, cacheSet, cacheDel } from "../lib/redis";
 import { requirePermission } from "./rbac";
+import { topUpStatsUserFilter } from "../lib/stats-exclusions";
 
-export const CONTROL_DASHBOARD_CACHE_KEY = "control:dashboard:v7";
+export const CONTROL_DASHBOARD_CACHE_KEY = "control:dashboard:v8";
 
 /** Drop cached admin overview — call after top-ups, services, tickets, etc. */
 export async function invalidateControlDashboardCache(): Promise<void> {
@@ -64,6 +65,7 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const activeSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const statsTopUp = topUpStatsUserFilter();
 
   const [
     totalUsers,
@@ -88,10 +90,10 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
       _sum: { amount: true },
     }),
     prisma.topUp.count({
-      where: { status: "PAID", paidAt: { gte: monthStart } },
+      where: { status: "PAID", paidAt: { gte: monthStart }, ...statsTopUp },
     }),
     prisma.topUp.aggregate({
-      where: { status: "PAID", paidAt: { gte: monthStart } },
+      where: { status: "PAID", paidAt: { gte: monthStart }, ...statsTopUp },
       _sum: { amount: true },
     }),
     prisma.topUp.count({
@@ -100,7 +102,7 @@ export async function getControlDashboard(actorId: string): Promise<ControlDashb
     prisma.topUp.count({ where: { status: "FAILED" } }),
     prisma.ticket.count({ where: { status: { in: ["OPEN", "AWAITING_STAFF"] } } }),
     prisma.topUp.findMany({
-      where: { status: "PAID" },
+      where: { status: "PAID", ...statsTopUp },
       orderBy: { paidAt: "desc" },
       take: 8,
       select: {

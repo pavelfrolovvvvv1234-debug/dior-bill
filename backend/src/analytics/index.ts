@@ -1,6 +1,7 @@
 import { prisma } from "@dior/database";
 import { ADMIN_ROLES, ForbiddenError } from "@dior/shared";
 import { cacheGet, cacheSet } from "../lib/redis";
+import { referralStatsSourceUserFilter } from "../lib/stats-exclusions";
 
 export async function getAdminAnalytics(actorId: string) {
   const actor = await prisma.user.findUnique({ where: { id: actorId } });
@@ -56,7 +57,11 @@ export async function getAdminAnalytics(actorId: string) {
       orderBy: { loadPercent: "desc" },
       take: 10,
     }),
-    prisma.referralEarning.aggregate({ _sum: { amount: true }, _count: true }),
+    prisma.referralEarning.aggregate({
+      where: referralStatsSourceUserFilter(),
+      _sum: { amount: true },
+      _count: true,
+    }),
     prisma.service.count({
       where: {
         status: "CANCELLED",

@@ -1,12 +1,14 @@
 import { prisma } from "@dior/database";
 import { requirePermission } from "../rbac";
 import { toMoney } from "./serialize";
+import { topUpStatsUserFilter } from "../../lib/stats-exclusions";
 
 export async function getAdminBillingOverview(actorId: string) {
   await requirePermission(actorId, "billing.read");
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const statsTopUp = topUpStatsUserFilter();
 
   const [
     pendingInvoices,
@@ -31,6 +33,7 @@ export async function getAdminBillingOverview(actorId: string) {
     }),
     prisma.topUp.groupBy({
       by: ["status"],
+      where: statsTopUp,
       _count: true,
       _sum: { amount: true, netAmount: true },
     }),
@@ -52,7 +55,7 @@ export async function getAdminBillingOverview(actorId: string) {
   const paidTopUps = topUpStats.find((s) => s.status === "PAID");
   const providerBreakdown = await prisma.topUp.groupBy({
     by: ["provider"],
-    where: { status: "PAID", paidAt: { gte: monthStart } },
+    where: { status: "PAID", paidAt: { gte: monthStart }, ...statsTopUp },
     _sum: { netAmount: true },
     _count: true,
   });

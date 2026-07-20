@@ -18,6 +18,7 @@
     "sync-proxmox-used-ips": "tsx scripts/sync-proxmox-used-ips.ts",
     "sync-shared-ip-registry": "tsx scripts/sync-shared-ip-registry.ts",
     "reconcile-shared-ip-registry": "tsx scripts/reconcile-shared-ip-registry.ts",
+    "verify-shared-ip-and-vps": "tsx scripts/verify-shared-ip-and-vps.ts",
     "sync-vps-ip": "tsx scripts/sync-vps-ip.ts",
     "verify-vps-credentials": "tsx scripts/verify-vps-credentials.ts",
     "rebuild-vps-fresh": "tsx scripts/rebuild-vps-fresh.ts",

@@ -1,5 +1,9 @@
 import { prisma } from "@dior/database";
 import { requirePermission } from "../rbac";
+import {
+  referralStatsSourceUserFilter,
+  topUpStatsUserFilter,
+} from "../../lib/stats-exclusions";
 
 export type PurchasePeriodStats = {
   topUps: number;
@@ -39,11 +43,13 @@ function sinceCreated(since: Date | null) {
 }
 
 function paidTopUpSince(since: Date | null) {
+  const excluded = topUpStatsUserFilter();
   if (!since) {
-    return { status: "PAID" as const };
+    return { status: "PAID" as const, ...excluded };
   }
   return {
     status: "PAID" as const,
+    ...excluded,
     OR: [
       { paidAt: { gte: since } },
       { paidAt: null, updatedAt: { gte: since } },
@@ -138,7 +144,7 @@ async function statsForPeriod(since: Date | null): Promise<PurchasePeriodStats> 
       },
     }),
     prisma.referralEarning.aggregate({
-      where: created,
+      where: { ...created, ...referralStatsSourceUserFilter() },
       _sum: { amount: true },
     }),
     prisma.payoutRequest.count({

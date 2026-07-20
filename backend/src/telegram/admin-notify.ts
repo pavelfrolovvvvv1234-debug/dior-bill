@@ -2,8 +2,6 @@ import { prisma } from "@dior/database";
 import { ADMIN_ROLES, DEFAULT_REFERRAL_PERCENT } from "@dior/shared";
 import { escapeTelegramHtml, sendTelegramMessage } from "./bot";
 
-const NOTIFY_DIVIDER = "────────────────";
-
 function formatUsd(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
@@ -16,29 +14,16 @@ function formatProviderLabel(provider: string): string {
     .join(" ");
 }
 
-function buildPremiumTelegramMessage(params: {
-  headline: string;
-  sections: Array<{ label: string; value: string }>;
-  link?: string;
-  linkLabel?: string;
-}): string {
-  const body = params.sections
-    .map(
-      (section) =>
-        `<b>${escapeTelegramHtml(section.label)}</b>\n${escapeTelegramHtml(section.value)}`,
-    )
-    .join(`\n\n${NOTIFY_DIVIDER}\n\n`);
-
-  const link = params.link ? panelUrl(params.link) : undefined;
-
-  return (
-    `<b>${escapeTelegramHtml(params.headline)}</b>\n` +
-    `${NOTIFY_DIVIDER}\n\n` +
-    `${body}` +
-    (link
-      ? `\n\n${NOTIFY_DIVIDER}\n<a href="${link}">${escapeTelegramHtml(params.linkLabel ?? "Open in panel")}</a>`
-      : "")
-  );
+function billingSiteLabel(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_MARKETING_URL?.trim() ||
+    "Website";
+  try {
+    return new URL(raw).hostname.replace(/^www\./i, "");
+  } catch {
+    return "Website";
+  }
 }
 
 function panelUrl(path: string): string {
@@ -53,6 +38,43 @@ function panelUrl(path: string): string {
   return `${base}${controlPath}`;
 }
 
+function shortUserTag(userId: string): string {
+  return `#${userId.slice(-4)}`;
+}
+
+/** Compact premium SaaS alert — 2–3 lines, no walls of text. */
+function buildCompactAlert(params: {
+  title: string;
+  meta: string[];
+  ref?: string;
+  link?: string;
+  linkLabel?: string;
+}): string {
+  const site = escapeTelegramHtml(billingSiteLabel());
+  const line1 = `<b>${escapeTelegramHtml(params.title)}</b>  <i>${site}</i>`;
+
+  const meta = params.meta
+    .map((m) => m.trim())
+    .filter(Boolean)
+    .map((m) => escapeTelegramHtml(m))
+    .join(" · ");
+
+  const ref = params.ref?.trim();
+  const link = params.link ? panelUrl(params.link) : undefined;
+  const linkLabel = escapeTelegramHtml(params.linkLabel ?? "Open");
+
+  let line3 = "";
+  if (ref && link) {
+    line3 = `<code>${escapeTelegramHtml(ref)}</code> · <a href="${link}">${linkLabel}</a>`;
+  } else if (ref) {
+    line3 = `<code>${escapeTelegramHtml(ref)}</code>`;
+  } else if (link) {
+    line3 = `<a href="${link}">${linkLabel}</a>`;
+  }
+
+  return [line1, meta, line3].filter(Boolean).join("\n");
+}
+
 function parseIdList(...sources: (string | undefined)[]): string[] {
   const ids: string[] = [];
   for (const source of sources) {
@@ -65,7 +87,6 @@ function parseIdList(...sources: (string | undefined)[]): string[] {
   return [...new Set(ids)];
 }
 
-/** Explicit Telegram chat IDs from env (primary admin notify list). */
 function getConfiguredAdminChatIds(): string[] {
   return parseIdList(
     process.env.TELEGRAM_ADMIN_CHAT_ID,
@@ -73,12 +94,10 @@ function getConfiguredAdminChatIds(): string[] {
   );
 }
 
-/** User IDs whose linked Telegram accounts receive admin alerts. */
 function getConfiguredAdminUserIds(): string[] {
   return parseIdList(process.env.TELEGRAM_ADMIN_USER_IDS);
 }
 
-/** Payment-only chat IDs — when set, overrides the general admin list for top-ups. */
 function getPaymentNotifyChatIds(): string[] {
   const dedicated = parseIdList(process.env.PAYMENT_NOTIFY_TELEGRAM_IDS);
   if (dedicated.length > 0) return dedicated;
@@ -102,11 +121,10 @@ async function resolveTelegramIdsFromUserIds(userIds: string[]): Promise<string[
   });
 
   return users
-    .map((u) => u.telegramId?.toString())
-    .filter((id): id is string => Boolean(id));
+    .map((u: { telegramId: bigint | null }) => u.telegramId?.toString())
+    .filter((id: string | undefined): id is string => Boolean(id));
 }
 
-/** Resolve Telegram chat IDs for admin alerts (explicit list only, with optional fallback). */
 export async function resolveAdminNotifyChatIds(scope: "all" | "payment" = "all"): Promise<string[]> {
   const explicitChatIds = scope === "payment" ? getPaymentNotifyChatIds() : getConfiguredAdminChatIds();
   const fromUsers = await resolveTelegramIdsFromUserIds(getConfiguredAdminUserIds());
@@ -128,11 +146,10 @@ export async function resolveAdminNotifyChatIds(scope: "all" | "payment" = "all"
   });
 
   return admins
-    .map((a) => a.telegramId?.toString())
-    .filter((id): id is string => Boolean(id));
+    .map((a: { telegramId: bigint | null }) => a.telegramId?.toString())
+    .filter((id: string | undefined): id is string => Boolean(id));
 }
 
-/** Panel user IDs that receive in-app admin alerts (matches Telegram admin list when possible). */
 export async function resolveAdminNotifyUserIds(): Promise<string[]> {
   const configured = getConfiguredAdminUserIds();
   if (configured.length > 0) return configured;
@@ -147,8 +164,11 @@ export async function resolveAdminNotifyUserIds(): Promise<string[]> {
       select: { id: true, telegramId: true },
     });
     const matched = admins
-      .filter((a) => a.telegramId && explicitChatIds.has(a.telegramId.toString()))
-      .map((a) => a.id);
+      .filter(
+        (a: { id: string; telegramId: bigint | null }) =>
+          a.telegramId && explicitChatIds.has(a.telegramId.toString()),
+      )
+      .map((a: { id: string }) => a.id);
     if (matched.length > 0) return matched;
   }
 
@@ -160,18 +180,34 @@ export async function resolveAdminNotifyUserIds(): Promise<string[]> {
     where: { role: { in: [...ADMIN_ROLES] } },
     select: { id: true },
   });
-  return admins.map((a) => a.id);
+  return admins.map((a: { id: string }) => a.id);
 }
 
 async function getUserLabel(userId: string): Promise<string> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, telegramUsername: true },
+    select: { email: true, telegramUsername: true, displayName: true },
   });
-  if (!user) return userId.slice(0, 8);
-  if (user.email) return user.email;
+  if (!user) return shortUserTag(userId);
   if (user.telegramUsername) return `@${user.telegramUsername}`;
-  return userId.slice(0, 8);
+  if (user.email) return user.email;
+  if (user.displayName) return user.displayName;
+  return shortUserTag(userId);
+}
+
+async function getReferralShort(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      referredById: true,
+      referredBy: { select: { telegramUsername: true, email: true, referralCode: true } },
+    },
+  });
+  if (!user?.referredById || !user.referredBy) return null;
+  const ref = user.referredBy;
+  if (ref.telegramUsername) return `via @${ref.telegramUsername}`;
+  if (ref.referralCode) return `via ${ref.referralCode}`;
+  return null;
 }
 
 async function sendTelegramToAdminList(
@@ -214,6 +250,36 @@ async function sendDiscordToWebhooks(
   }
 }
 
+async function notifyCompact(params: {
+  title: string;
+  meta: string[];
+  ref?: string;
+  link?: string;
+  linkLabel?: string;
+  scope?: "all" | "payment";
+  discordColor?: number;
+}): Promise<void> {
+  const scope = params.scope ?? "all";
+  const html = buildCompactAlert(params);
+  await sendTelegramToAdminList(html, scope);
+
+  const link = params.link ? panelUrl(params.link) : undefined;
+  const discordLines = [
+    `**${params.title}** · ${billingSiteLabel()}`,
+    params.meta.filter(Boolean).join(" · "),
+    params.ref ? `\`${params.ref}\`` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  await sendDiscordToWebhooks(getDiscordWebhookUrls(), {
+    content: discordLines.slice(0, 2000),
+    embeds: link
+      ? [{ title: params.linkLabel ?? "Open", url: link, color: params.discordColor ?? 0x3b82f6 }]
+      : undefined,
+  });
+}
+
 export async function notifyHostingAdmins(html: string): Promise<void> {
   await sendTelegramToAdminList(html, "all");
 }
@@ -224,25 +290,12 @@ export async function notifyPaymentAdmins(params: {
   link?: string;
   linkLabel?: string;
 }) {
-  const whoLines = params.lines.map((l) => escapeTelegramHtml(l)).join("\n");
-  const link = params.link ? panelUrl(params.link) : undefined;
-
-  const tgHtml =
-    `<b>${escapeTelegramHtml(params.title)}</b>\n` +
-    `${whoLines}\n` +
-    (link ? `<a href="${link}">${escapeTelegramHtml(params.linkLabel ?? "Open in panel")}</a>` : "");
-
-  await sendTelegramToAdminList(tgHtml, "payment");
-
-  const discordLines = params.lines.join("\n");
-  const discordContent = `**${params.title}**\n${discordLines}`;
-  const embeds = link
-    ? [{ title: params.linkLabel ?? "Open in panel", url: link, color: 0x3b82f6 }]
-    : undefined;
-
-  await sendDiscordToWebhooks(getDiscordWebhookUrls(), {
-    content: discordContent.slice(0, 2000),
-    embeds,
+  await notifyCompact({
+    title: params.title,
+    meta: params.lines,
+    link: params.link,
+    linkLabel: params.linkLabel,
+    scope: "payment",
   });
 }
 
@@ -255,22 +308,20 @@ export async function notifyAdminsTopUpCreated(params: {
   status: string;
 }) {
   const who = await getUserLabel(params.userId);
-  const title =
-    params.status === "MANUAL_REVIEW"
-      ? "🏦 New manual top-up request"
-      : "💳 New balance top-up";
+  const manual = params.status === "MANUAL_REVIEW";
 
-  await notifyPaymentAdmins({
-    title,
-    lines: [
-      `Amount: $${params.amount.toFixed(2)}`,
-      `Provider: ${params.provider}`,
-      `Status: ${params.status}`,
-      `Ref: ${params.referenceCode}`,
-      `User: ${who}`,
+  await notifyCompact({
+    title: formatUsd(params.amount),
+    meta: [
+      who,
+      manual ? "bank transfer" : formatProviderLabel(params.provider),
+      manual ? "review" : "pending",
     ],
+    ref: params.referenceCode,
     link: `/billing/top-ups/${params.topUpId}`,
-    linkLabel: params.status === "MANUAL_REVIEW" ? "Review top-up" : "View top-up",
+    linkLabel: manual ? "Review" : "Open",
+    scope: "payment",
+    discordColor: manual ? 0xf59e0b : 0x6366f1,
   });
 }
 
@@ -281,28 +332,19 @@ export async function notifyAdminsTopUpPaid(params: {
   provider: string;
   referenceCode: string;
 }) {
-  const who = await getUserLabel(params.userId);
-  const html = buildPremiumTelegramMessage({
-    headline: "Balance credited",
-    sections: [
-      { label: "Amount", value: formatUsd(params.amount) },
-      { label: "Customer", value: who },
-      { label: "Provider", value: formatProviderLabel(params.provider) },
-      { label: "Reference", value: params.referenceCode },
-    ],
+  const [who, via] = await Promise.all([
+    getUserLabel(params.userId),
+    getReferralShort(params.userId),
+  ]);
+
+  await notifyCompact({
+    title: `+${formatUsd(params.amount)}`,
+    meta: [who, formatProviderLabel(params.provider), via].filter((x): x is string => Boolean(x)),
+    ref: params.referenceCode,
     link: `/billing/top-ups/${params.topUpId}`,
-    linkLabel: "View payment",
-  });
-
-  await sendTelegramToAdminList(html, "payment");
-
-  const link = panelUrl(`/billing/top-ups/${params.topUpId}`);
-  await sendDiscordToWebhooks(getDiscordWebhookUrls(), {
-    content: `**Balance credited**\n${formatUsd(params.amount)} · ${who} · ${params.referenceCode}`.slice(
-      0,
-      2000,
-    ),
-    embeds: [{ title: "View payment", url: link, color: 0x22c55e }],
+    linkLabel: "Open",
+    scope: "payment",
+    discordColor: 0x22c55e,
   });
 }
 
@@ -322,9 +364,8 @@ export async function notifyAdminsReferralSignup(params: {
         email: true,
         telegramUsername: true,
         displayName: true,
-        referralCode: true,
         customReferralPercent: true,
-        affiliateTier: { select: { name: true, percent: true } },
+        affiliateTier: { select: { percent: true } },
       },
     }),
   ]);
@@ -332,47 +373,30 @@ export async function notifyAdminsReferralSignup(params: {
   if (!newUser || !referrer) return;
 
   const newUserLabel =
+    (newUser.telegramUsername ? `@${newUser.telegramUsername}` : null) ??
     newUser.email ??
-    (newUser.telegramUsername ? `@${newUser.telegramUsername}` : newUser.displayName ?? params.userId.slice(0, 8));
+    newUser.displayName ??
+    shortUserTag(params.userId);
 
   const referrerLabel =
+    (referrer.telegramUsername ? `@${referrer.telegramUsername}` : null) ??
     referrer.email ??
-    (referrer.telegramUsername
-      ? `@${referrer.telegramUsername}`
-      : referrer.displayName ?? params.referrerId.slice(0, 8));
+    referrer.displayName ??
+    shortUserTag(params.referrerId);
 
   const percent =
     Number(referrer.customReferralPercent) ||
     Number(referrer.affiliateTier?.percent) ||
     DEFAULT_REFERRAL_PERCENT;
 
-  const tierLabel = referrer.affiliateTier?.name
-    ? `${referrer.affiliateTier.name} · ${percent}%`
-    : `${percent}%`;
-
-  const html = buildPremiumTelegramMessage({
-    headline: "New referral signup",
-    sections: [
-      { label: "New user", value: newUserLabel },
-      { label: "Referred by", value: referrerLabel },
-      { label: "Referral code", value: params.referralCode },
-      { label: "Commission rate", value: tierLabel },
-    ],
+  await notifyCompact({
+    title: "Referral signup",
+    meta: [newUserLabel, `via ${referrerLabel}`, `${percent}%`],
+    ref: params.referralCode,
     link: `/users/${params.userId}`,
-    linkLabel: "View customer",
-  });
-
-  await sendTelegramToAdminList(html, "all");
-
-  const link = panelUrl(`/users/${params.userId}`);
-  await sendDiscordToWebhooks(getDiscordWebhookUrls(), {
-    content:
-      `**New referral signup**\n` +
-      `User: ${newUserLabel}\n` +
-      `Referrer: ${referrerLabel}\n` +
-      `Code: ${params.referralCode}\n` +
-      `Rate: ${tierLabel}`.slice(0, 2000),
-    embeds: [{ title: "View customer", url: link, color: 0x8b5cf6 }],
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: 0x8b5cf6,
   });
 }
 
@@ -383,15 +407,15 @@ export async function notifyAdminsManualTopUpPending(params: {
   referenceCode: string;
 }) {
   const who = await getUserLabel(params.userId);
-  await notifyPaymentAdmins({
-    title: "🏦 Manual transfer — review required",
-    lines: [
-      `Amount: $${params.amount.toFixed(2)}`,
-      `Ref: ${params.referenceCode}`,
-      `User: ${who}`,
-    ],
+
+  await notifyCompact({
+    title: formatUsd(params.amount),
+    meta: [who, "bank transfer", "review"],
+    ref: params.referenceCode,
     link: `/billing/top-ups/${params.topUpId}`,
-    linkLabel: "Review top-up",
+    linkLabel: "Review",
+    scope: "payment",
+    discordColor: 0xf59e0b,
   });
 }
 
@@ -404,28 +428,20 @@ export async function notifyAdminsBillingAlert(params: {
   userId?: string;
 }): Promise<void> {
   const severity = params.severity ?? "error";
-  const icon =
-    severity === "critical" ? "🚨" : severity === "warning" ? "⚠️" : "❗";
-  const sections: Array<{ label: string; value: string }> = [
-    { label: "Details", value: params.message },
-  ];
-  if (params.userId) {
-    sections.push({ label: "User", value: await getUserLabel(params.userId) });
-  }
-  if (params.details) {
-    for (const [key, value] of Object.entries(params.details)) {
-      if (value !== undefined && value !== "") {
-        sections.push({ label: key, value: String(value) });
-      }
-    }
-  }
-  await notifyHostingAdmins(
-    buildPremiumTelegramMessage({
-      headline: `${icon} ${params.headline}`,
-      sections,
-      link: params.serviceId ? `/services/${params.serviceId}` : undefined,
-    }),
-  );
+  const prefix =
+    severity === "critical" ? "Critical" : severity === "warning" ? "Warning" : "Alert";
+
+  const meta = [params.message.slice(0, 120)];
+  if (params.userId) meta.unshift(await getUserLabel(params.userId));
+
+  await notifyCompact({
+    title: `${prefix} · ${params.headline}`,
+    meta,
+    link: params.serviceId ? `/services/${params.serviceId}` : undefined,
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: severity === "critical" ? 0xef4444 : severity === "warning" ? 0xf59e0b : 0xf97316,
+  });
 }
 
 /** @deprecated alias — use notifyAdminsBillingAlert */
@@ -454,17 +470,14 @@ export async function notifyAdminsProvisioningStuck(params: {
   message: string;
 }): Promise<void> {
   const who = await getUserLabel(params.userId);
-  await notifyHostingAdmins(
-    buildPremiumTelegramMessage({
-      headline: "⚠️ VPS paid but not provisioned",
-      sections: [
-        { label: "Service", value: params.label },
-        { label: "User", value: who },
-        { label: "Issue", value: params.message },
-      ],
-      link: `/services/${params.serviceId}`,
-    }),
-  );
+  await notifyCompact({
+    title: "VPS stuck",
+    meta: [params.label, who, params.message.slice(0, 80)],
+    link: `/services/${params.serviceId}`,
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: 0xf59e0b,
+  });
 }
 
 export async function notifyAdminsQueueJobDead(params: {
@@ -473,28 +486,26 @@ export async function notifyAdminsQueueJobDead(params: {
   error: string;
   serviceId?: string;
 }): Promise<void> {
-  await notifyHostingAdmins(
-    buildPremiumTelegramMessage({
-      headline: "🚨 Background job failed",
-      sections: [
-        { label: "Job", value: params.jobType },
-        { label: "Job ID", value: params.jobId || "—" },
-        { label: "Error", value: params.error.slice(0, 400) },
-      ],
-      link: params.serviceId ? `/services/${params.serviceId}` : undefined,
-    }),
-  );
+  await notifyCompact({
+    title: "Job failed",
+    meta: [params.jobType, params.error.slice(0, 100)],
+    ref: params.jobId || undefined,
+    link: params.serviceId ? `/services/${params.serviceId}` : undefined,
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: 0xef4444,
+  });
 }
 
 export async function notifyAdminsWorkerError(params: { message: string }): Promise<void> {
-  await notifyHostingAdmins(
-    buildPremiumTelegramMessage({
-      headline: "🚨 Worker error",
-      sections: [{ label: "Error", value: params.message.slice(0, 400) }],
-      link: "/logs",
-      linkLabel: "Open logs",
-    }),
-  );
+  await notifyCompact({
+    title: "Worker error",
+    meta: [params.message.slice(0, 140)],
+    link: "/logs",
+    linkLabel: "Logs",
+    scope: "all",
+    discordColor: 0xef4444,
+  });
 }
 
 export async function notifyAdminsProvisioningFailed(params: {
@@ -505,18 +516,14 @@ export async function notifyAdminsProvisioningFailed(params: {
   hostname?: string;
 }): Promise<void> {
   const who = await getUserLabel(params.userId);
-  await notifyHostingAdmins(
-    buildPremiumTelegramMessage({
-      headline: "🛑 VPS provisioning failed",
-      sections: [
-        { label: "Service", value: params.label },
-        ...(params.hostname ? [{ label: "Hostname", value: params.hostname }] : []),
-        { label: "Error", value: params.error.slice(0, 500) },
-        { label: "User", value: who },
-      ],
-      link: `/services/${params.serviceId}`,
-    }),
-  );
+  await notifyCompact({
+    title: "Provision failed",
+    meta: [params.hostname ?? params.label, who, params.error.slice(0, 100)],
+    link: `/services/${params.serviceId}`,
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: 0xef4444,
+  });
 }
 
 export async function notifyAdminsNewService(params: {
@@ -527,17 +534,15 @@ export async function notifyAdminsNewService(params: {
   status: string;
   monthlyPrice: number;
 }) {
-  const who = escapeTelegramHtml(await getUserLabel(params.userId));
-  const link = panelUrl(`/services/${params.serviceId}`);
-  await notifyHostingAdmins(
-    `🖥 <b>New service order</b>\n` +
-      `<b>${escapeTelegramHtml(params.label)}</b>\n` +
-      `Type: ${escapeTelegramHtml(params.type)}\n` +
-      `Status: ${escapeTelegramHtml(params.status)}\n` +
-      `Price: $${params.monthlyPrice.toFixed(2)}/mo\n` +
-      `User: ${who}\n` +
-      `<a href="${link}">Open service</a>`,
-  );
+  const who = await getUserLabel(params.userId);
+  await notifyCompact({
+    title: "New order",
+    meta: [params.label, params.type, `${formatUsd(params.monthlyPrice)}/mo`, who],
+    link: `/services/${params.serviceId}`,
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: 0x3b82f6,
+  });
 }
 
 export async function notifyAdminsNewTicket(params: {
@@ -546,16 +551,15 @@ export async function notifyAdminsNewTicket(params: {
   subject: string;
   body: string;
 }) {
-  const who = escapeTelegramHtml(await getUserLabel(params.userId));
-  const preview = escapeTelegramHtml(params.body.trim().slice(0, 280));
-  const link = panelUrl(`/support/${params.ticketId}`);
-  await notifyHostingAdmins(
-    `🎫 <b>New support ticket</b>\n` +
-      `<b>${escapeTelegramHtml(params.subject)}</b>\n` +
-      `User: ${who}\n` +
-      `${preview}${params.body.length > 280 ? "…" : ""}\n` +
-      `<a href="${link}">Open ticket</a>`,
-  );
+  const who = await getUserLabel(params.userId);
+  await notifyCompact({
+    title: "Ticket",
+    meta: [params.subject.slice(0, 60), who],
+    link: `/support/${params.ticketId}`,
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: 0x6366f1,
+  });
 }
 
 export async function notifyAdminsTicketReply(params: {
@@ -564,14 +568,13 @@ export async function notifyAdminsTicketReply(params: {
   subject: string;
   body: string;
 }) {
-  const who = escapeTelegramHtml(await getUserLabel(params.userId));
-  const preview = escapeTelegramHtml(params.body.trim().slice(0, 200));
-  const link = panelUrl(`/support/${params.ticketId}`);
-  await notifyHostingAdmins(
-    `💬 <b>Ticket reply from client</b>\n` +
-      `<b>${escapeTelegramHtml(params.subject)}</b>\n` +
-      `User: ${who}\n` +
-      `${preview}${params.body.length > 200 ? "…" : ""}\n` +
-      `<a href="${link}">Open ticket</a>`,
-  );
+  const who = await getUserLabel(params.userId);
+  await notifyCompact({
+    title: "Reply",
+    meta: [params.subject.slice(0, 60), who],
+    link: `/support/${params.ticketId}`,
+    linkLabel: "Open",
+    scope: "all",
+    discordColor: 0x6366f1,
+  });
 }

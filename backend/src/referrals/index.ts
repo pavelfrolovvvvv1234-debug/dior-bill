@@ -7,6 +7,7 @@ import {
   ValidationError,
 } from "@dior/shared";
 import { eligibleReferralWhere, hasReferralQualifiesColumn, isEligibleReferral } from "./eligibility";
+import { isStatsExcludedTelegramUsername } from "../lib/stats-exclusions";
 
 export { resolveReferrerId, type ReferrerResolution } from "./resolve-referrer";
 export {
@@ -97,10 +98,12 @@ export async function processReferralCommission(
     where: { id: payerUserId },
     select: {
       referredById: true,
+      telegramUsername: true,
       ...(hasColumn ? { referralQualifies: true } : {}),
     },
   });
   if (!payer?.referredById || !isEligibleReferral(payer, hasColumn)) return;
+  if (isStatsExcludedTelegramUsername(payer.telegramUsername)) return;
 
   const earner = await db.user.findUnique({
     where: { id: payer.referredById },
