@@ -19,11 +19,11 @@ async function tcpProbe(host: string, port: number, timeoutMs = 6000): Promise<b
   });
 }
 
-const DEFAULT_GUEST_POLL_MS = 90_000;
-const REPAIR_GUEST_POLL_MS = 20_000;
-const DEFAULT_MIN_UPTIME_SEC = 180;
-const REPAIR_MIN_UPTIME_SEC = 90;
-const REPAIR_MAX_WAIT_MS = 180_000;
+const DEFAULT_GUEST_POLL_MS = 45_000;
+const REPAIR_GUEST_POLL_MS = 15_000;
+const DEFAULT_MIN_UPTIME_SEC = 90;
+const REPAIR_MIN_UPTIME_SEC = 60;
+const REPAIR_MAX_WAIT_MS = 120_000;
 
 export type ProvisionReadyOptions = {
   /** Shorter waits for fix-vm-network / repair jobs (no guest-agent on template 902). */
@@ -32,7 +32,10 @@ export type ProvisionReadyOptions = {
 
 /**
  * Wait for guest network after start. Never stops/reboots the VM.
- * Ready = guest-agent IP, or ipconfig0 + firewall=0 + min uptime.
+ *
+ * Ready when Proxmox has correct ipconfig0 + firewall off + VM up long enough.
+ * Guest-agent IP and SSH from the billing host are optional bonuses —
+ * billing often cannot reach the client subnet, so SSH probe must NOT block provision.
  */
 export async function waitForVpsProvisionReady(
   node: string,
@@ -46,71 +49,88 @@ export async function waitForVpsProvisionReady(
   const repair = options?.repair === true;
   const guestPollMs = repair ? REPAIR_GUEST_POLL_MS : DEFAULT_GUEST_POLL_MS;
   const minUptimeSec = repair ? REPAIR_MIN_UPTIME_SEC : DEFAULT_MIN_UPTIME_SEC;
-  const maxWaitMs = repair ? REPAIR_MAX_WAIT_MS : guestPollMs + 120_000;
+  const maxWaitMs = repair ? REPAIR_MAX_WAIT_MS : guestPollMs + 90_000;
 
-  if (repair) {
-    console.log(
-      `[proxmox] vmid=${vmid} waiting for cloud-init (~${minUptimeSec}s after boot, guest-agent optional)`,
-    );
-  }
+  console.log(
+    `[proxmox] vmid=${vmid} waiting for network (ipconfig0=${expectedIp}, guest-agent/SSH optional)`,
+  );
 
   const started = Date.now();
-  const guestIp = await client.waitForGuestIp(node, vmid, guestPollMs);
+
+  // Best-effort guest-agent poll — never required.
+  const guestIp = await client.waitForGuestIp(node, vmid, guestPollMs).catch(() => null);
   if (guestIp === expectedIp) {
-    const sshOpen = await tcpProbe(expectedIp, 22, 6000);
-    if (sshOpen) {
-      console.log(`[proxmox] vmid=${vmid} guest IP confirmed ${expectedIp} + SSH open`);
-      return true;
-    }
-    console.warn(
-      `[proxmox] vmid=${vmid} guest IP confirmed ${expectedIp}, but SSH :22 not reachable yet — waiting`,
+    const sshOpen = await tcpProbe(expectedIp, 22, 4000).catch(() => false);
+    console.log(
+      `[proxmox] vmid=${vmid} guest-agent IP ${expectedIp}` +
+        (sshOpen ? " + SSH open from billing" : " (SSH not reachable from billing — OK)"),
     );
+    return true;
   }
 
   while (Date.now() - started < maxWaitMs) {
-    const cfg = await client.getVmConfig(node, vmid);
-    const configIp = client.parseIpFromConfig(cfg);
-    const net0 = cfg.net0 ?? "";
+    try {
+      const cfg = await client.getVmConfig(node, vmid);
+      const configIp = client.parseIpFromConfig(cfg);
+      const net0 = cfg.net0 ?? "";
 
-    if (net0.includes("firewall=1")) {
-      console.error(`[proxmox] vmid=${vmid} net0 firewall=1 — SSH blocked at hypervisor`);
-      return false;
-    }
+      if (net0.includes("firewall=1")) {
+        console.error(`[proxmox] vmid=${vmid} net0 firewall=1 — SSH blocked at hypervisor`);
+        return false;
+      }
 
-    if (configIp !== expectedIp) {
-      console.warn(
-        `[proxmox] vmid=${vmid} ipconfig0=${configIp ?? "none"} (want ${expectedIp}) — cloud-init pending`,
-      );
-    } else {
-      const uptime = await client.getVmUptimeSec(node, vmid);
-      if (uptime >= minUptimeSec) {
-        const sshOpen = await tcpProbe(expectedIp, 22, repair ? 4000 : 6000);
-        if (sshOpen) {
+      if (configIp !== expectedIp) {
+        console.warn(
+          `[proxmox] vmid=${vmid} ipconfig0=${configIp ?? "none"} (want ${expectedIp}) — cloud-init pending`,
+        );
+      } else {
+        const status = await client.getVmStatus(node, vmid).catch(() => ({ status: "unknown" }));
+        const uptime = await client.getVmUptimeSec(node, vmid);
+        if (status.status === "running" && uptime >= minUptimeSec) {
+          const sshOpen = await tcpProbe(expectedIp, 22, 3000).catch(() => false);
           console.log(
-            `[proxmox] vmid=${vmid} ready: ipconfig0=${expectedIp} uptime=${uptime}s (guest-agent ${guestIp ? "ok" : "down"}) SSH open`,
+            `[proxmox] vmid=${vmid} ready: ipconfig0=${expectedIp} uptime=${uptime}s` +
+              ` guest-agent=${guestIp ? "ok" : "down"}` +
+              ` ssh_from_billing=${sshOpen ? "open" : "unreachable (ignored)"}`,
           );
           return true;
         }
         console.warn(
-          `[proxmox] vmid=${vmid} ipconfig0 OK (${expectedIp}) uptime=${uptime}s, but SSH :22 closed/timeout — keep waiting`,
+          `[proxmox] vmid=${vmid} ipconfig0 OK (${expectedIp}) power=${status.status} uptime=${uptime}s / ${minUptimeSec}s`,
         );
       }
-      if (repair && Date.now() - started > 15_000) {
-        console.log(
-          `[proxmox] vmid=${vmid} ipconfig0 OK, uptime ${uptime}s / ${minUptimeSec}s — cloud-init applying...`,
-        );
-      }
+    } catch (e) {
+      console.warn(
+        `[proxmox] vmid=${vmid} ready-check:`,
+        e instanceof Error ? e.message.slice(0, 120) : e,
+      );
     }
 
-    await new Promise((r) => setTimeout(r, 15_000));
+    await new Promise((r) => setTimeout(r, 12_000));
+  }
+
+  // Last chance: if hypervisor config is correct and VM is running, succeed anyway.
+  try {
+    const cfg = await client.getVmConfig(node, vmid);
+    const configIp = client.parseIpFromConfig(cfg);
+    const net0 = cfg.net0 ?? "";
+    const status = await client.getVmStatus(node, vmid).catch(() => ({ status: "unknown" }));
+    if (
+      configIp === expectedIp &&
+      !net0.includes("firewall=1") &&
+      status.status === "running"
+    ) {
+      console.warn(
+        `[proxmox] vmid=${vmid} accepting as ready after timeout — ipconfig0 OK, VM running (SSH/agent not required)`,
+      );
+      return true;
+    }
+  } catch {
+    /* fall through */
   }
 
   console.warn(
     `[proxmox] vmid=${vmid} network not confirmed after ${Math.round(maxWaitMs / 1000)}s (expected ${expectedIp})`,
-  );
-  const guestIps = await client.getGuestAgentIps(node, vmid);
-  console.warn(
-    `[proxmox] vmid=${vmid} guest-agent IPs: ${guestIps.length ? guestIps.join(", ") : "none (OS has no routable IP — re-clone disk required)"}`,
   );
   return false;
 }

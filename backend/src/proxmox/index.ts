@@ -276,10 +276,26 @@ export async function provisionVmOnProxmox(spec: {
       ready = await finalizeGuestNetworkAfterBoot(node, vmid, spec.primaryIp, gw, config.ipCidr);
     }
     if (!ready) {
-      const guestIps = await client.getGuestAgentIps(node, vmid);
+      // Hypervisor already has ipconfig0 from configureVm — accept without guest-agent/SSH.
+      // Billing host often cannot TCP-probe the client subnet; guest-agent is optional on templates.
+      try {
+        const cfg = await client.getVmConfig(node, vmid);
+        const configIp = client.parseIpFromConfig(cfg);
+        const st = await client.getVmStatus(node, vmid).catch(() => ({ status: "" }));
+        if (configIp === spec.primaryIp && st.status === "running") {
+          console.warn(
+            `[proxmox] ${spec.hostname} vmid=${vmid} accepting provision — ipconfig0 OK, guest-agent/SSH not required`,
+          );
+          ready = true;
+        }
+      } catch {
+        /* fall through to soft error */
+      }
+    }
+    if (!ready) {
       const templateVmid = resolveTemplateVmid(spec.os, config);
       throw new ValidationError(
-        `Guest SSH not ready for ${spec.primaryIp} (vmid ${vmid}) — guest IPs: ${guestIps.join(",") || "none"}. Template ${templateVmid} cloud-init broken; fix template on Proxmox (cloud-init clean → convert to template).`,
+        `Guest network not ready for ${spec.primaryIp} (vmid ${vmid}). Template ${templateVmid}: check ipconfig0 / cloud-init on Proxmox.`,
       );
     }
   }

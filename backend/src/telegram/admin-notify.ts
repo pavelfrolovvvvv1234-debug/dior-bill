@@ -516,14 +516,44 @@ export async function notifyAdminsProvisioningFailed(params: {
   hostname?: string;
 }): Promise<void> {
   const who = await getUserLabel(params.userId);
-  await notifyCompact({
-    title: "Provision failed",
-    meta: [params.hostname ?? params.label, who, params.error.slice(0, 100)],
-    link: `/services/${params.serviceId}`,
-    linkLabel: "Open",
-    scope: "all",
-    discordColor: 0xef4444,
-  });
+  const cleanError = sanitizeProvisionError(params.error);
+  const { hasProcessed, withIdempotency } = await import("../core/events/idempotency");
+  const dedupeKey = `provision_fail:${params.serviceId}`;
+  if (await hasProcessed("ops_alert", dedupeKey)) return;
+
+  await withIdempotency(
+    "ops_alert",
+    dedupeKey,
+    async () => {
+      await notifyCompact({
+        title: "Provision failed",
+        meta: [params.hostname ?? params.label, who, cleanError.slice(0, 100)],
+        link: `/services/${params.serviceId}`,
+        linkLabel: "Open",
+        scope: "all",
+        discordColor: 0xef4444,
+      });
+      return { sent: true };
+    },
+    6 * 60 * 60 * 1000,
+  ).catch((err) => console.warn("[telegram] provision failed notify:", err));
+}
+
+/** Strip Proxmox JSON / guest-agent noise for admin Telegram. */
+function sanitizeProvisionError(raw: string): string {
+  const trimmed = raw.trim();
+  if (/guest agent is not running/i.test(trimmed)) {
+    return "Guest agent not running (optional — check ipconfig0 on Proxmox)";
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as { message?: string };
+    if (typeof parsed?.message === "string" && parsed.message.trim()) {
+      return sanitizeProvisionError(parsed.message);
+    }
+  } catch {
+    /* not JSON */
+  }
+  return trimmed.replace(/\s+/g, " ").slice(0, 160);
 }
 
 export async function notifyAdminsNewService(params: {

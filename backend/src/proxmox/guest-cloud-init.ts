@@ -4,20 +4,21 @@ import { getProxmoxGateway } from "./ip-pool";
 import { waitForVpsProvisionReady } from "./provision-ready";
 
 /**
- * Template 902 clones often ignore Proxmox configdrive — recover via guest-agent:
- * clean → regenerate → cloud-init modules → manual IP inject if still no route.
+ * Template 902 clones often ignore Proxmox configdrive — recover via guest-agent
+ * when available. If qemu-guest-agent is not installed, return false quickly
+ * (never throw "QEMU guest agent is not running").
  */
 export async function waitForGuestAgent(
   node: string,
   vmid: number,
-  timeoutMs = 180_000,
+  timeoutMs = 60_000,
 ): Promise<boolean> {
   const client = getProxmoxClient();
   if (!client) return false;
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     if (await client.pingGuestAgent(node, vmid)) return true;
-    await new Promise((r) => setTimeout(r, 5000));
+    await new Promise((r) => setTimeout(r, 4000));
   }
   return false;
 }
@@ -40,11 +41,13 @@ export async function tryGuestCloudInitReset(
 
   const gw = gateway ?? getProxmoxGateway() ?? guessGateway(primaryIp);
 
-  console.log(`[proxmox] vmid=${vmid} waiting for guest-agent...`);
-  const agentUp = await waitForGuestAgent(node, vmid, 180_000);
+  console.log(`[proxmox] vmid=${vmid} guest-agent recovery (optional)...`);
+  const agentUp = await waitForGuestAgent(node, vmid, 45_000);
   if (!agentUp) {
-    console.warn(`[proxmox] vmid=${vmid} guest-agent never responded`);
-    return false;
+    console.warn(
+      `[proxmox] vmid=${vmid} guest-agent not available — skip agent recovery (ipconfig0 path only)`,
+    );
+    return waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });
   }
 
   const guestIpsBefore = await client.getGuestAgentIps(node, vmid);
@@ -64,13 +67,20 @@ export async function tryGuestCloudInitReset(
       }
       await client.regenerateCloudInit(node, vmid);
       await client.startVm(node, vmid);
-      await waitForGuestAgent(node, vmid, 120_000);
+      await waitForGuestAgent(node, vmid, 60_000);
     }
   }
 
-  if (await client.guestForceCloudInitRun(node, vmid)) {
-    const ready = await waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });
-    if (ready) return true;
+  try {
+    if (await client.guestForceCloudInitRun(node, vmid)) {
+      const ready = await waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });
+      if (ready) return true;
+    }
+  } catch (e) {
+    console.warn(
+      `[proxmox] vmid=${vmid} cloud-init force skipped:`,
+      e instanceof Error ? e.message.slice(0, 120) : e,
+    );
   }
 
   const guestIpsMid = await client.getGuestAgentIps(node, vmid);
@@ -81,8 +91,16 @@ export async function tryGuestCloudInitReset(
   console.warn(
     `[proxmox] vmid=${vmid} cloud-init did not apply ${primaryIp} — injecting static network via guest-agent`,
   );
-  if (!(await client.guestInjectStaticNetwork(node, vmid, primaryIp, gw, cidr))) {
-    return false;
+  try {
+    if (!(await client.guestInjectStaticNetwork(node, vmid, primaryIp, gw, cidr))) {
+      return waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });
+    }
+  } catch (e) {
+    console.warn(
+      `[proxmox] vmid=${vmid} static inject skipped:`,
+      e instanceof Error ? e.message.slice(0, 120) : e,
+    );
+    return waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });
   }
 
   return waitForVpsProvisionReady(node, vmid, primaryIp, { repair: true });

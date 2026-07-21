@@ -555,30 +555,58 @@ export class ProxmoxClient {
     }
   }
 
-  /** Run a command inside the guest via qemu-guest-agent. Returns exit code or null on timeout. */
-  async guestExec(node: string, vmid: number, command: string[]): Promise<number | null> {
-    const started = await this.request<{ pid?: number }>(
-      "POST",
-      `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec`,
-      { command },
-      { timeoutMs: 30_000 },
+  /** True when Proxmox says qemu-guest-agent is missing/down (never throw this to callers). */
+  static isGuestAgentDownError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err ?? "");
+    return /guest agent is not running|guest-agent|No QEMU guest agent|agent is not running/i.test(
+      msg,
     );
+  }
+
+  /** Run a command inside the guest via qemu-guest-agent. Returns exit code or null (never throws on agent-down). */
+  async guestExec(node: string, vmid: number, command: string[]): Promise<number | null> {
+    let started: { pid?: number };
+    try {
+      started = await this.request<{ pid?: number }>(
+        "POST",
+        `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec`,
+        { command },
+        { timeoutMs: 30_000 },
+      );
+    } catch (err) {
+      if (ProxmoxClient.isGuestAgentDownError(err)) {
+        console.warn(`[proxmox] vmid=${vmid} guest-agent down — skip exec ${command[0] ?? ""}`);
+        return null;
+      }
+      console.warn(
+        `[proxmox] vmid=${vmid} guest exec failed:`,
+        err instanceof Error ? err.message.slice(0, 160) : err,
+      );
+      return null;
+    }
     const pid = started?.pid;
     if (pid == null) return null;
 
     const deadline = Date.now() + 120_000;
     while (Date.now() < deadline) {
-      const status = await this.request<{
+      let status: {
         exited?: number;
         exitcode?: number;
         "out-data"?: string;
         "err-data"?: string;
-      }>(
-        "GET",
-        `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec-status?pid=${pid}`,
-        undefined,
-        { timeoutMs: 15_000 },
-      );
+      };
+      try {
+        status = await this.request(
+          "GET",
+          `/api2/json/nodes/${node}/qemu/${vmid}/agent/exec-status?pid=${pid}`,
+          undefined,
+          { timeoutMs: 15_000 },
+        );
+      } catch (err) {
+        if (ProxmoxClient.isGuestAgentDownError(err)) return null;
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
       if (status.exited === 1) {
         if (status.exitcode !== 0 && status["err-data"]) {
           try {
@@ -624,6 +652,10 @@ export class ProxmoxClient {
 
   /** Re-run cloud-init modules so guest re-reads Proxmox configdrive. */
   async guestForceCloudInitRun(node: string, vmid: number): Promise<boolean> {
+    if (!(await this.pingGuestAgent(node, vmid))) {
+      console.warn(`[proxmox] vmid=${vmid} guest-agent down — skip cloud-init force`);
+      return false;
+    }
     const steps = [
       ["cloud-init", "init"],
       ["cloud-init", "modules", "--mode=config"],

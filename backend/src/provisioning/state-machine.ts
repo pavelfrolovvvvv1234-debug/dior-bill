@@ -291,7 +291,10 @@ export async function runVpsProvisionPipeline(payload: {
 
       if (cloneCompleted && vmid && assignedIp) {
         const isNetworkNotReady =
-          err instanceof ValidationError && raw.includes("Guest network not ready");
+          err instanceof ValidationError &&
+          (raw.includes("Guest network not ready") ||
+            raw.includes("Guest SSH not ready") ||
+            /guest agent is not running/i.test(raw));
         if (isNetworkNotReady) {
           console.warn(`[provision] ${vps.hostname} clone OK but network pending — stay PROVISIONING`);
           await enqueueJob("vps.ensure_access", {
