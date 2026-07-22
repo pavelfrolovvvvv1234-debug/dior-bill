@@ -19,11 +19,11 @@ async function tcpProbe(host: string, port: number, timeoutMs = 6000): Promise<b
   });
 }
 
-const DEFAULT_GUEST_POLL_MS = 45_000;
-const REPAIR_GUEST_POLL_MS = 15_000;
-const DEFAULT_MIN_UPTIME_SEC = 90;
-const REPAIR_MIN_UPTIME_SEC = 60;
-const REPAIR_MAX_WAIT_MS = 120_000;
+const DEFAULT_GUEST_POLL_MS = 30_000;
+const REPAIR_GUEST_POLL_MS = 10_000;
+const DEFAULT_MIN_UPTIME_SEC = 45;
+const REPAIR_MIN_UPTIME_SEC = 30;
+const REPAIR_MAX_WAIT_MS = 90_000;
 
 export type ProvisionReadyOptions = {
   /** Shorter waits for fix-vm-network / repair jobs (no guest-agent on template 902). */
