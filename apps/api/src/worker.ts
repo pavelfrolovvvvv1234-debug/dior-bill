@@ -130,10 +130,12 @@ async function run() {
     "reconciliation.run",
     "notification.send",
     "payment.retry",
+    "topup.expire",
     "invoice.overdue",
     "billing.unpaid_check",
+    "billing.scheduler",
     "service.renew",
-  ]).catch((e) => console.warn("[queue] legacy drain:", e));
+  ]).catch((e: unknown) => console.warn("[queue] legacy drain:", e));
   setTimeout(() => {
     resumeAllStuckVpsProvisioning().catch((e) =>
       console.error("Initial stuck VPS resume:", e),
