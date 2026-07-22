@@ -276,26 +276,41 @@ export async function provisionVmOnProxmox(spec: {
       ready = await finalizeGuestNetworkAfterBoot(node, vmid, spec.primaryIp, gw, config.ipCidr);
     }
     if (!ready) {
-      // Hypervisor already has ipconfig0 from configureVm — accept without guest-agent/SSH.
-      // Billing host often cannot TCP-probe the client subnet; guest-agent is optional on templates.
+      // Last resort: inject via guest-agent if it came up after the waits.
       try {
-        const cfg = await client.getVmConfig(node, vmid);
-        const configIp = client.parseIpFromConfig(cfg);
-        const st = await client.getVmStatus(node, vmid).catch(() => ({ status: "" }));
-        if (configIp === spec.primaryIp && st.status === "running") {
-          console.warn(
-            `[proxmox] ${spec.hostname} vmid=${vmid} accepting provision — ipconfig0 OK, guest-agent/SSH not required`,
-          );
-          ready = true;
+        if (await client.pingGuestAgent(node, vmid)) {
+          const ips = await client.getGuestAgentIps(node, vmid);
+          if (!ips.includes(spec.primaryIp)) {
+            console.warn(
+              `[proxmox] ${spec.hostname} vmid=${vmid} final inject ${spec.primaryIp} via guest-agent`,
+            );
+            const injected = await client.guestInjectStaticNetwork(
+              node,
+              vmid,
+              spec.primaryIp,
+              gw ?? config.gateway ?? getProxmoxGateway() ?? `${spec.primaryIp.split(".").slice(0, 3).join(".")}.1`,
+              config.ipCidr,
+            );
+            if (injected) {
+              await new Promise((r) => setTimeout(r, 8_000));
+              const after = await client.getGuestAgentIps(node, vmid);
+              ready = after.includes(spec.primaryIp);
+            }
+          } else {
+            ready = true;
+          }
         }
-      } catch {
-        /* fall through to soft error */
+      } catch (e) {
+        console.warn(
+          `[proxmox] ${spec.hostname} final inject skipped:`,
+          e instanceof Error ? e.message.slice(0, 120) : e,
+        );
       }
     }
     if (!ready) {
       const templateVmid = resolveTemplateVmid(spec.os, config);
       throw new ValidationError(
-        `Guest network not ready for ${spec.primaryIp} (vmid ${vmid}). Template ${templateVmid}: check ipconfig0 / cloud-init on Proxmox.`,
+        `Guest network not ready for ${spec.primaryIp} (vmid ${vmid}). Template ${templateVmid} did not apply IP inside OS — rebuild or fix cloud-init on template.`,
       );
     }
   }
