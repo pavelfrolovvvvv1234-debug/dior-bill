@@ -650,6 +650,50 @@ export class ProxmoxClient {
     return false;
   }
 
+  /**
+   * Set Linux user password inside guest (qemu-guest-agent).
+   * Prefer agent set-user-password; fall back to chpasswd.
+   */
+  async guestSetUserPassword(
+    node: string,
+    vmid: number,
+    username: string,
+    password: string,
+  ): Promise<boolean> {
+    if (!(await this.pingGuestAgent(node, vmid))) {
+      console.warn(`[proxmox] vmid=${vmid} guest-agent down — cannot set password`);
+      return false;
+    }
+    try {
+      await this.requestForm(
+        "POST",
+        `/api2/json/nodes/${node}/qemu/${vmid}/agent/set-user-password`,
+        { username, password },
+      );
+      console.log(`[proxmox] vmid=${vmid} password set via agent for ${username}`);
+      return true;
+    } catch (err) {
+      console.warn(
+        `[proxmox] vmid=${vmid} set-user-password failed, trying chpasswd:`,
+        err instanceof Error ? err.message.slice(0, 120) : err,
+      );
+    }
+    // Escape single quotes for shell: ' -> '\''
+    const safePass = password.replace(/'/g, `'\\''`);
+    const safeUser = username.replace(/'/g, `'\\''`);
+    const code = await this.guestExec(node, vmid, [
+      "/bin/bash",
+      "-c",
+      `printf '%s\\n' '${safeUser}:${safePass}' | chpasswd`,
+    ]);
+    if (code === 0) {
+      console.log(`[proxmox] vmid=${vmid} password set via chpasswd for ${username}`);
+      return true;
+    }
+    console.warn(`[proxmox] vmid=${vmid} chpasswd failed, exit=${code}`);
+    return false;
+  }
+
   /** Re-run cloud-init modules so guest re-reads Proxmox configdrive. */
   async guestForceCloudInitRun(node: string, vmid: number): Promise<boolean> {
     if (!(await this.pingGuestAgent(node, vmid))) {
