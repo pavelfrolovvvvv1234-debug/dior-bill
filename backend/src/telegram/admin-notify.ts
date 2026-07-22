@@ -542,8 +542,11 @@ export async function notifyAdminsProvisioningFailed(params: {
 /** Strip Proxmox JSON / guest-agent noise for admin Telegram. */
 function sanitizeProvisionError(raw: string): string {
   const trimmed = raw.trim();
-  if (/guest agent is not running/i.test(trimmed)) {
-    return "Guest agent not running (optional — check ipconfig0 on Proxmox)";
+  if (/guest agent is not running|qemu-guest-agent is down|guest-agent down/i.test(trimmed)) {
+    return "QEMU guest agent down — required for IP/password sync (fix template or install qemu-guest-agent)";
+  }
+  if (/guest OS missing IP|password\/sshd sync failed|Guest login not ready/i.test(trimmed)) {
+    return trimmed.replace(/\s+/g, " ").slice(0, 160);
   }
   try {
     const parsed = JSON.parse(trimmed) as { message?: string };

@@ -13,7 +13,7 @@ type VpsControlAction =
   | "stop";
 
 export type VpsControlResult =
-  | { ok: true; passwordResetQueued?: boolean }
+  | { ok: true; passwordResetQueued?: boolean; passwordSynced?: boolean }
   | { ok: false; error: string };
 
 export async function vpsControlAction(
@@ -22,11 +22,19 @@ export async function vpsControlAction(
 ): Promise<VpsControlResult> {
   try {
     const session = await requireSession();
-    await vpsAction(vpsId, session.user.id, action);
+    const result = await vpsAction(vpsId, session.user.id, action);
     revalidatePath(`/vps/${vpsId}`);
     revalidatePath("/services");
     if (action === "reset_password") {
-      return { ok: true, passwordResetQueued: true };
+      return {
+        ok: true,
+        passwordResetQueued: Boolean(
+          (result as { passwordResetQueued?: boolean }).passwordResetQueued,
+        ),
+        passwordSynced: Boolean(
+          (result as { passwordSynced?: boolean }).passwordSynced,
+        ),
+      };
     }
     return { ok: true };
   } catch (err) {

@@ -48,7 +48,13 @@ export function VpsActions({
           return;
         }
         if (action.id === "reset_password") {
-          setSuccess("Password reset — VM rebooting (wait ~2 min, then refresh page).");
+          setSuccess(
+            result.passwordSynced
+              ? "Password updated in the guest — refresh and use the new password from Access."
+              : result.passwordResetQueued
+                ? "Password saved — syncing into the VM (wait ~1 min, then refresh)."
+                : "Password updated — refresh the page for the new credentials.",
+          );
           onPasswordReset?.();
         } else {
           setSuccess(`${action.label} completed`);

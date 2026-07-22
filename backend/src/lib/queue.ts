@@ -8,6 +8,8 @@ import { reportOperationalIssue } from "./operational-alerts";
 
 const QUEUE_PREFIX = "dior:queue:";
 const PROCESSING_PREFIX = "dior:processing:";
+/** Single consumer list — worker BRPOPs this key only. */
+const ALL_QUEUE_KEY = `${QUEUE_PREFIX}all`;
 
 function scheduleInlineJob(type: QueueJobType, payload: Record<string, unknown>) {
   const run = dispatchInlineJob(type, payload).catch((err) => {
@@ -50,8 +52,8 @@ export async function enqueueJob<T extends Record<string, unknown>>(
     createdAt: new Date().toISOString(),
   };
   try {
-    await redis.lpush(`${QUEUE_PREFIX}${type}`, JSON.stringify(job));
-    await redis.lpush(`${QUEUE_PREFIX}all`, JSON.stringify(job));
+    // Push once to the queue the worker actually consumes.
+    await redis.lpush(ALL_QUEUE_KEY, JSON.stringify(job));
   } catch (err) {
     console.warn(`[queue] Redis enqueue failed for ${type}, running inline`, err);
     const pending = scheduleInlineJob(type, payload as Record<string, unknown>);
@@ -64,9 +66,10 @@ export async function dequeueJob(
   types?: QueueJobType[],
 ): Promise<QueueJob | null> {
   const redis = getRedis();
+  // Prefer the unified all-queue. Typed keys are legacy leftovers — drain them if present.
   const queueKeys = types?.length
     ? types.map((t) => `${QUEUE_PREFIX}${t}`)
-    : [`${QUEUE_PREFIX}all`];
+    : [ALL_QUEUE_KEY];
 
   const result = await redis.brpop(...queueKeys, 5);
   if (!result) return null;
@@ -89,7 +92,8 @@ export async function failJob(job: QueueJob, error: string): Promise<void> {
       ...job,
       attempts: job.attempts + 1,
     };
-    await redis.lpush(`${QUEUE_PREFIX}${job.type}`, JSON.stringify(retry));
+    // Must requeue to the same list the worker reads.
+    await redis.lpush(ALL_QUEUE_KEY, JSON.stringify(retry));
   } else {
     await redis.lpush("dior:queue:dead", JSON.stringify({ ...job, error }));
     const payload = job.payload as Record<string, unknown>;
@@ -107,4 +111,26 @@ export async function failJob(job: QueueJob, error: string): Promise<void> {
       dedupeKey: `dead:${job.id}`,
     });
   }
+}
+
+/** Move leftover jobs from legacy typed lists into dior:queue:all (one-time drain). */
+export async function drainLegacyTypedQueues(
+  types: QueueJobType[],
+): Promise<number> {
+  if (isRedisSkipped()) return 0;
+  const redis = getRedis();
+  let moved = 0;
+  for (const type of types) {
+    const key = `${QUEUE_PREFIX}${type}`;
+    for (;;) {
+      const raw = await redis.rpop(key);
+      if (!raw) break;
+      await redis.lpush(ALL_QUEUE_KEY, raw);
+      moved += 1;
+    }
+  }
+  if (moved > 0) {
+    console.log(`[queue] drained ${moved} legacy typed-queue job(s) into ${ALL_QUEUE_KEY}`);
+  }
+  return moved;
 }

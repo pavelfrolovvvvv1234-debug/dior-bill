@@ -309,10 +309,35 @@ export async function vpsAction(
         where: { id: vpsId },
         data: { rootPasswordEnc: encrypt(password) },
       });
-      if (isProxmoxConfigured() && vps.proxmoxVmid) {
-        await enqueueJob("vps.ensure_access", { vpsId, reboot: true, forceStop: false });
+      if (isProxmoxConfigured() && vps.proxmoxVmid && vps.primaryIp) {
+        try {
+          const { syncGuestPasswordForVps } = await import("../proxmox/guest-access");
+          await syncGuestPasswordForVps(vpsId, password);
+          return { success: true, passwordResetQueued: false, passwordSynced: true };
+        } catch (e) {
+          console.warn(
+            `[vps] reset_password live sync failed for ${vps.hostname}:`,
+            e instanceof Error ? e.message.slice(0, 160) : e,
+          );
+          await enqueueJob("vps.ensure_access", {
+            vpsId,
+            syncGuestPassword: true,
+            reboot: false,
+            forceStop: false,
+          });
+          return { success: true, passwordResetQueued: true, passwordSynced: false };
+        }
       }
-      return { success: true, passwordResetQueued: true };
+      if (isProxmoxConfigured() && vps.proxmoxVmid) {
+        await enqueueJob("vps.ensure_access", {
+          vpsId,
+          syncGuestPassword: true,
+          reboot: true,
+          forceStop: false,
+        });
+        return { success: true, passwordResetQueued: true };
+      }
+      return { success: true, passwordResetQueued: false };
     }
   }
 

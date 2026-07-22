@@ -24,7 +24,7 @@ export {
 } from "./client";
 export { getProxmoxConfig, isProxmoxConfigured, getProxmoxCiUser, resolveProxmoxCiUser, proxmoxTlsHint } from "./config";
 export { ensureVpsProxmoxAccess } from "./ensure-vps-access";
-export { ensureGuestLoginReady } from "./guest-access";
+export { ensureGuestLoginReady, syncGuestPasswordForVps } from "./guest-access";
 export { waitForVpsProvisionReady } from "./provision-ready";
 export { repairVpsCloudInitNetwork, runVpsNetworkRepairJob } from "./repair-network";
 export { rebuildVpsKeepingIp } from "./rebuild-fresh";
@@ -153,9 +153,22 @@ export async function provisionVmOnProxmox(spec: {
   const config = getProxmoxConfig();
 
   if (!client || !config) {
+    const allowMock =
+      process.env.PROXMOX_ALLOW_MOCK_PROVISION?.trim() === "1" ||
+      (process.env.NODE_ENV !== "production" &&
+        process.env.PROXMOX_REQUIRE_SHARED_IP_REGISTRY?.trim() !== "1");
+    if (!allowMock) {
+      throw new ValidationError(
+        "Proxmox is not configured (set PROXMOX_BASE_URL / TOKEN_*). " +
+          "Refusing mock IP provision in production.",
+      );
+    }
     await new Promise((r) => setTimeout(r, 500));
     const vmid = Math.floor(Math.random() * 8000) + 200;
-    const ip = spec.primaryIp ?? `10.0.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 200)}`;
+    const ip =
+      spec.primaryIp ??
+      `10.0.${Math.floor(Math.random() * 200)}.${Math.floor(Math.random() * 200)}`;
+    console.warn(`[proxmox] MOCK provision ${spec.hostname} vmid=${vmid} ip=${ip}`);
     return { vmid, ip };
   }
 
@@ -180,7 +193,32 @@ export async function provisionVmOnProxmox(spec: {
       if (expectedIp) {
         const sshReady = await waitForVpsProvisionReady(node, vmid, expectedIp, { repair: true });
         if (sshReady) {
-          console.log(`[proxmox] ${spec.hostname} vmid=${vmid} SSH ready — skip re-clone`);
+          let rootPassword = randomBytes(10).toString("base64url").slice(0, 16) + "A1!";
+          if (vpsRow?.rootPasswordEnc) {
+            try {
+              const { decrypt } = await import("../lib/crypto");
+              rootPassword = decrypt(vpsRow.rootPasswordEnc);
+            } catch {
+              /* generate new below */
+            }
+          }
+          if (!vpsRow?.rootPasswordEnc) {
+            await prisma.vpsInstance.update({
+              where: { id: spec.vpsId },
+              data: { rootPasswordEnc: encrypt(rootPassword) },
+            });
+          }
+          await ensureGuestLoginReady({
+            node,
+            vmid,
+            primaryIp: expectedIp,
+            username: ciuser,
+            password: rootPassword,
+            gateway: config.gateway ?? getProxmoxGateway(),
+            cidr: config.ipCidr,
+            os: spec.os,
+          });
+          console.log(`[proxmox] ${spec.hostname} vmid=${vmid} login ready — skip re-clone`);
           return { vmid, ip: expectedIp };
         }
         console.warn(
@@ -211,6 +249,30 @@ export async function provisionVmOnProxmox(spec: {
         await prisma.vpsInstance.update({
           where: { id: spec.vpsId },
           data: { proxmoxVmid: linked.vmid },
+        });
+        let rootPassword = randomBytes(10).toString("base64url").slice(0, 16) + "A1!";
+        if (vpsRow?.rootPasswordEnc) {
+          try {
+            const { decrypt } = await import("../lib/crypto");
+            rootPassword = decrypt(vpsRow.rootPasswordEnc);
+          } catch {
+            /* keep generated */
+          }
+        } else {
+          await prisma.vpsInstance.update({
+            where: { id: spec.vpsId },
+            data: { rootPasswordEnc: encrypt(rootPassword) },
+          });
+        }
+        await ensureGuestLoginReady({
+          node: linked.node,
+          vmid: linked.vmid,
+          primaryIp: spec.primaryIp,
+          username: ciuser,
+          password: rootPassword,
+          gateway: config.gateway ?? getProxmoxGateway(),
+          cidr: config.ipCidr,
+          os: spec.os,
         });
         console.log(
           `[proxmox] ${spec.hostname} linked to existing vmid=${linked.vmid} ip=${spec.primaryIp}`,
@@ -664,6 +726,16 @@ export async function reinstallVpsOnProxmox(
         `Reinstall: guest network not ready for ${vps.primaryIp} (vmid ${newVmid})`,
       );
     }
+    await ensureGuestLoginReady({
+      node,
+      vmid: newVmid,
+      primaryIp: vps.primaryIp,
+      username: resolveProxmoxCiUser(targetOs),
+      password: rootPassword,
+      gateway: config.gateway ?? getProxmoxGateway(),
+      cidr: config.ipCidr,
+      os: targetOs,
+    });
   }
 
   await prisma.vpsInstance.update({

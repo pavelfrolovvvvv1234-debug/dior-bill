@@ -67,13 +67,24 @@ export async function dispatchInlineJob(
     case "vps.ensure_access": {
       const { ensureVpsProxmoxAccess } = await import("../proxmox/ensure-vps-access");
       const { runVpsNetworkRepairJob } = await import("../proxmox/repair-network");
+      const { syncGuestPasswordForVps } = await import("../proxmox/guest-access");
       if (payload.repairNetwork === true) {
         await runVpsNetworkRepairJob(payload.vpsId as string);
+      } else if (payload.syncGuestPassword === true) {
+        await syncGuestPasswordForVps(payload.vpsId as string);
       } else {
         await ensureVpsProxmoxAccess(payload.vpsId as string, {
           reboot: payload.reboot !== false,
           waitForGuest: false,
           forceStop: payload.forceStop === true,
+        });
+        // Always push panel password into guest after cloud-init path.
+        await syncGuestPasswordForVps(payload.vpsId as string).catch((e) => {
+          console.warn(
+            `[inline-job] ensure_access password sync:`,
+            e instanceof Error ? e.message.slice(0, 160) : e,
+          );
+          throw e;
         });
       }
       break;

@@ -5,6 +5,7 @@ import {
   dequeueJob,
   completeJob,
   failJob,
+  drainLegacyTypedQueues,
   processExpiredTopUps,
   syncTopUpStatus,
   syncPendingTopUps,
@@ -49,9 +50,10 @@ async function processVpsProvision(payload: {
   });
   const service = await prisma.service.findUnique({
     where: { id: payload.serviceId },
-    select: { userId: true, label: true },
+    select: { userId: true, label: true, status: true },
   });
-  if (service && vps?.primaryIp) {
+  // Only notify when the service is actually ACTIVE (credentials usable).
+  if (service?.status === "ACTIVE" && vps?.primaryIp) {
     await createNotification({
       userId: service.userId,
       type: "deployment",
@@ -117,6 +119,21 @@ async function run() {
         '("No IPv4 addresses available" if pool is empty). Stop duplicate Docker worker if PM2 is primary.',
     );
   }
+  drainLegacyTypedQueues([
+    "vps.provision",
+    "vps.reboot",
+    "vps.reinstall",
+    "vps.sync_metrics",
+    "vps.sync_ip",
+    "vps.ensure_access",
+    "event.process",
+    "reconciliation.run",
+    "notification.send",
+    "payment.retry",
+    "invoice.overdue",
+    "billing.unpaid_check",
+    "service.renew",
+  ]).catch((e) => console.warn("[queue] legacy drain:", e));
   setTimeout(() => {
     resumeAllStuckVpsProvisioning().catch((e) =>
       console.error("Initial stuck VPS resume:", e),
@@ -235,17 +252,23 @@ async function run() {
               reboot?: boolean;
               forceStop?: boolean;
               repairNetwork?: boolean;
+              syncGuestPassword?: boolean;
             };
             if (payload.repairNetwork) {
               const { runVpsNetworkRepairJob } = await import("@dior/backend");
               await runVpsNetworkRepairJob(payload.vpsId);
+            } else if (payload.syncGuestPassword) {
+              const { syncGuestPasswordForVps } = await import("@dior/backend");
+              await syncGuestPasswordForVps(payload.vpsId);
             } else {
-              const { ensureVpsProxmoxAccess } = await import("@dior/backend");
+              const { ensureVpsProxmoxAccess, syncGuestPasswordForVps } =
+                await import("@dior/backend");
               await ensureVpsProxmoxAccess(payload.vpsId, {
                 reboot: payload.reboot !== false,
                 waitForGuest: false,
                 forceStop: payload.forceStop === true,
               });
+              await syncGuestPasswordForVps(payload.vpsId);
             }
             break;
           }
