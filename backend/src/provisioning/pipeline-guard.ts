@@ -18,7 +18,8 @@ export async function clearProvisionPipelineIdempotency(serviceId: string): Prom
 }
 
 const RUNNING_JOB_TTL_MS = 25 * 60 * 1000;
-const RECOVERY_MIN_UPTIME_SEC = 90;
+/** After this uptime, hypervisor ipconfig0 alone is enough to mark ACTIVE. */
+const RECOVERY_MIN_UPTIME_SEC = 45;
 
 /** Another worker/job is already cloning this VPS — skip duplicate pipeline. */
 export async function isDuplicateProvisionRun(params: {
@@ -145,12 +146,13 @@ async function tryCompleteStuckProvisionedVpsInner(serviceId: string): Promise<b
     return false;
   }
 
+  // Guest-agent is optional — billing often can't reach the guest subnet, and some
+  // templates ship without qemu-guest-agent. Hypervisor ipconfig0 + running VM is enough.
   const guestIps = await client.getGuestAgentIps(nodeName, vmid).catch(() => [] as string[]);
-  if (!guestIps.includes(primaryIp)) {
-    console.log(
-      `[provision] recover skip ${vps.hostname} — guest IP not ${primaryIp} (agent: ${guestIps.join(",") || "down"})`,
+  if (guestIps.length > 0 && !guestIps.includes(primaryIp)) {
+    console.warn(
+      `[provision] recover ${vps.hostname}: guest-agent IPs [${guestIps.join(",")}] != ${primaryIp} — still accepting (ipconfig0 OK)`,
     );
-    return false;
   }
 
   const { markProvisioningComplete } = await import("../core/provisioning/engine");
@@ -191,7 +193,8 @@ async function tryCompleteStuckProvisionedVpsInner(serviceId: string): Promise<b
   }
 
   console.log(
-    `[provision] recovered → ACTIVE (no reboot): ${vps.hostname} vmid=${vmid} ip=${primaryIp}`,
+    `[provision] recovered → ACTIVE (no reboot): ${vps.hostname} vmid=${vmid} ip=${primaryIp}` +
+      (guestIps.includes(primaryIp) ? " guest-agent=ok" : " guest-agent=optional"),
   );
   return true;
 }

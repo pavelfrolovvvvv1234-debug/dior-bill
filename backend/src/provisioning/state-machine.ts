@@ -296,6 +296,23 @@ export async function runVpsProvisionPipeline(payload: {
             raw.includes("Guest SSH not ready") ||
             /guest agent is not running/i.test(raw));
         if (isNetworkNotReady) {
+          // Soft-complete if Proxmox already has a healthy config — don't leave PROVISIONING for hours.
+          if (await tryCompleteStuckProvisionedVps(payload.serviceId)) {
+            console.warn(
+              `[provision] ${vps.hostname} network check failed but VM OK on Proxmox → ACTIVE`,
+            );
+            await updateJob(payload.jobId, {
+              status: "completed",
+              progress: 100,
+              currentStep: "completed",
+              error: null,
+            });
+            await prisma.provisioningJob.update({
+              where: { id: payload.jobId },
+              data: { completedAt: new Date() },
+            });
+            return;
+          }
           console.warn(`[provision] ${vps.hostname} clone OK but network pending — stay PROVISIONING`);
           await enqueueJob("vps.ensure_access", {
             vpsId: payload.vpsId,
