@@ -305,6 +305,11 @@
     "quickActions": "Acciones rápidas",
     "quickActionsDesc": "Operaciones comunes",
     "topUpBalance": "Recargar saldo",
+    "contactsBanner": {
+      "title": "Estamos aquí",
+      "body": "Soporte en Telegram y el canal DiorHost —",
+      "dismiss": "Cerrar"
+    },
     "openTicket": "Abrir ticket",
     "viewServices": "Ver servicios",
     "referrals": "Afiliados",

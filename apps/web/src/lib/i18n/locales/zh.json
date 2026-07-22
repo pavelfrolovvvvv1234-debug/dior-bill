@@ -305,6 +305,11 @@
     "quickActions": "快捷操作",
     "quickActionsDesc": "常用操作",
     "topUpBalance": "充值余额",
+    "contactsBanner": {
+      "title": "随时联系我们",
+      "body": "Telegram 支持与 DiorHost 频道 —",
+      "dismiss": "关闭"
+    },
     "openTicket": "创建工单",
     "viewServices": "查看服务",
     "referrals": "联盟",

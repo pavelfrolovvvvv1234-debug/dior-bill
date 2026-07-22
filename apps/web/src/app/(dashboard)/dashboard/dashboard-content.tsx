@@ -19,6 +19,7 @@ import { ArrowUpRight, Plus, Wallet } from "lucide-react";
 import type { DashboardStats } from "@dior/shared";
 import { DashboardMyServices } from "@/components/dashboard/dashboard-my-services";
 import { DashboardServiceCatalog } from "@/components/dashboard/dashboard-service-catalog";
+import { DashboardContactsBanner } from "@/components/dashboard/dashboard-contacts-banner";
 
 type RawService = Parameters<typeof toServiceRow>[0] & { monthlyPrice: unknown };
 
@@ -32,26 +33,29 @@ export function DashboardContent({ stats, services }: Props) {
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background">
-            <Wallet className="h-5 w-5 text-primary" strokeWidth={1.5} />
+      <div className="space-y-3">
+        <DashboardContactsBanner />
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background">
+              <Wallet className="h-5 w-5 text-primary" strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {t("billing.availableBalance")}
+              </p>
+              <p className="text-2xl font-semibold tabular-nums tracking-tight">
+                {formatMoney(stats.balance)}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t("billing.availableBalance")}
-            </p>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight">
-              {formatMoney(stats.balance)}
-            </p>
-          </div>
+          <Button size="sm" className="h-9 gap-1.5 px-4" asChild>
+            <FastLink href="/billing/topup">
+              <Plus className="h-4 w-4" />
+              {t("dashboard.topUpBalance")}
+            </FastLink>
+          </Button>
         </div>
-        <Button size="sm" className="h-9 gap-1.5 px-4" asChild>
-          <FastLink href="/billing/topup">
-            <Plus className="h-4 w-4" />
-            {t("dashboard.topUpBalance")}
-          </FastLink>
-        </Button>
       </div>
 
       <DashboardMyServices services={services} />

@@ -342,6 +342,10 @@
     transition: margin var(--motion-base) var(--ease-surface);
   }
 
+  .motion-banner-enter {
+    animation: motion-banner-in var(--motion-base) var(--ease-enter) both;
+  }
+
   .card-interactive {
     transition:
       border-color var(--motion-base) var(--ease-surface),
@@ -444,6 +448,17 @@
   to {
     opacity: 0;
     transform: translateX(6px);
+  }
+}
+
+@keyframes motion-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

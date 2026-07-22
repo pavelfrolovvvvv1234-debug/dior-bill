@@ -366,6 +366,11 @@
     "quickActions": "Быстрые действия",
     "quickActionsDesc": "Частые операции",
     "topUpBalance": "Пополнить",
+    "contactsBanner": {
+      "title": "Мы на связи",
+      "body": "Поддержка в Telegram и канал DiorHost —",
+      "dismiss": "Скрыть"
+    },
     "openTicket": "Создать тикет",
     "viewServices": "Мои услуги",
     "referrals": "Рефералы",

@@ -366,6 +366,11 @@
     "quickActions": "Quick actions",
     "quickActionsDesc": "Common operations",
     "topUpBalance": "Add funds",
+    "contactsBanner": {
+      "title": "We're here",
+      "body": "Telegram support and the DiorHost channel —",
+      "dismiss": "Dismiss"
+    },
     "openTicket": "Open ticket",
     "viewServices": "View services",
     "referrals": "Referrals",
