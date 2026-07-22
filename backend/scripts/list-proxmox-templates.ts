@@ -34,7 +34,7 @@ function guessKeyFromName(name: string): string | null {
     [/almalinux8|alma8/, "almalinux8"],
     [/rockylinux9|rocky9|rocky$/, "rockylinux9"],
     [/rockylinux8|rocky8/, "rockylinux8"],
-    [/centos9|centos$/, "centos9"],
+    [/centosstream9|centos9|centosstream|centos$/, "centos9"],
     [/freebsd/, "freebsd"],
   ];
   for (const [re, key] of rules) {
