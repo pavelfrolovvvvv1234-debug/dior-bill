@@ -8,7 +8,7 @@ import { DedicatedPlansTab } from "./dedicated-plans-tab";
 import { DomainsPlansTab } from "./domains-plans-tab";
 import { TurbovdsPlansTab } from "./turbovds-plans-tab";
 import type { VpsPlan } from "@/lib/vps-plans";
-import { BULLETPROOF_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
+import { BULLETPROOF_VPS_OS_OPTIONS, STANDARD_VPS_OS_OPTIONS } from "@/lib/vps-os-options";
 import { DEDICATED_COUNTRY_CODES } from "@/lib/dedicated-plan-locations";
 import {
   BULLETPROOF_OFFSHORE_COUNTRY_CODES,
@@ -47,6 +47,8 @@ interface PlansHubProps {
   turboPlans: readonly VpsPlan[];
   inventory: InventoryItem[];
   spendableBalance: number;
+  bulletproofOsOptions?: readonly import("@/lib/vps-os-options").VpsOsOption[];
+  standardOsOptions?: readonly import("@/lib/vps-os-options").VpsOsOption[];
 }
 
 export type { PlanTab } from "@/lib/plan-catalog";
@@ -59,6 +61,8 @@ export function PlansHub({
   turboPlans,
   inventory,
   spendableBalance,
+  bulletproofOsOptions = BULLETPROOF_VPS_OS_OPTIONS,
+  standardOsOptions = STANDARD_VPS_OS_OPTIONS,
 }: PlansHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -121,7 +125,7 @@ export function PlansHub({
             deployLabel={t("plans.buy")}
             panelTitle={t("plans.bpVpsPanel")}
             detailedCatalog
-            osOptions={BULLETPROOF_VPS_OS_OPTIONS}
+            osOptions={bulletproofOsOptions}
             filterLocationsByPlan
           />
         )}
@@ -136,7 +140,7 @@ export function PlansHub({
             panelTitle={t("plans.stdVpsPanel")}
             deployLabel={t("plans.buy")}
             description={t("plans.bpDedicatedDesc")}
-            osOptions={BULLETPROOF_VPS_OS_OPTIONS}
+            osOptions={bulletproofOsOptions}
             allowedCountryCodes={BULLETPROOF_OFFSHORE_COUNTRY_CODES}
           />
         )}
@@ -149,7 +153,7 @@ export function PlansHub({
             deployLabel={t("plans.buy")}
             panelTitle={t("plans.stdVpsPanel")}
             detailedCatalog
-            osOptions={BULLETPROOF_VPS_OS_OPTIONS}
+            osOptions={standardOsOptions}
             allowedCountryCodes={STANDARD_VPS_COUNTRY_CODES}
             purchaseViaTicket
             ticketKind="standard-vps"
@@ -165,7 +169,7 @@ export function PlansHub({
             panelTitle={t("plans.stdVpsPanel")}
             deployLabel={t("plans.buy")}
             description={t("plans.stdDedicatedDesc")}
-            osOptions={BULLETPROOF_VPS_OS_OPTIONS}
+            osOptions={standardOsOptions}
             allowedCountryCodes={DEDICATED_COUNTRY_CODES}
           />
         )}

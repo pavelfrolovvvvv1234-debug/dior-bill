@@ -20,6 +20,7 @@ import {
   reinstallVpsOnProxmox,
   startVpsOnProxmox,
   stopVpsOnProxmox,
+  assertOsHasTemplate,
 } from "../proxmox";
 import { createHash, randomBytes } from "crypto";
 import {
@@ -88,6 +89,11 @@ export async function provisionVps(params: {
   const location = await prisma.location.findUnique({ where: { id: params.locationId } });
   if (!location?.active) throw new ValidationError("Location unavailable");
 
+  const os = params.os ?? "debian-12";
+  if (isProxmoxConfigured()) {
+    assertOsHasTemplate(os);
+  }
+
   const networkMbps = normalizeBpNetworkMbps(params.networkMbps ?? BP_NETWORK_BASE_MBPS);
   if (!isValidBpNetworkMbps(networkMbps)) {
     throw new ValidationError("Invalid network speed");
@@ -155,7 +161,7 @@ export async function provisionVps(params: {
       nodeId: node.id,
       locationId: params.locationId,
       hostname: params.hostname,
-      os: params.os ?? "debian-12",
+      os: os,
       cpuCores: params.plan.cpuCores,
       ramMb: params.plan.ramMb,
       diskGb: params.plan.diskGb,

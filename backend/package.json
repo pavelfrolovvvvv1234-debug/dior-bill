@@ -23,6 +23,7 @@
     "verify-vps-credentials": "tsx scripts/verify-vps-credentials.ts",
     "rebuild-vps-fresh": "tsx scripts/rebuild-vps-fresh.ts",
     "fix-vm-network": "tsx scripts/fix-vm-network.ts",
+    "list-proxmox-templates": "tsx scripts/list-proxmox-templates.ts",
     "diagnose-vps": "tsx scripts/diagnose-vps.ts",
     "inject-guest-ip": "tsx scripts/inject-guest-ip.ts",
     "compare-vm-config": "tsx scripts/compare-vm-config.ts"

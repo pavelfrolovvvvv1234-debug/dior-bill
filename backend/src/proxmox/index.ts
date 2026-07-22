@@ -30,6 +30,14 @@ export { repairVpsCloudInitNetwork, runVpsNetworkRepairJob } from "./repair-netw
 export { rebuildVpsKeepingIp } from "./rebuild-fresh";
 export { resolveTemplateVmid } from "./os-templates";
 export {
+  ALL_TEMPLATE_MAP_KEYS,
+  assertOsHasTemplate,
+  describeTemplateMapCoverage,
+  filterOsOptionsByTemplateMap,
+  osToTemplateMapKey,
+  allowTemplateFallback,
+} from "./os-templates";
+export {
   isPlaceholderIp,
   isProxmoxIpPoolConfigured,
   parseProxmoxIpPool,

@@ -34,7 +34,17 @@ async function main() {
     );
     console.error("Fix: set PROXMOX_INSECURE_TLS=1 and remove PROXMOX_VERIFY_TLS=1 in /var/www/dior-billing/.env");
   }
-  console.log("Templates:", Object.keys(config.templateMap).length);
+  console.log("Templates in map:", Object.keys(config.templateMap).length);
+  const { describeTemplateMapCoverage } = await import("../src/proxmox/os-templates");
+  const cov = describeTemplateMapCoverage();
+  for (const c of cov.configured) {
+    console.log(`  ${c.key} → vmid ${c.vmid}`);
+  }
+  if (!cov.configured.length) {
+    console.warn(
+      "PROXMOX_TEMPLATE_MAP is empty — run: pnpm exec tsx scripts/list-proxmox-templates.ts",
+    );
+  }
 
   const result = await verifyProxmoxIntegration();
   console.log("Nodes:", result.nodes.map((n) => `${n.node} (${n.status})`).join(", "));
