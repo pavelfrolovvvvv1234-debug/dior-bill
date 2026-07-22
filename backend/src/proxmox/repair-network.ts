@@ -98,6 +98,26 @@ export async function runVpsNetworkRepairJob(vpsId: string): Promise<boolean> {
   });
 
   if (ready && vps.service.status === "PROVISIONING") {
+    const { ensureGuestLoginReady } = await import("./guest-access");
+    try {
+      await ensureGuestLoginReady({
+        node,
+        vmid: vps.proxmoxVmid,
+        primaryIp: vps.primaryIp,
+        username: resolveProxmoxCiUser(vps.os),
+        password,
+        gateway: config.gateway ?? getProxmoxGateway(),
+        cidr: config.ipCidr,
+        os: vps.os,
+      });
+    } catch (e) {
+      console.warn(
+        `[proxmox] network-repair ${vps.hostname}: login finalize failed:`,
+        e instanceof Error ? e.message.slice(0, 160) : e,
+      );
+      return false;
+    }
+
     await markProvisioningComplete({
       serviceId: vps.serviceId,
       idempotencyKey: `${provisionPipelineKey(vps.serviceId)}:network-repair`,

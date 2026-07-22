@@ -179,6 +179,32 @@ async function tryCompleteStuckProvisionedVpsInner(serviceId: string): Promise<b
     return false;
   }
 
+  // Same finalize as fresh provision: panel password + sshd must work before ACTIVE.
+  try {
+    const { decrypt } = await import("../lib/crypto");
+    const password = decrypt(vps.rootPasswordEnc);
+    const { ensureGuestLoginReady } = await import("../proxmox/guest-access");
+    const { getProxmoxConfig } = await import("../proxmox/config");
+    const { getProxmoxGateway } = await import("../proxmox/ip-pool");
+    const config = getProxmoxConfig();
+    await ensureGuestLoginReady({
+      node: nodeName,
+      vmid,
+      primaryIp,
+      username: ciuser,
+      password,
+      gateway: config?.gateway ?? getProxmoxGateway(),
+      cidr: config?.ipCidr ?? 24,
+      os: vps.os,
+    });
+  } catch (e) {
+    console.warn(
+      `[provision] recover ${vps.hostname}: guest login finalize failed:`,
+      e instanceof Error ? e.message.slice(0, 160) : e,
+    );
+    return false;
+  }
+
   const { markProvisioningComplete } = await import("../core/provisioning/engine");
   const {
     activateSharedRegistryIp,

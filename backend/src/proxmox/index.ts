@@ -8,6 +8,7 @@ import { resolveTemplateVmid } from "./os-templates";
 import { waitForVpsProvisionReady } from "./provision-ready";
 import { repairVpsCloudInitNetwork } from "./repair-network";
 import { finalizeGuestNetworkAfterBoot } from "./guest-cloud-init";
+import { ensureGuestLoginReady } from "./guest-access";
 import {
   getProxmoxGateway,
   isPlaceholderIp,
@@ -23,6 +24,7 @@ export {
 } from "./client";
 export { getProxmoxConfig, isProxmoxConfigured, getProxmoxCiUser, resolveProxmoxCiUser, proxmoxTlsHint } from "./config";
 export { ensureVpsProxmoxAccess } from "./ensure-vps-access";
+export { ensureGuestLoginReady } from "./guest-access";
 export { waitForVpsProvisionReady } from "./provision-ready";
 export { repairVpsCloudInitNetwork, runVpsNetworkRepairJob } from "./repair-network";
 export { rebuildVpsKeepingIp } from "./rebuild-fresh";
@@ -313,6 +315,25 @@ export async function provisionVmOnProxmox(spec: {
         `Guest network not ready for ${spec.primaryIp} (vmid ${vmid}). Template ${templateVmid} did not apply IP inside OS — rebuild or fix cloud-init on template.`,
       );
     }
+
+    // Templates often ignore cipassword / PasswordAuthentication — sync into guest
+    // before marking ACTIVE so WinSCP/PuTTY work with the panel password immediately.
+    try {
+      await ensureGuestLoginReady({
+        node,
+        vmid,
+        primaryIp: spec.primaryIp,
+        username: ciuser,
+        password: rootPassword,
+        gateway: gw ?? config.gateway ?? getProxmoxGateway(),
+        cidr: config.ipCidr,
+        os: spec.os,
+      });
+    } catch (e) {
+      throw new ValidationError(
+        e instanceof Error ? e.message : `Guest login finalize failed for ${spec.hostname}`,
+      );
+    }
   }
 
   let ip: string | null = useStaticIp ? (spec.primaryIp ?? null) : null;
@@ -323,6 +344,26 @@ export async function provisionVmOnProxmox(spec: {
   if (!ip && !useStaticIp) {
     console.log(`[proxmox] optional guest-agent IP poll vmid ${vmid} (30s)...`);
     ip = await client.waitForGuestIp(node, vmid, 30_000);
+  }
+
+  // DHCP / late-IP path: still push password once we know an address (or agent is up).
+  if (!useStaticIp && ip) {
+    try {
+      await ensureGuestLoginReady({
+        node,
+        vmid,
+        primaryIp: ip,
+        username: ciuser,
+        password: rootPassword,
+        gateway: config.gateway ?? getProxmoxGateway(),
+        cidr: config.ipCidr,
+        os: spec.os,
+      });
+    } catch (e) {
+      throw new ValidationError(
+        e instanceof Error ? e.message : `Guest login finalize failed for ${spec.hostname}`,
+      );
+    }
   }
 
   if (ip) {
@@ -426,6 +467,31 @@ export async function syncVpsIpFromProxmox(vpsId: string): Promise<string | null
 
   const st = vps.service.status;
   if (st === "REINSTALLING" || st === "PROVISIONING") {
+    if (vps.rootPasswordEnc) {
+      try {
+        const { decrypt } = await import("../lib/crypto");
+        const password = decrypt(vps.rootPasswordEnc);
+        const { ensureGuestLoginReady } = await import("./guest-access");
+        const config = getProxmoxConfig();
+        await ensureGuestLoginReady({
+          node,
+          vmid: vps.proxmoxVmid,
+          primaryIp: ip,
+          username: resolveProxmoxCiUser(vps.os),
+          password,
+          gateway: config?.gateway ?? getProxmoxGateway(),
+          cidr: config?.ipCidr,
+          os: vps.os,
+        });
+      } catch (e) {
+        console.warn(
+          `[proxmox] IP sync login finalize ${vps.hostname}:`,
+          e instanceof Error ? e.message.slice(0, 160) : e,
+        );
+        return ip; // keep IP, do not mark ACTIVE until login works on next retry
+      }
+    }
+
     const { markProvisioningComplete } = await import("../core/provisioning/engine");
     await markProvisioningComplete({
       serviceId: vps.serviceId,
