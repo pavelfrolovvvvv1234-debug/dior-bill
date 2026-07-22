@@ -608,13 +608,17 @@ export class ProxmoxClient {
         continue;
       }
       if (status.exited === 1) {
-        if (status.exitcode !== 0 && status["err-data"]) {
-          try {
+        try {
+          if (status["out-data"]) {
+            const out = Buffer.from(status["out-data"], "base64").toString("utf8").trim();
+            if (out) console.log(`[proxmox] vmid=${vmid} guest exec stdout:\n${out.slice(0, 800)}`);
+          }
+          if (status.exitcode !== 0 && status["err-data"]) {
             const err = Buffer.from(status["err-data"], "base64").toString("utf8").trim();
             if (err) console.warn(`[proxmox] vmid=${vmid} guest exec stderr: ${err.slice(0, 200)}`);
-          } catch {
-            /* ignore */
           }
+        } catch {
+          /* ignore */
         }
         return status.exitcode ?? 0;
       }
@@ -651,8 +655,9 @@ export class ProxmoxClient {
   }
 
   /**
-   * Set Linux user password inside guest (qemu-guest-agent).
-   * Prefer agent set-user-password; fall back to chpasswd.
+   * Set Linux user password inside guest + allow password SSH for that user.
+   * Always uses chpasswd (base64) — agent set-user-password alone is unreliable
+   * when templates lock root / disable PasswordAuthentication.
    */
   async guestSetUserPassword(
     node: string,
@@ -664,33 +669,60 @@ export class ProxmoxClient {
       console.warn(`[proxmox] vmid=${vmid} guest-agent down — cannot set password`);
       return false;
     }
+
     try {
       await this.requestForm(
         "POST",
         `/api2/json/nodes/${node}/qemu/${vmid}/agent/set-user-password`,
-        { username, password },
+        { username, password, crypted: 0 },
       );
-      console.log(`[proxmox] vmid=${vmid} password set via agent for ${username}`);
-      return true;
+      console.log(`[proxmox] vmid=${vmid} agent set-user-password OK for ${username}`);
     } catch (err) {
       console.warn(
-        `[proxmox] vmid=${vmid} set-user-password failed, trying chpasswd:`,
+        `[proxmox] vmid=${vmid} set-user-password API:`,
         err instanceof Error ? err.message.slice(0, 120) : err,
       );
     }
-    // Escape single quotes for shell: ' -> '\''
-    const safePass = password.replace(/'/g, `'\\''`);
-    const safeUser = username.replace(/'/g, `'\\''`);
-    const code = await this.guestExec(node, vmid, [
-      "/bin/bash",
-      "-c",
-      `printf '%s\\n' '${safeUser}:${safePass}' | chpasswd`,
-    ]);
+
+    const credB64 = Buffer.from(`${username}:${password}`, "utf8").toString("base64");
+    const unlockScript = `
+set -e
+echo '${credB64}' | base64 -d | chpasswd
+id '${username}' >/dev/null
+passwd -u '${username}' 2>/dev/null || true
+usermod -U '${username}' 2>/dev/null || true
+# Ensure a login shell (nologin blocks SSH)
+SHELL_NOW=$(getent passwd '${username}' | cut -d: -f7 || true)
+case "$SHELL_NOW" in
+  */nologin|*/false|"") usermod -s /bin/bash '${username}' 2>/dev/null || true ;;
+esac
+mkdir -p /etc/ssh/sshd_config.d
+cat > /etc/ssh/sshd_config.d/99-dior-password.conf <<'EOF'
+PermitRootLogin yes
+PasswordAuthentication yes
+KbdInteractiveAuthentication yes
+ChallengeResponseAuthentication yes
+UsePAM yes
+EOF
+# Neutralize conflicting drop-ins that force "no"
+for f in /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf; do
+  [ -f "$f" ] || continue
+  sed -i -E 's/^[#[:space:]]*PermitRootLogin[[:space:]].*/PermitRootLogin yes/I' "$f" 2>/dev/null || true
+  sed -i -E 's/^[#[:space:]]*PasswordAuthentication[[:space:]].*/PasswordAuthentication yes/I' "$f" 2>/dev/null || true
+done
+sshd -t 2>/dev/null || true
+systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || service ssh restart 2>/dev/null || true
+# Show effective settings for logs
+sshd -T 2>/dev/null | grep -Ei '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication) ' || true
+echo DIOR_PASSWD_OK
+`.trim();
+
+    const code = await this.guestExec(node, vmid, ["/bin/bash", "-c", unlockScript]);
     if (code === 0) {
-      console.log(`[proxmox] vmid=${vmid} password set via chpasswd for ${username}`);
+      console.log(`[proxmox] vmid=${vmid} chpasswd + sshd password login enabled for ${username}`);
       return true;
     }
-    console.warn(`[proxmox] vmid=${vmid} chpasswd failed, exit=${code}`);
+    console.warn(`[proxmox] vmid=${vmid} guest password unlock failed, exit=${code}`);
     return false;
   }
 
