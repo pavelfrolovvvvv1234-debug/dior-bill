@@ -43,8 +43,8 @@ export function DashboardContactsBanner() {
       className={cn(
         "overflow-hidden transition-[opacity,transform,max-height,margin] ease-[cubic-bezier(0.22,1,0.36,1)]",
         exiting
-          ? "mb-0 max-h-0 -translate-y-1 opacity-0"
-          : "mb-0 max-h-28 translate-y-0 opacity-100",
+          ? "max-h-0 -translate-y-1 opacity-0"
+          : "max-h-28 translate-y-0 opacity-100",
       )}
       style={{ transitionDuration: "280ms" }}
     >
