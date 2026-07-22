@@ -146,13 +146,37 @@ async function tryCompleteStuckProvisionedVpsInner(serviceId: string): Promise<b
     return false;
   }
 
-  // Guest-agent is optional — billing often can't reach the guest subnet, and some
-  // templates ship without qemu-guest-agent. Hypervisor ipconfig0 + running VM is enough.
-  const guestIps = await client.getGuestAgentIps(nodeName, vmid).catch(() => [] as string[]);
-  if (guestIps.length > 0 && !guestIps.includes(primaryIp)) {
-    console.warn(
-      `[provision] recover ${vps.hostname}: guest-agent IPs [${guestIps.join(",")}] != ${primaryIp} — still accepting (ipconfig0 OK)`,
+  // Must confirm the guest OS actually owns the IP — hypervisor ipconfig0 alone is not enough
+  // (template 902 often leaves the guest without a routable address → SSH timeout).
+  let guestIps = await client.getGuestAgentIps(nodeName, vmid).catch(() => [] as string[]);
+  if (!guestIps.includes(primaryIp)) {
+    const agentUp = await client.pingGuestAgent(nodeName, vmid);
+    if (agentUp) {
+      const { getProxmoxConfig } = await import("../proxmox/config");
+      const { getProxmoxGateway } = await import("../proxmox/ip-pool");
+      const config = getProxmoxConfig();
+      const gw =
+        config?.gateway ??
+        getProxmoxGateway() ??
+        `${primaryIp.split(".").slice(0, 3).join(".")}.1`;
+      console.warn(
+        `[provision] recover ${vps.hostname}: injecting ${primaryIp} via guest-agent (had: ${guestIps.join(",") || "none"})`,
+      );
+      const injected = await client
+        .guestInjectStaticNetwork(nodeName, vmid, primaryIp, gw, config?.ipCidr ?? 24)
+        .catch(() => false);
+      if (injected) {
+        await new Promise((r) => setTimeout(r, 8_000));
+        guestIps = await client.getGuestAgentIps(nodeName, vmid).catch(() => [] as string[]);
+      }
+    }
+  }
+
+  if (!guestIps.includes(primaryIp)) {
+    console.log(
+      `[provision] recover skip ${vps.hostname} — guest still has no ${primaryIp} (agent: ${guestIps.join(",") || "down"})`,
     );
+    return false;
   }
 
   const { markProvisioningComplete } = await import("../core/provisioning/engine");
@@ -193,8 +217,7 @@ async function tryCompleteStuckProvisionedVpsInner(serviceId: string): Promise<b
   }
 
   console.log(
-    `[provision] recovered → ACTIVE (no reboot): ${vps.hostname} vmid=${vmid} ip=${primaryIp}` +
-      (guestIps.includes(primaryIp) ? " guest-agent=ok" : " guest-agent=optional"),
+    `[provision] recovered → ACTIVE: ${vps.hostname} vmid=${vmid} ip=${primaryIp} guest-agent=confirmed`,
   );
   return true;
 }

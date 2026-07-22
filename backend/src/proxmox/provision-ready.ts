@@ -1,5 +1,7 @@
 import { createConnection } from "node:net";
 import { getProxmoxClient } from "./client";
+import { getProxmoxConfig } from "./config";
+import { getProxmoxGateway } from "./ip-pool";
 
 async function tcpProbe(host: string, port: number, timeoutMs = 6000): Promise<boolean> {
   return new Promise((resolve) => {
@@ -19,23 +21,33 @@ async function tcpProbe(host: string, port: number, timeoutMs = 6000): Promise<b
   });
 }
 
-const DEFAULT_GUEST_POLL_MS = 30_000;
-const REPAIR_GUEST_POLL_MS = 10_000;
-const DEFAULT_MIN_UPTIME_SEC = 45;
-const REPAIR_MIN_UPTIME_SEC = 30;
-const REPAIR_MAX_WAIT_MS = 90_000;
+function guessGateway(ip: string): string {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return ip;
+  return `${parts[0]}.${parts[1]}.${parts[2]}.1`;
+}
+
+const DEFAULT_GUEST_POLL_MS = 90_000;
+const REPAIR_GUEST_POLL_MS = 30_000;
+const DEFAULT_MAX_WAIT_MS = 240_000;
+const REPAIR_MAX_WAIT_MS = 150_000;
 
 export type ProvisionReadyOptions = {
-  /** Shorter waits for fix-vm-network / repair jobs (no guest-agent on template 902). */
+  /** Shorter waits for fix-vm-network / repair jobs. */
   repair?: boolean;
 };
 
 /**
- * Wait for guest network after start. Never stops/reboots the VM.
+ * Wait until the guest OS actually has the expected IPv4.
  *
- * Ready when Proxmox has correct ipconfig0 + firewall off + VM up long enough.
- * Guest-agent IP and SSH from the billing host are optional bonuses —
- * billing often cannot reach the client subnet, so SSH probe must NOT block provision.
+ * Hypervisor ipconfig0 alone is NOT enough — template 902 often ignores cloud-init,
+ * so SSH times out even when Proxmox config looks perfect.
+ *
+ * Ready when:
+ *  - qemu-guest-agent reports expectedIp, OR
+ *  - SSH :22 reachable from billing (rare — different network)
+ *
+ * If agent is up but has no/wrong IP → inject static network once via guest-agent.
  */
 export async function waitForVpsProvisionReady(
   node: string,
@@ -48,22 +60,25 @@ export async function waitForVpsProvisionReady(
 
   const repair = options?.repair === true;
   const guestPollMs = repair ? REPAIR_GUEST_POLL_MS : DEFAULT_GUEST_POLL_MS;
-  const minUptimeSec = repair ? REPAIR_MIN_UPTIME_SEC : DEFAULT_MIN_UPTIME_SEC;
-  const maxWaitMs = repair ? REPAIR_MAX_WAIT_MS : guestPollMs + 90_000;
+  const maxWaitMs = repair ? REPAIR_MAX_WAIT_MS : DEFAULT_MAX_WAIT_MS;
+  const config = getProxmoxConfig();
+  const gw = config?.gateway ?? getProxmoxGateway() ?? guessGateway(expectedIp);
+  const cidr = config?.ipCidr ?? 24;
 
   console.log(
-    `[proxmox] vmid=${vmid} waiting for network (ipconfig0=${expectedIp}, guest-agent/SSH optional)`,
+    `[proxmox] vmid=${vmid} waiting for guest network ${expectedIp} (agent inject if needed)`,
   );
 
   const started = Date.now();
+  let injected = false;
 
-  // Best-effort guest-agent poll — never required.
-  const guestIp = await client.waitForGuestIp(node, vmid, guestPollMs).catch(() => null);
-  if (guestIp === expectedIp) {
+  // Initial soft poll for agent IP
+  const earlyIp = await client.waitForGuestIp(node, vmid, guestPollMs).catch(() => null);
+  if (earlyIp === expectedIp) {
     const sshOpen = await tcpProbe(expectedIp, 22, 4000).catch(() => false);
     console.log(
-      `[proxmox] vmid=${vmid} guest-agent IP ${expectedIp}` +
-        (sshOpen ? " + SSH open from billing" : " (SSH not reachable from billing — OK)"),
+      `[proxmox] vmid=${vmid} guest IP ${expectedIp} confirmed` +
+        (sshOpen ? " + SSH open" : " (SSH from billing optional)"),
     );
     return true;
   }
@@ -81,22 +96,51 @@ export async function waitForVpsProvisionReady(
 
       if (configIp !== expectedIp) {
         console.warn(
-          `[proxmox] vmid=${vmid} ipconfig0=${configIp ?? "none"} (want ${expectedIp}) — cloud-init pending`,
+          `[proxmox] vmid=${vmid} ipconfig0=${configIp ?? "none"} (want ${expectedIp})`,
         );
-      } else {
-        const status = await client.getVmStatus(node, vmid).catch(() => ({ status: "unknown" }));
-        const uptime = await client.getVmUptimeSec(node, vmid);
-        if (status.status === "running" && uptime >= minUptimeSec) {
-          const sshOpen = await tcpProbe(expectedIp, 22, 3000).catch(() => false);
-          console.log(
-            `[proxmox] vmid=${vmid} ready: ipconfig0=${expectedIp} uptime=${uptime}s` +
-              ` guest-agent=${guestIp ? "ok" : "down"}` +
-              ` ssh_from_billing=${sshOpen ? "open" : "unreachable (ignored)"}`,
-          );
-          return true;
-        }
+      }
+
+      const agentUp = await client.pingGuestAgent(node, vmid);
+      const guestIps = agentUp
+        ? await client.getGuestAgentIps(node, vmid).catch(() => [] as string[])
+        : [];
+
+      if (guestIps.includes(expectedIp)) {
+        console.log(
+          `[proxmox] vmid=${vmid} ready: guest-agent has ${expectedIp}` +
+            ` (uptime=${await client.getVmUptimeSec(node, vmid)}s)`,
+        );
+        return true;
+      }
+
+      const sshOpen = await tcpProbe(expectedIp, 22, 3000).catch(() => false);
+      if (sshOpen) {
+        console.log(`[proxmox] vmid=${vmid} ready: SSH :22 open on ${expectedIp}`);
+        return true;
+      }
+
+      if (agentUp && !injected && configIp === expectedIp) {
         console.warn(
-          `[proxmox] vmid=${vmid} ipconfig0 OK (${expectedIp}) power=${status.status} uptime=${uptime}s / ${minUptimeSec}s`,
+          `[proxmox] vmid=${vmid} agent up but no ${expectedIp} (have: ${guestIps.join(",") || "none"}) — injecting static IP`,
+        );
+        injected = true;
+        const ok = await client
+          .guestInjectStaticNetwork(node, vmid, expectedIp, gw, cidr)
+          .catch(() => false);
+        if (ok) {
+          await new Promise((r) => setTimeout(r, 8_000));
+          const after = await client.getGuestAgentIps(node, vmid).catch(() => [] as string[]);
+          if (after.includes(expectedIp)) {
+            console.log(`[proxmox] vmid=${vmid} ready after guest inject ${expectedIp}`);
+            return true;
+          }
+        } else {
+          console.warn(`[proxmox] vmid=${vmid} guest inject failed — will keep waiting`);
+        }
+      } else {
+        console.warn(
+          `[proxmox] vmid=${vmid} waiting… agent=${agentUp ? "up" : "down"}` +
+            ` guestIps=${guestIps.join(",") || "none"} ssh=${sshOpen ? "open" : "closed"}`,
         );
       }
     } catch (e) {
@@ -106,31 +150,12 @@ export async function waitForVpsProvisionReady(
       );
     }
 
-    await new Promise((r) => setTimeout(r, 12_000));
-  }
-
-  // Last chance: if hypervisor config is correct and VM is running, succeed anyway.
-  try {
-    const cfg = await client.getVmConfig(node, vmid);
-    const configIp = client.parseIpFromConfig(cfg);
-    const net0 = cfg.net0 ?? "";
-    const status = await client.getVmStatus(node, vmid).catch(() => ({ status: "unknown" }));
-    if (
-      configIp === expectedIp &&
-      !net0.includes("firewall=1") &&
-      status.status === "running"
-    ) {
-      console.warn(
-        `[proxmox] vmid=${vmid} accepting as ready after timeout — ipconfig0 OK, VM running (SSH/agent not required)`,
-      );
-      return true;
-    }
-  } catch {
-    /* fall through */
+    await new Promise((r) => setTimeout(r, 10_000));
   }
 
   console.warn(
-    `[proxmox] vmid=${vmid} network not confirmed after ${Math.round(maxWaitMs / 1000)}s (expected ${expectedIp})`,
+    `[proxmox] vmid=${vmid} guest still has no ${expectedIp} after ${Math.round(maxWaitMs / 1000)}s` +
+      ` — template cloud-init likely broken (need inject/rebuild)`,
   );
   return false;
 }
