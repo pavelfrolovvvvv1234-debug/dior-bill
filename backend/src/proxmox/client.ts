@@ -677,7 +677,8 @@ export class ProxmoxClient {
 
   /**
    * Last resort when template cloud-init ignores Proxmox ipconfig0.
-   * Configures IPv4 + default route inside guest via qemu-guest-agent.
+   * Configures IPv4 + default route inside guest via qemu-guest-agent,
+   * writes persistent ifupdown/netplan config, and verifies with `ip -4 addr`.
    */
   async guestInjectStaticNetwork(
     node: string,
@@ -686,16 +687,49 @@ export class ProxmoxClient {
     gateway: string,
     cidr = 24,
   ): Promise<boolean> {
-    const script = [
-      'IFACE=$(ip -o link show | awk -F": " \'/^[0-9]+: (eth|ens|enp)/ {gsub(/@.*/,"",$2); print $2; exit}\')',
-      '[ -n "$IFACE" ] || exit 1',
-      'ip link set "$IFACE" up || true',
-      'ip addr flush dev "$IFACE" 2>/dev/null || true',
-      `ip addr add ${ip}/${cidr} dev "$IFACE"`,
-      `ip route replace default via ${gateway}`,
-      'printf "nameserver 1.1.1.1\\n" > /etc/resolv.conf',
-      'systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || service ssh restart 2>/dev/null || true',
-    ].join("; ");
+    const script = `
+set -e
+IFACE=$(ip -o link show | awk -F': ' '/^[0-9]+: (eth|ens|enp|eno)/ {gsub(/@.*/,"",$2); print $2; exit}')
+if [ -z "$IFACE" ]; then
+  IFACE=$(ls /sys/class/net | grep -E '^(eth|ens|enp|eno)' | head -1 || true)
+fi
+[ -n "$IFACE" ] || { echo "no iface"; exit 2; }
+ip link set "$IFACE" up || true
+ip addr flush dev "$IFACE" 2>/dev/null || true
+ip addr add ${ip}/${cidr} dev "$IFACE" || ip addr replace ${ip}/${cidr} dev "$IFACE"
+ip route replace default via ${gateway} || true
+printf 'nameserver 1.1.1.1\\nnameserver 8.8.8.8\\n' > /etc/resolv.conf
+mkdir -p /etc/network/interfaces.d
+cat > /etc/network/interfaces <<EOF
+auto lo
+iface lo inet loopback
+
+auto $IFACE
+iface $IFACE inet static
+  address ${ip}/${cidr}
+  gateway ${gateway}
+  dns-nameservers 1.1.1.1 8.8.8.8
+EOF
+mkdir -p /etc/netplan
+cat > /etc/netplan/99-dior-static.yaml <<EOF
+network:
+  version: 2
+  ethernets:
+    $IFACE:
+      dhcp4: false
+      addresses: [${ip}/${cidr}]
+      routes:
+        - to: default
+          via: ${gateway}
+      nameservers:
+        addresses: [1.1.1.1, 8.8.8.8]
+EOF
+netplan apply 2>/dev/null || ifup "$IFACE" 2>/dev/null || true
+systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null || service ssh restart 2>/dev/null || true
+ip -4 addr show dev "$IFACE" | grep -q "${ip}" || { echo "verify fail"; ip -4 addr; exit 3; }
+echo "OK iface=$IFACE ip=${ip}"
+`.trim();
+
     const code = await this.guestExec(node, vmid, ["/bin/bash", "-c", script]);
     if (code === 0) {
       console.log(`[proxmox] vmid=${vmid} guest static network injected ${ip}/${cidr} gw=${gateway}`);
@@ -713,19 +747,14 @@ export class ProxmoxClient {
       const agentUp = await this.pingGuestAgent(node, vmid);
       if (agentUp) {
         try {
-          const interfaces = await this.request<
-            Array<{
-              name?: string;
-              "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
-            }>
-          >(
+          const raw = await this.request<unknown>(
             "GET",
             `/api2/json/nodes/${node}/qemu/${vmid}/agent/network-get-interfaces`,
             undefined,
             { timeoutMs: 15_000 },
           );
 
-          for (const ip of this.extractIpv4FromAgentInterfaces(interfaces)) {
+          for (const ip of this.extractIpv4FromAgentInterfaces(raw)) {
             return ip;
           }
         } catch {
@@ -844,16 +873,31 @@ export class ProxmoxClient {
     return this.request("GET", `/api2/json/nodes/${node}/qemu`);
   }
 
+  /** Normalize qemu-guest-agent network-get-interfaces payload (`data.result` array). */
+  normalizeGuestAgentInterfaces(
+    raw: unknown,
+  ): Array<{
+    name?: string;
+    "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
+  }> {
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === "object" && Array.isArray((raw as { result?: unknown }).result)) {
+      return (raw as { result: typeof raw extends never ? never : Array<{
+        name?: string;
+        "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
+      }> }).result;
+    }
+    return [];
+  }
+
   /** Extract routable IPv4s from guest-agent interface list. */
   extractIpv4FromAgentInterfaces(
-    interfaces: Array<{
-      name?: string;
-      "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
-    }>,
+    interfaces: unknown,
     subnetPrefix?: string,
   ): string[] {
+    const list = this.normalizeGuestAgentInterfaces(interfaces);
     const out: string[] = [];
-    for (const iface of interfaces) {
+    for (const iface of list) {
       for (const addr of iface["ip-addresses"] ?? []) {
         const ip = addr["ip-address"]?.trim();
         if (
@@ -873,18 +917,13 @@ export class ProxmoxClient {
   async getGuestAgentIps(node: string, vmid: number, subnetPrefix?: string): Promise<string[]> {
     if (!(await this.pingGuestAgent(node, vmid))) return [];
     try {
-      const interfaces = await this.request<
-        Array<{
-          name?: string;
-          "ip-addresses"?: Array<{ "ip-address"?: string; "ip-address-type"?: string }>;
-        }>
-      >(
+      const raw = await this.request<unknown>(
         "GET",
         `/api2/json/nodes/${node}/qemu/${vmid}/agent/network-get-interfaces`,
         undefined,
         { timeoutMs: 8_000 },
       );
-      return this.extractIpv4FromAgentInterfaces(interfaces, subnetPrefix);
+      return this.extractIpv4FromAgentInterfaces(raw, subnetPrefix);
     } catch {
       return [];
     }

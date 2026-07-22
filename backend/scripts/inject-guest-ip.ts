@@ -68,6 +68,14 @@ async function main() {
   const before = await client.getGuestAgentIps(node, vps.proxmoxVmid);
   console.log(`guest IPs before: ${before.join(", ") || "none"}`);
 
+  // Debug: raw iface dump via guest exec
+  const dumpCode = await client.guestExec(node, vps.proxmoxVmid, [
+    "/bin/bash",
+    "-c",
+    "ip -4 addr; echo ---; ip route; echo ---; ls /sys/class/net",
+  ]);
+  console.log(`guest ip dump exit=${dumpCode}`);
+
   if (before.includes(ip)) {
     console.log("Guest already has the billing IP.");
   } else {
@@ -80,7 +88,10 @@ async function main() {
       config.ipCidr,
     );
     if (!ok) {
-      console.error("Inject failed");
+      console.error("Inject failed — rebuild:");
+      console.error(
+        `  pm2 stop dior-worker && pnpm exec tsx scripts/fix-vm-network.ts ${vps.hostname} --rebuild && pm2 start dior-worker`,
+      );
       process.exit(1);
     }
     await new Promise((r) => setTimeout(r, 10_000));
@@ -88,13 +99,20 @@ async function main() {
 
   const after = await client.getGuestAgentIps(node, vps.proxmoxVmid);
   console.log(`guest IPs after: ${after.join(", ") || "none"}`);
+  await client.guestExec(node, vps.proxmoxVmid, [
+    "/bin/bash",
+    "-c",
+    "ip -4 addr; ss -lnt | head -20 || netstat -lnt | head -20",
+  ]);
 
   const ssh = await tcpProbe(ip, 22);
   console.log(`SSH :22 from billing: ${ssh ? "OPEN" : "closed (try PuTTY from your PC)"}`);
 
   if (!after.includes(ip)) {
-    console.error("Guest still missing IP — rebuild:");
-    console.error(`  pm2 stop dior-worker && pnpm exec tsx scripts/fix-vm-network.ts ${vps.hostname} --rebuild && pm2 start dior-worker`);
+    console.error("Guest still missing IP in agent report — rebuild:");
+    console.error(
+      `  pm2 stop dior-worker && pnpm exec tsx scripts/fix-vm-network.ts ${vps.hostname} --rebuild && pm2 start dior-worker`,
+    );
     process.exit(1);
   }
 
