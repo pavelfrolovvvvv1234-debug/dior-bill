@@ -11,31 +11,40 @@ export function VpsDetailPanel({
   access,
   osLabel,
   actionsDisabled,
+  allowDelete = false,
+  deleteDisabled = false,
+  hideRescue = false,
 }: {
   vpsId: string;
   access: VpsAccessInfo;
   osLabel: string;
   actionsDisabled: boolean;
+  allowDelete?: boolean;
+  deleteDisabled?: boolean;
+  hideRescue?: boolean;
 }) {
   const router = useRouter();
   const [credKey, setCredKey] = useState(0);
 
   return (
     <div className="space-y-6">
-    <VpsCredentialsCard key={credKey} initial={access} osLabel={osLabel} />
-    <div>
-      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Power & maintenance
-      </p>
-    <VpsActions
-      vpsId={vpsId}
-      disabled={actionsDisabled}
-      onPasswordReset={() => {
-        setCredKey((k) => k + 1);
-        router.refresh();
-      }}
-    />
-    </div>
+      <VpsCredentialsCard key={credKey} initial={access} osLabel={osLabel} />
+      <div>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Power & maintenance
+        </p>
+        <VpsActions
+          vpsId={vpsId}
+          disabled={actionsDisabled}
+          allowDelete={allowDelete}
+          deleteDisabled={deleteDisabled}
+          hideRescue={hideRescue}
+          onPasswordReset={() => {
+            setCredKey((k) => k + 1);
+            router.refresh();
+          }}
+        />
+      </div>
     </div>
   );
 }

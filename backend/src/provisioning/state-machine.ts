@@ -111,6 +111,23 @@ export async function runVpsProvisionPipeline(payload: {
   jobId: string;
   idempotencyKey?: string;
 }): Promise<void> {
+  const vpsProvider = await prisma.vpsInstance.findUnique({
+    where: { id: payload.vpsId },
+    select: { provider: true, cloudInit: true },
+  });
+  if (vpsProvider?.provider === "hostvds") {
+    const planId =
+      vpsProvider.cloudInit &&
+      typeof vpsProvider.cloudInit === "object" &&
+      !Array.isArray(vpsProvider.cloudInit) &&
+      typeof (vpsProvider.cloudInit as { planId?: unknown }).planId === "string"
+        ? (vpsProvider.cloudInit as { planId: string }).planId
+        : undefined;
+    const { runHostVdsProvisionPipeline } = await import("../hostvds/provision");
+    await runHostVdsProvisionPipeline({ ...payload, planId });
+    return;
+  }
+
   const pipelineKey = provisionPipelineKey(payload.serviceId);
 
   if (await tryCompleteStuckProvisionedVps(payload.serviceId)) return;

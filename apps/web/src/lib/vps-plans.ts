@@ -26,18 +26,18 @@ export type VpsPlan = {
   ppsDisplay?: string;
 };
 
-/** Non-abuse VPS/VDS — ticket provisioning only; RU / BY / AB regions */
+/** Non-abuse Standard VPS — HostVDS (OpenStack). Prices = EUR cost × markup (see hostvds/pricing). */
 export const STANDARD_VPS_PLANS: readonly VpsPlan[] = [
-  { id: "std-1", name: "VPS 1", cpuCores: 1, ramMb: 1024, diskGb: 10, ...STD_VPS_NETWORK, price: 4, display: "standard" },
-  { id: "std-2", name: "VPS 2", cpuCores: 2, ramMb: 2048, diskGb: 40, ...STD_VPS_NETWORK, price: 8, display: "standard" },
-  { id: "std-3", name: "VPS 3", cpuCores: 2, ramMb: 4096, diskGb: 50, ...STD_VPS_NETWORK, price: 10, popular: true, display: "standard" },
-  { id: "std-4", name: "VPS 4", cpuCores: 4, ramMb: 8192, diskGb: 80, ...STD_VPS_NETWORK, price: 18, display: "standard" },
-  { id: "std-5", name: "VPS 5", cpuCores: 8, ramMb: 16384, diskGb: 150, ...STD_VPS_NETWORK, price: 35, display: "standard" },
-  { id: "std-6", name: "VPS 6", cpuCores: 8, ramMb: 24576, diskGb: 200, ...STD_VPS_NETWORK, price: 45, display: "standard" },
-  { id: "std-7", name: "VPS 7", cpuCores: 12, ramMb: 32768, diskGb: 250, ...STD_VPS_NETWORK, price: 59, display: "standard" },
-  { id: "std-8", name: "VPS 8", cpuCores: 16, ramMb: 65536, diskGb: 300, ...STD_VPS_NETWORK, price: 95, display: "standard" },
-  { id: "std-9", name: "VPS 9", cpuCores: 24, ramMb: 98304, diskGb: 500, ...STD_VPS_NETWORK, price: 139, display: "standard" },
-  { id: "std-10", name: "VDS 10", cpuCores: 24, ramMb: 131072, diskGb: 700, ...STD_VPS_NETWORK, price: 179, display: "standard" },
+  { id: "std-1", name: "Lite 1", cpuCores: 1, ramMb: 1024, diskGb: 10, ...STD_VPS_NETWORK, price: 2, display: "standard" },
+  { id: "std-2", name: "Lite 2", cpuCores: 2, ramMb: 2048, diskGb: 40, ...STD_VPS_NETWORK, price: 8, display: "standard" },
+  { id: "std-3", name: "Lite 3", cpuCores: 2, ramMb: 4096, diskGb: 50, ...STD_VPS_NETWORK, price: 8, popular: true, display: "standard" },
+  { id: "std-4", name: "Elite 1", cpuCores: 4, ramMb: 8192, diskGb: 80, ...STD_VPS_NETWORK, price: 30, display: "standard" },
+  { id: "std-5", name: "Elite 2", cpuCores: 8, ramMb: 16384, diskGb: 150, ...STD_VPS_NETWORK, price: 60, display: "standard" },
+  { id: "std-6", name: "Elite 3", cpuCores: 8, ramMb: 24576, diskGb: 200, ...STD_VPS_NETWORK, price: 60, display: "standard" },
+  { id: "std-7", name: "Mega 1", cpuCores: 12, ramMb: 32768, diskGb: 250, ...STD_VPS_NETWORK, price: 60, display: "standard" },
+  { id: "std-8", name: "Mega 2", cpuCores: 16, ramMb: 65536, diskGb: 300, ...STD_VPS_NETWORK, price: 120, display: "standard" },
+  { id: "std-9", name: "Mega 3", cpuCores: 24, ramMb: 98304, diskGb: 500, ...STD_VPS_NETWORK, price: 180, display: "standard" },
+  { id: "std-10", name: "Mega 4", cpuCores: 24, ramMb: 131072, diskGb: 700, ...STD_VPS_NETWORK, price: 180, display: "standard" },
 ];
 
 export const VPS_PLANS: readonly VpsPlan[] = [

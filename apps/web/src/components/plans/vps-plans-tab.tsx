@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { deployVpsAction } from "@/app/actions/vps";
 import {
   purchaseStandardVpsViaTicketAction,
@@ -33,7 +33,6 @@ import {
   BP_NETWORK_MAX_MBPS,
   calcBpNetworkMonthlyAddon,
   listBpNetworkSpeedOptions,
-  normalizeBpNetworkMbps,
 } from "@dior/shared";
 
 const BP_NETWORK_SPEED_OPTIONS = listBpNetworkSpeedOptions();
@@ -64,6 +63,9 @@ export function VpsPlansTab({
   allowedCountryCodes,
   purchaseViaTicket = false,
   ticketKind = "turbovds",
+  computeProvider = "proxmox",
+  deployAvailable = true,
+  unavailableMessage,
 }: {
   locations: Location[];
   plans: readonly VpsPlan[];
@@ -80,6 +82,11 @@ export function VpsPlansTab({
   /** Charge balance and open support ticket instead of instant deploy */
   purchaseViaTicket?: boolean;
   ticketKind?: "turbovds" | "standard-vps";
+  /** Instant deploy compute backend (proxmox | hostvds) */
+  computeProvider?: "proxmox" | "hostvds";
+  /** When false, Buy is disabled (e.g. HostVDS not configured). */
+  deployAvailable?: boolean;
+  unavailableMessage?: string;
 }) {
   const { t, locale } = useI18n();
   const networkSpeedConfigurable = filterLocationsByPlan && !purchaseViaTicket;
@@ -91,6 +98,8 @@ export function VpsPlansTab({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [purchaseSuccessOpen, setPurchaseSuccessOpen] = useState(false);
+  const [createdVpsId, setCreatedVpsId] = useState<string | null>(null);
+  const submitting = useRef(false);
 
   const availableLocations = useMemo(() => {
     let list = [...locations];
@@ -125,12 +134,17 @@ export function VpsPlansTab({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting.current || !deployAvailable) return;
+    submitting.current = true;
     setLoading(true);
     setError(null);
+    setCreatedVpsId(null);
     const form = new FormData(e.currentTarget);
     form.set("planId", selectedPlan);
+    form.set("provider", computeProvider);
     const plan = plans.find((p) => p.id === selectedPlan);
     if (!plan) {
+      submitting.current = false;
       setLoading(false);
       return;
     }
@@ -140,7 +154,6 @@ export function VpsPlansTab({
       const { sufficient } = await checkSufficientBalance(totalBeforePromo);
       if (!sufficient) {
         toastInsufficientBalance();
-        setLoading(false);
         return;
       }
       if (purchaseViaTicket) {
@@ -150,7 +163,8 @@ export function VpsPlansTab({
           await purchaseTurbovdsViaTicketAction(form);
         }
       } else {
-        await deployVpsAction(form);
+        const result = await deployVpsAction(form);
+        if (result?.vpsId) setCreatedVpsId(result.vpsId);
       }
       setPurchaseSuccessOpen(true);
     } catch (err) {
@@ -159,6 +173,7 @@ export function VpsPlansTab({
         setError(message ? getPromoErrorMessage(message, t) : t("plans.deployFailed"));
       }
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
@@ -311,8 +326,17 @@ export function VpsPlansTab({
                 className="font-mono uppercase"
               />
             </div>
+            {!deployAvailable && (
+              <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                {unavailableMessage ?? t("plans.deployFailed")}
+              </p>
+            )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading || !selectedPlan}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || !selectedPlan || !deployAvailable || availableLocations.length === 0}
+            >
               {loading
                 ? purchaseViaTicket
                   ? t("plans.processing")
@@ -326,6 +350,8 @@ export function VpsPlansTab({
       <PurchaseSuccessDialog
         open={purchaseSuccessOpen}
         onOpenChange={setPurchaseSuccessOpen}
+        primaryHref={createdVpsId ? `/vps/${createdVpsId}` : undefined}
+        primaryLabel={createdVpsId ? "Open VPS" : undefined}
       />
     </div>
   );

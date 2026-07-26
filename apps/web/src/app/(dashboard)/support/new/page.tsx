@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/auth";
 import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { NewTicketForm } from "@/components/support/new-ticket-form";
+import { SupportContactsBanner } from "@/components/support/support-contacts-banner";
 
 export default async function NewSupportTicketPage() {
   await requireSession();
@@ -17,7 +18,10 @@ export default async function NewSupportTicketPage() {
         ]}
       />
       <PageContainer className="max-w-2xl">
-        <NewTicketForm />
+        <div className="flex flex-col gap-4">
+          <SupportContactsBanner />
+          <NewTicketForm />
+        </div>
       </PageContainer>
     </>
   );

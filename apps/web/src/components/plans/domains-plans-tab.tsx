@@ -93,6 +93,15 @@ export function DomainsPlansTab({
         return;
       }
       const result = await registerDomainAction(domain, 1);
+      if (!result.ok) {
+        setPurchaseError(result.error);
+        pushToast({
+          variant: "error",
+          title: t("domains.registerFailed"),
+          description: result.error,
+        });
+        return;
+      }
       pushToast({
         variant: "success",
         title: t("domains.registerSuccessTitle"),

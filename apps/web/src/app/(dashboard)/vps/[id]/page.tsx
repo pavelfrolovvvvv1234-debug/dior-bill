@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { LocalDateTime } from "@/components/ui/local-datetime";
 import { VpsDetailPanel } from "./vps-detail-panel";
+import { VpsProvisioningRefresh } from "@/components/vps/vps-provisioning-refresh";
 import { Terminal } from "lucide-react";
 
 export default async function VpsDetailPage({
@@ -41,6 +42,8 @@ export default async function VpsDetailPage({
       sshCommand: null,
       rdpTarget: null,
       proxmoxVmid: vps.proxmoxVmid,
+      provider: vps.provider ?? "proxmox",
+      externalId: vps.externalId,
       serviceStatus: vps.service.status,
       rescueMode: vps.rescueMode,
       canManage: false,
@@ -48,9 +51,19 @@ export default async function VpsDetailPage({
   ]);
 
   const osLabel = formatVpsOsLabel(vps.os);
-  const isActive = vps.service.status === "ACTIVE";
-  const isProvisioning =
-    vps.service.status === "PENDING" || vps.service.status === "PROVISIONING";
+  const status = vps.service.status;
+  const isActive = status === "ACTIVE";
+  const isProvisioning = status === "PENDING" || status === "PROVISIONING";
+  const isHostVds = (vps.provider ?? "proxmox") === "hostvds";
+  const linked = isHostVds ? Boolean(vps.externalId) : Boolean(vps.proxmoxVmid);
+  const providerLabel = isHostVds ? "Standard" : "Bulletproof";
+  const canDelete =
+    isHostVds &&
+    ["ACTIVE", "FAILED", "SUSPENDED", "ROLLBACK", "EXPIRED", "PENDING", "PROVISIONING"].includes(
+      status,
+    );
+  const powerDisabled =
+    isProvisioning || status === "REINSTALLING" || !linked || !isActive;
 
   return (
     <>
@@ -63,6 +76,9 @@ export default async function VpsDetailPage({
         ]}
       />
       <PageContainer>
+        <div className="mb-4">
+          <VpsProvisioningRefresh status={vps.service.status} />
+        </div>
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <Card className="glass">
@@ -76,8 +92,8 @@ export default async function VpsDetailPage({
                 {[
                   ["Hostname", vps.hostname],
                   ["Primary IP", vps.primaryIp ?? "—"],
-                  ["VM ID", vps.proxmoxVmid?.toString() ?? "—"],
-                  ["Node", vps.node?.name ?? "—"],
+                  ["Type", providerLabel],
+                  ["Node", vps.node?.name ?? (isHostVds ? "Cloud" : "—")],
                   ["Location", vps.location?.name ?? "—"],
                   ["OS", osLabel],
                   [
@@ -85,11 +101,22 @@ export default async function VpsDetailPage({
                     `${vps.cpuCores} vCPU · ${vps.ramMb / 1024} GB RAM · ${vps.diskGb} GB disk`,
                   ],
                   ["Bandwidth", `${vps.bandwidthTb} TB / mo`],
-                  ["Renews", vps.service.renewsAt ? <LocalDateTime value={vps.service.renewsAt} mode="date" /> : "—"],
+                  [
+                    "Created",
+                    <LocalDateTime key="created" value={vps.createdAt} mode="date" />,
+                  ],
+                  [
+                    "Renews",
+                    vps.service.renewsAt ? (
+                      <LocalDateTime key="renews" value={vps.service.renewsAt} mode="date" />
+                    ) : (
+                      "—"
+                    ),
+                  ],
                 ].map(([k, v]) => (
                   <div key={String(k)}>
                     <p className="text-xs text-muted-foreground">{k}</p>
-                    <p className="font-medium">{v}</p>
+                    <p className="font-medium break-all">{v}</p>
                   </div>
                 ))}
               </CardContent>
@@ -117,8 +144,9 @@ export default async function VpsDetailPage({
                 ))}
                 {isActive && vps.cpuUsage === 0 && vps.ramUsage === 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Metrics refresh when you open this page. If the server is idle, usage may
-                    show 0%.
+                    {isHostVds
+                      ? "Live usage graphs are not available for Standard VPS yet. Connect via SSH to check load."
+                      : "Metrics refresh when you open this page. If the server is idle, usage may show 0%."}
                   </p>
                 )}
               </CardContent>
@@ -135,7 +163,7 @@ export default async function VpsDetailPage({
                     <p>
                       Connect from your terminal with the SSH command in{" "}
                       <strong className="text-foreground">Access credentials</strong> (right
-                      column). Default port: <span className="font-mono">22</span>.
+                      column). Default port: <span className="font-mono">{access.sshPort}</span>.
                     </p>
                     <p className="rounded-lg border border-white/8 bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-300">
                       {access.sshCommand}
@@ -164,7 +192,10 @@ export default async function VpsDetailPage({
                   vpsId={vps.id}
                   access={access}
                   osLabel={osLabel}
-                  actionsDisabled={isProvisioning || !vps.proxmoxVmid}
+                  actionsDisabled={powerDisabled}
+                  allowDelete={isHostVds}
+                  deleteDisabled={!canDelete}
+                  hideRescue={isHostVds}
                 />
               </CardContent>
             </Card>

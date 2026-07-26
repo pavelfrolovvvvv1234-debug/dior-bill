@@ -148,10 +148,16 @@ export async function createServiceOrder(params: {
   });
 
   if (params.activateImmediately && params.type !== "VPS") {
+    // FSM requires PENDING → PROVISIONING → ACTIVE (direct PENDING → ACTIVE is invalid).
+    await transitionServiceLifecycle({
+      serviceId: service.id,
+      to: "PROVISIONING",
+      idempotencyKey: `lifecycle:immediate:prov:${params.idempotencyKey}`,
+    });
     await transitionServiceLifecycle({
       serviceId: service.id,
       to: "ACTIVE",
-      idempotencyKey: `lifecycle:immediate:${params.idempotencyKey}`,
+      idempotencyKey: `lifecycle:immediate:active:${params.idempotencyKey}`,
     });
   }
 

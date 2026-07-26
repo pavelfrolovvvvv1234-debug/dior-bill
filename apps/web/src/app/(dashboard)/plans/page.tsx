@@ -1,6 +1,13 @@
 import { Suspense } from "react";
 import { requireSession } from "@/lib/auth";
-import { getDedicatedInventory, getLocations, getWallet } from "@dior/backend";
+import {
+  filterOsOptionsByHostVdsImageMap,
+  filterOsOptionsByTemplateMap,
+  getDedicatedInventory,
+  getLocations,
+  getWallet,
+  isHostVdsConfigured,
+} from "@dior/backend";
 import { I18nPageHeader } from "@/components/i18n/i18n-page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { PlansHub } from "@/components/plans/plans-hub";
@@ -11,7 +18,6 @@ import {
   STANDARD_VPS_OS_OPTIONS,
   type VpsOsOption,
 } from "@/lib/vps-os-options";
-import { filterOsOptionsByTemplateMap } from "@dior/backend";
 
 export default async function SelectPlanPage({
   searchParams,
@@ -28,12 +34,15 @@ export default async function SelectPlanPage({
     getWallet(session.user.id),
   ]);
 
+  const hostVdsAvailable = isHostVdsConfigured();
   const bulletproofOsOptions = filterOsOptionsByTemplateMap([
     ...BULLETPROOF_VPS_OS_OPTIONS,
   ]) as VpsOsOption[];
-  const standardOsOptions = filterOsOptionsByTemplateMap([
-    ...STANDARD_VPS_OS_OPTIONS,
-  ]) as VpsOsOption[];
+  const standardOsOptions = (
+    hostVdsAvailable
+      ? filterOsOptionsByHostVdsImageMap([...STANDARD_VPS_OS_OPTIONS])
+      : []
+  ) as VpsOsOption[];
   const fallbackOs: VpsOsOption[] = [{ value: "debian-12", label: "Debian 12" }];
 
   return (
@@ -60,8 +69,13 @@ export default async function SelectPlanPage({
               bulletproofOsOptions.length ? bulletproofOsOptions : fallbackOs
             }
             standardOsOptions={
-              standardOsOptions.length ? standardOsOptions : fallbackOs
+              standardOsOptions.length
+                ? standardOsOptions
+                : hostVdsAvailable
+                  ? fallbackOs
+                  : [...STANDARD_VPS_OS_OPTIONS]
             }
+            hostVdsAvailable={hostVdsAvailable}
           />
         </Suspense>
       </PageContainer>

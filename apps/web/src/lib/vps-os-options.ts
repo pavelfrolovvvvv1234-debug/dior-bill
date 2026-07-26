@@ -3,13 +3,19 @@ export type VpsOsOption = {
   label: string;
 };
 
-export const DEFAULT_VPS_OS = "debian-12";
+export const DEFAULT_VPS_OS = "ubuntu-24.04";
 
-/** Default Linux images for TurboVDS and legacy deploy flows */
+/** HostVDS / standard VPS Linux images (names resolved via Glance in region). */
 export const STANDARD_VPS_OS_OPTIONS: readonly VpsOsOption[] = [
-  { value: "debian-12", label: "Debian 12" },
-  { value: "ubuntu-22.04", label: "Ubuntu 22.04" },
   { value: "ubuntu-24.04", label: "Ubuntu 24.04" },
+  { value: "ubuntu-22.04", label: "Ubuntu 22.04" },
+  { value: "debian-13", label: "Debian 13" },
+  { value: "debian-12", label: "Debian 12" },
+  { value: "debian-11", label: "Debian 11" },
+  { value: "almalinux-8", label: "AlmaLinux 8" },
+  { value: "almalinux-9", label: "AlmaLinux 9" },
+  { value: "rocky-linux", label: "Rocky Linux 9" },
+  { value: "centos-9", label: "CentOS 9" },
 ];
 
 /** Full catalog for Bulletproof VPS/VDS */

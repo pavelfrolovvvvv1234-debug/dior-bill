@@ -30,6 +30,7 @@ import {
   isSharedIpRegistryEnabled,
   isSharedIpRegistryRequired,
   isProxmoxConfigured,
+  isHostVdsConfigured,
   syncProxmoxClusterToRegistry,
   resolveProxmoxNetwork,
 } from "@dior/backend";
@@ -46,7 +47,7 @@ async function processVpsProvision(payload: {
 
   const vps = await prisma.vpsInstance.findUnique({
     where: { id: payload.vpsId },
-    select: { primaryIp: true },
+    select: { primaryIp: true, provider: true },
   });
   const service = await prisma.service.findUnique({
     where: { id: payload.serviceId },
@@ -103,10 +104,16 @@ async function run() {
   console.log("Dior worker started (event-driven control plane)");
   console.log(
     `[worker] proxmox=${isProxmoxConfigured() ? "yes" : "NO"} ` +
+      `hostvds=${isHostVdsConfigured() ? "yes" : "NO"} ` +
       `sharedIpRegistry=${isSharedIpRegistryEnabled() ? "yes" : "no"} ` +
       `requireRegistry=${isSharedIpRegistryRequired() ? "yes" : "no"} ` +
       `cwd=${process.cwd()}`,
   );
+  if (!isHostVdsConfigured()) {
+    console.warn(
+      "[worker] HostVDS not configured — Standard VPS (HostVDS) orders will fail until HOSTVDS_* env is set",
+    );
+  }
   if (isSharedIpRegistryRequired() && !isProxmoxConfigured()) {
     console.warn(
       "[worker] PROXMOX_REQUIRE_SHARED_IP_REGISTRY=1 but Proxmox API creds missing — " +
@@ -220,16 +227,37 @@ async function run() {
             break;
           case "vps.reboot": {
             const { vpsId } = job.payload as { vpsId: string };
-            await rebootVpsOnProxmox(vpsId);
+            const row = await prisma.vpsInstance.findUnique({
+              where: { id: vpsId },
+              select: { provider: true, externalId: true, service: { select: { userId: true } } },
+            });
+            if (row?.provider === "hostvds") {
+              const { vpsAction } = await import("@dior/backend");
+              await vpsAction(vpsId, row.service.userId, "reboot");
+            } else {
+              await rebootVpsOnProxmox(vpsId);
+            }
             break;
           }
           case "vps.reinstall": {
             const payload = job.payload as { vpsId: string; os?: string; userId?: string };
             const vps = await prisma.vpsInstance.findUnique({
               where: { id: payload.vpsId },
-              select: { service: { select: { userId: true } } },
+              select: {
+                provider: true,
+                service: { select: { userId: true } },
+              },
             });
-            if (vps) {
+            if (!vps) break;
+            if (vps.provider === "hostvds") {
+              const { vpsAction } = await import("@dior/backend");
+              await vpsAction(
+                payload.vpsId,
+                payload.userId ?? vps.service.userId,
+                "reinstall",
+                { os: payload.os },
+              );
+            } else {
               await reinstallVpsOnProxmox(
                 payload.vpsId,
                 payload.userId ?? vps.service.userId,

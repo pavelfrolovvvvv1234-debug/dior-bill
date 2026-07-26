@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { assertSufficientBalance } from "@/app/actions/order";
 import { getLocations, provisionVps, quoteOrderPromo } from "@dior/backend";
-import { VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
+import { VPS_PLANS, TURBO_VPS_PLANS, STANDARD_VPS_PLANS } from "@/lib/vps-plans";
 import { isLocationAllowedForBulletproofPlan } from "@/lib/vps-plan-locations";
 import { rethrowServerActionError } from "@/lib/server-action-error";
 import {
@@ -15,7 +15,7 @@ import {
   normalizeBpNetworkMbps,
 } from "@dior/shared";
 
-const ALL_VPS_PLANS = [...VPS_PLANS, ...TURBO_VPS_PLANS];
+const ALL_VPS_PLANS = [...VPS_PLANS, ...TURBO_VPS_PLANS, ...STANDARD_VPS_PLANS];
 
 export async function getVpsOrderOptions() {
   await requireSession();
@@ -24,6 +24,7 @@ export async function getVpsOrderOptions() {
     locations,
     plans: VPS_PLANS,
     turboPlans: TURBO_VPS_PLANS,
+    standardPlans: STANDARD_VPS_PLANS,
   };
 }
 
@@ -36,22 +37,27 @@ export async function deployVpsAction(formData: FormData) {
     const planId = String(formData.get("planId") ?? "");
     const os = String(formData.get("os") ?? "debian-12");
     const promoCode = String(formData.get("promoCode") ?? "").trim() || undefined;
-
     const plan = ALL_VPS_PLANS.find((p) => p.id === planId);
     if (!hostname || !locationId || !plan) {
       throw new Error("Fill hostname, location, and plan");
     }
 
+    // Provider is resolved from catalog only — never trust client FormData.
     const isBulletproofInstant = VPS_PLANS.some((p) => p.id === planId);
+    const isStandardHostVds = STANDARD_VPS_PLANS.some((p) => p.id === planId);
+
     let networkMbps = BP_NETWORK_BASE_MBPS;
-    if (isBulletproofInstant) {
+    if (isBulletproofInstant && !isStandardHostVds) {
       networkMbps = normalizeBpNetworkMbps(formData.get("networkMbps"));
       if (!isValidBpNetworkMbps(networkMbps)) {
         throw new Error("Invalid network speed");
       }
     }
 
-    const networkAddon = isBulletproofInstant ? calcBpNetworkMonthlyAddon(networkMbps) : 0;
+    const networkAddon =
+      isBulletproofInstant && !isStandardHostVds
+        ? calcBpNetworkMonthlyAddon(networkMbps)
+        : 0;
     const monthlySubtotal = plan.price + networkAddon;
 
     const locations = await getLocations();
@@ -60,7 +66,8 @@ export async function deployVpsAction(formData: FormData) {
       throw new Error("Invalid location");
     }
     if (
-      VPS_PLANS.some((p) => p.id === planId) &&
+      isBulletproofInstant &&
+      !isStandardHostVds &&
       !isLocationAllowedForBulletproofPlan(planId, location.code)
     ) {
       throw new Error("This location is not available for the selected plan");
@@ -73,8 +80,12 @@ export async function deployVpsAction(formData: FormData) {
     }
     await assertSufficientBalance(chargeAmount);
 
+    const resolvedProvider = isStandardHostVds ? "hostvds" : "proxmox";
+
     const idempotencyKey = createHash("sha256")
-      .update(`${session.user.id}:${hostname}:${locationId}:${planId}:${os}:${networkMbps}`)
+      .update(
+        `${session.user.id}:${hostname}:${locationId}:${planId}:${os}:${networkMbps}:${resolvedProvider}`,
+      )
       .digest("hex")
       .slice(0, 32);
 
@@ -93,7 +104,9 @@ export async function deployVpsAction(formData: FormData) {
       prepaid: true,
       promoCode,
       idempotencyKey,
-      networkMbps: isBulletproofInstant ? networkMbps : undefined,
+      networkMbps: resolvedProvider === "proxmox" && isBulletproofInstant ? networkMbps : undefined,
+      provider: resolvedProvider,
+      planId,
     });
 
     revalidatePath("/services");

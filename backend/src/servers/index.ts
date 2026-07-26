@@ -54,6 +54,7 @@ export async function getVpsById(vpsId: string, userId: string) {
 
 export async function refreshVpsLiveMetrics(vpsId: string, userId: string): Promise<void> {
   const vps = await getVpsById(vpsId, userId);
+  if (vps.provider === "hostvds") return;
   if (vps.service.status !== "ACTIVE" || !vps.proxmoxVmid) return;
   const { syncVpsMetricsFromProxmox, isProxmoxConfigured } = await import("../proxmox");
   if (!isProxmoxConfigured()) return;
@@ -81,31 +82,61 @@ export async function provisionVps(params: {
   promoCode?: string;
   /** Bulletproof VPS: configurable uplink speed (150–1000 Mbps). */
   networkMbps?: number;
+  /** Compute backend — default proxmox (bulletproof). */
+  provider?: "proxmox" | "hostvds";
+  /** Catalog plan id (used for HostVDS flavor map). */
+  planId?: string;
 }) {
   await assertBillingAllowed(params.userId);
 
-  await ensureBulletproofVpsLocations();
+  const provider = params.provider ?? "proxmox";
+
+  if (provider === "hostvds") {
+    const { isHostVdsConfigured } = await import("../hostvds");
+    if (!isHostVdsConfigured()) {
+      throw new ValidationError(
+        "Standard VPS is temporarily unavailable — HostVDS is not configured",
+      );
+    }
+    await ensureStandardVpsLocations();
+  } else {
+    await ensureBulletproofVpsLocations();
+  }
 
   const location = await prisma.location.findUnique({ where: { id: params.locationId } });
   if (!location?.active) throw new ValidationError("Location unavailable");
 
   const os = params.os ?? "debian-12";
-  if (isProxmoxConfigured()) {
+  if (provider === "proxmox" && isProxmoxConfigured()) {
     assertOsHasTemplate(os);
   }
+  if (provider === "hostvds") {
+    const { resolveHostVdsImageId, resolveHostVdsFlavorId } = await import("../hostvds");
+    resolveHostVdsImageId(os);
+    resolveHostVdsFlavorId({
+      planId: params.planId,
+      cpuCores: params.plan.cpuCores,
+      ramMb: params.plan.ramMb,
+      diskGb: params.plan.diskGb,
+    });
+  }
 
-  const networkMbps = normalizeBpNetworkMbps(params.networkMbps ?? BP_NETWORK_BASE_MBPS);
-  if (!isValidBpNetworkMbps(networkMbps)) {
+  const networkMbps =
+    provider === "proxmox"
+      ? normalizeBpNetworkMbps(params.networkMbps ?? BP_NETWORK_BASE_MBPS)
+      : BP_NETWORK_BASE_MBPS;
+  if (provider === "proxmox" && !isValidBpNetworkMbps(networkMbps)) {
     throw new ValidationError("Invalid network speed");
   }
-  const networkAddon = calcBpNetworkMonthlyAddon(networkMbps);
+  const networkAddon =
+    provider === "proxmox" ? calcBpNetworkMonthlyAddon(networkMbps) : 0;
   const monthlyTotal = params.plan.price + networkAddon;
 
   const idempotencyKey =
     params.idempotencyKey ??
     createHash("sha256")
       .update(
-        `${params.userId}:${params.hostname}:${params.locationId}:${params.plan.cpuCores}:${params.plan.ramMb}:${params.plan.diskGb}:${networkMbps}`,
+        `${params.userId}:${params.hostname}:${params.locationId}:${params.plan.cpuCores}:${params.plan.ramMb}:${params.plan.diskGb}:${networkMbps}:${provider}`,
       )
       .digest("hex")
       .slice(0, 32);
@@ -144,7 +175,8 @@ export async function provisionVps(params: {
     );
   }
 
-  const node = await selectNodeForProvisioning(params.locationId);
+  const node =
+    provider === "hostvds" ? null : await selectNodeForProvisioning(params.locationId);
 
   const { serviceId } = await createServiceOrder({
     userId: params.userId,
@@ -152,13 +184,19 @@ export async function provisionVps(params: {
     label: params.hostname,
     monthlyPrice: monthlyTotal,
     idempotencyKey,
-    metadata: { locationId: params.locationId, os: params.os, networkMbps },
+    metadata: {
+      locationId: params.locationId,
+      os: params.os,
+      networkMbps,
+      provider,
+      planId: params.planId,
+    },
   });
 
   const vps = await prisma.vpsInstance.create({
     data: {
       serviceId,
-      nodeId: node.id,
+      nodeId: node?.id,
       locationId: params.locationId,
       hostname: params.hostname,
       os: os,
@@ -166,10 +204,13 @@ export async function provisionVps(params: {
       ramMb: params.plan.ramMb,
       diskGb: params.plan.diskGb,
       bandwidthTb: params.plan.bandwidthTb,
+      provider,
       cloudInit:
-        networkMbps > BP_NETWORK_BASE_MBPS
-          ? { networkMbps }
-          : undefined,
+        provider === "proxmox" && networkMbps > BP_NETWORK_BASE_MBPS
+          ? { networkMbps, planId: params.planId }
+          : params.planId
+            ? { planId: params.planId }
+            : undefined,
     },
   });
 
@@ -249,10 +290,11 @@ export async function provisionVps(params: {
 export async function vpsAction(
   vpsId: string,
   userId: string,
-  action: "reboot" | "reinstall" | "rescue" | "reset_password" | "start" | "stop",
+  action: "reboot" | "reinstall" | "rescue" | "reset_password" | "start" | "stop" | "delete",
   options?: { os?: string },
 ) {
   const vps = await getVpsById(vpsId, userId);
+  const isHostVds = vps.provider === "hostvds";
 
   await createAuditLog({
     actorId: userId,
@@ -261,7 +303,149 @@ export async function vpsAction(
     entityId: vpsId,
   });
 
+  if (isHostVds) {
+    const {
+      isHostVdsConfigured,
+      hostVdsRebootServer,
+      hostVdsStartServer,
+      hostVdsStopServer,
+      hostVdsRebuildServer,
+      hostVdsDeleteServer,
+      resolveHostVdsImageName,
+      generateHostVdsPassword,
+      buildHostVdsCloudInitUserData,
+    } = await import("../hostvds");
+    const { resolveImage } = await import("../hostvds/resolve");
+
+    const status = vps.service.status;
+
+    if (action === "rescue") {
+      throw new ValidationError("Rescue mode is not available for HostVDS servers");
+    }
+
+    if (action === "delete") {
+      const toDeleted = ["ACTIVE", "FAILED", "SUSPENDED", "ROLLBACK", "EXPIRED"];
+      const toCancelled = ["PENDING", "PROVISIONING"];
+      if (!toDeleted.includes(status) && !toCancelled.includes(status)) {
+        throw new ValidationError(`Cannot delete VPS while status is ${status}`);
+      }
+      if (vps.externalId) {
+        if (!isHostVdsConfigured()) {
+          throw new ValidationError(
+            "Cannot delete remote server — HostVDS is not configured. Contact support.",
+          );
+        }
+        await hostVdsDeleteServer(vps.externalId);
+      }
+      await prisma.vpsInstance.update({
+        where: { id: vpsId },
+        data: { externalId: null, primaryIp: null },
+      });
+      const { cancelSubscription } = await import("../core/billing/subscriptions");
+      await cancelSubscription(vps.serviceId, `vps:delete:sub:${vpsId}`).catch(() => undefined);
+      const { transitionServiceLifecycle } = await import("../core/provisioning/engine");
+      const target = toCancelled.includes(status) ? "CANCELLED" : "DELETED";
+      await transitionServiceLifecycle({
+        serviceId: vps.serviceId,
+        to: target,
+        reason: "customer_delete",
+        actorId: userId,
+        idempotencyKey: `vps:delete:${vpsId}`,
+      });
+      return { success: true };
+    }
+
+    if (!isHostVdsConfigured()) {
+      throw new ValidationError("HostVDS is not configured on the server");
+    }
+    if (!vps.externalId) {
+      throw new ValidationError("VPS is not linked to HostVDS yet (wait for provisioning)");
+    }
+    if (status !== "ACTIVE" && action !== "reset_password") {
+      throw new ValidationError(`Cannot ${action} while status is ${status}`);
+    }
+
+    switch (action) {
+      case "reboot":
+        await hostVdsRebootServer(vps.externalId);
+        break;
+      case "start":
+        await hostVdsStartServer(vps.externalId);
+        break;
+      case "stop":
+        await hostVdsStopServer(vps.externalId);
+        break;
+      case "reinstall": {
+        const os = options?.os ?? vps.os;
+        const password = generateHostVdsPassword();
+        const { transitionServiceLifecycle } = await import("../core/provisioning/engine");
+        const attemptKey = createHash("sha256")
+          .update(`${vpsId}:${os}:${Date.now()}`)
+          .digest("hex")
+          .slice(0, 16);
+        await transitionServiceLifecycle({
+          serviceId: vps.serviceId,
+          to: "REINSTALLING",
+          reason: "customer_reinstall",
+          actorId: userId,
+          idempotencyKey: `vps:reinstall:start:${vpsId}:${attemptKey}`,
+        });
+        try {
+          const imageRef = await resolveImage(resolveHostVdsImageName(os));
+          await hostVdsRebuildServer(
+            vps.externalId,
+            imageRef,
+            password,
+            buildHostVdsCloudInitUserData(password),
+          );
+          await prisma.vpsInstance.update({
+            where: { id: vpsId },
+            data: { os, rootPasswordEnc: encrypt(password) },
+          });
+          await transitionServiceLifecycle({
+            serviceId: vps.serviceId,
+            to: "ACTIVE",
+            reason: "reinstall_complete",
+            actorId: userId,
+            idempotencyKey: `vps:reinstall:done:${vpsId}:${attemptKey}`,
+          });
+        } catch (err) {
+          await transitionServiceLifecycle({
+            serviceId: vps.serviceId,
+            to: "FAILED",
+            reason: "reinstall_failed",
+            actorId: userId,
+            idempotencyKey: `vps:reinstall:fail:${vpsId}:${attemptKey}`,
+          }).catch(() => undefined);
+          throw err;
+        }
+        break;
+      }
+      case "reset_password": {
+        // Nova changePassword is unreliable on cloud images — rebuild with cloud-init.
+        const password = generateHostVdsPassword();
+        const imageRef = await resolveImage(resolveHostVdsImageName(vps.os));
+        await hostVdsRebuildServer(
+          vps.externalId,
+          imageRef,
+          password,
+          buildHostVdsCloudInitUserData(password),
+        );
+        await prisma.vpsInstance.update({
+          where: { id: vpsId },
+          data: { rootPasswordEnc: encrypt(password) },
+        });
+        return { success: true, passwordResetQueued: false, passwordSynced: true };
+      }
+      default:
+        throw new ValidationError(`Unsupported action: ${action}`);
+    }
+    return { success: true };
+  }
+
   switch (action) {
+    case "delete":
+      throw new ValidationError("Delete is not available for this VPS type");
     case "reboot":
       if (isProxmoxConfigured() && vps.proxmoxVmid) {
         await rebootVpsOnProxmox(vpsId, userId);

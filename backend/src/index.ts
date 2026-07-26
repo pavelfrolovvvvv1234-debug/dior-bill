@@ -38,6 +38,7 @@ export {
 export * from "./infrastructure";
 export * from "./provisioning/state-machine";
 export * from "./proxmox";
+export * from "./hostvds";
 export * from "./service-events";
 export * from "./core";
 export * from "./audit";

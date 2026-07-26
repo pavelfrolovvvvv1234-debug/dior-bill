@@ -396,6 +396,10 @@ model VpsInstance {
   diskUsage       Float    @default(0) @map("disk_usage")
   uptimeSeconds   BigInt   @default(0) @map("uptime_seconds")
   proxmoxVmid     Int?     @map("proxmox_vmid")
+  /** Compute backend: proxmox (bulletproof) | hostvds (standard OpenStack) */
+  provider        String   @default("proxmox")
+  /** HostVDS / OpenStack server UUID (or other external id) */
+  externalId      String?  @map("external_id")
   rootPasswordEnc String?  @map("root_password_enc")
   rescueMode      Boolean  @default(false) @map("rescue_mode")
   cloudInit       Json?    @map("cloud_init")
@@ -408,6 +412,8 @@ model VpsInstance {
   @@index([nodeId])
   @@index([locationId])
   @@index([primaryIp])
+  @@index([provider])
+  @@index([externalId])
   @@map("vps_instances")
 }
 
@@ -483,11 +489,15 @@ model Domain {
   autoRenew    Boolean      @default(true) @map("auto_renew")
   nameservers  Json?
   dnsRecords   Json?        @map("dns_records")
+  /** Amper DNS (dns-node) zone id when attached to our DNS */
+  amperDnsId   String?      @map("amper_dns_id")
+  dnsManaged   Boolean      @default(false) @map("dns_managed")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
   @@index([expiresAt])
   @@index([status])
+  @@index([amperDnsId])
   @@map("domains")
 }
 

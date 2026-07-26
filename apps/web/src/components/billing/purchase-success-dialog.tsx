@@ -18,12 +18,19 @@ export function PurchaseSuccessDialog({
   open,
   onOpenChange,
   servicesHref = "/services",
+  primaryHref,
+  primaryLabel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   servicesHref?: string;
+  /** Prefer deep-link to the new resource (e.g. /vps/{id}). */
+  primaryHref?: string;
+  primaryLabel?: string;
 }) {
   const { t } = useI18n();
+  const href = primaryHref ?? servicesHref;
+  const label = primaryLabel ?? t("purchase.goToServices");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,8 +61,8 @@ export function PurchaseSuccessDialog({
 
         <DialogFooter className="border-t border-border sm:flex-col sm:gap-2">
           <Button type="button" className="w-full" asChild>
-            <Link href={servicesHref} onClick={() => onOpenChange(false)}>
-              {t("purchase.goToServices")}
+            <Link href={href} onClick={() => onOpenChange(false)}>
+              {label}
             </Link>
           </Button>
           <Button

@@ -107,4 +107,15 @@ export {
   registerDomainViaAmper,
 } from "./amper-service";
 
+export {
+  getDomainDnsStatus,
+  attachDomainToAmperDns,
+  listDomainDnsRecords,
+  createDomainDnsRecord,
+  deleteDomainDnsRecord,
+  getDomainSslStatus,
+  issueDomainSsl,
+} from "./dns-manage";
+
 export { verifyAmperIntegration, isAmperConfigured } from "../amper";
+export { isAmperDnsConfigured } from "../amper-dns";

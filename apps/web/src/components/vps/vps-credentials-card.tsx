@@ -56,6 +56,7 @@ export function VpsCredentialsCard({ initial, osLabel }: Props) {
               </p>
             )}
             <CopyField label="IP address" value={access.host} mono />
+            <CopyField label="SSH port" value={String(access.sshPort ?? 22)} mono />
             {access.sshCommand && (
               <CopyField label="SSH command" value={access.sshCommand} mono />
             )}
@@ -65,9 +66,6 @@ export function VpsCredentialsCard({ initial, osLabel }: Props) {
                 value={`${access.rdpTarget}:3389`}
                 mono
               />
-            )}
-            {access.proxmoxVmid && (
-              <p className="text-xs text-muted-foreground">VM ID: {access.proxmoxVmid}</p>
             )}
           </>
         )}

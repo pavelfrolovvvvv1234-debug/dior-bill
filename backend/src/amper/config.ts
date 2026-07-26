@@ -15,8 +15,8 @@ export function getAmperApiToken(): string {
 }
 
 export function getAmperTimeoutMs(): number {
-  const n = Number(process.env.AMPER_API_TIMEOUT_MS ?? 8000);
-  return Number.isFinite(n) && n > 0 ? n : 8000;
+  const n = Number(process.env.AMPER_API_TIMEOUT_MS ?? 30_000);
+  return Number.isFinite(n) && n > 0 ? n : 30_000;
 }
 
 export function isAmperConfigured(): boolean {

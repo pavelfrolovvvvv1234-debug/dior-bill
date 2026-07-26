@@ -10,3 +10,5 @@ dist
 coverage
 .vercel
 .local-mysql
+.mysql-data
+.mariadb-data

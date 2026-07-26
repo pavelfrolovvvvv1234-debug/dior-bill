@@ -3,6 +3,7 @@ import {
   amperGetDomainPrices,
   amperGetAccount,
   amperRegisterDomain,
+  amperGetDomain,
   amperSearchDomain,
   amperBulkSearchDomains,
   amperSetNameservers,
@@ -17,6 +18,7 @@ import { createServiceOrder } from "../core/provisioning/engine";
 import { createSubscription } from "../core/billing/subscriptions";
 import { prisma } from "@dior/database";
 import { createHash } from "crypto";
+
 export type DomainAvailabilityResult = {
   domain: string;
   available: boolean;
@@ -132,6 +134,111 @@ export async function getLiveTldPrices(): Promise<
   }));
 }
 
+function domainIdempotencyKey(userId: string, domainName: string): string {
+  return createHash("sha256")
+    .update(`domain:${userId}:${domainName}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+async function findExistingLocalDomain(domainName: string, userId: string) {
+  return prisma.domain.findFirst({
+    where: { domainName, service: { userId } },
+    include: { service: true },
+  });
+}
+
+async function provisionLocalDomain(params: {
+  userId: string;
+  domainName: string;
+  retailPrice: number;
+  years: number;
+  idem: string;
+}) {
+  const expiresAt = new Date();
+  expiresAt.setFullYear(expiresAt.getFullYear() + params.years);
+
+  const { serviceId } = await createServiceOrder({
+    userId: params.userId,
+    type: "DOMAIN",
+    label: params.domainName,
+    monthlyPrice: params.retailPrice / 12,
+    idempotencyKey: params.idem,
+    activateImmediately: true,
+  });
+
+  await createSubscription({
+    serviceId,
+    nextRenewAt: expiresAt,
+    idempotencyKey: `domain:sub:${params.idem}`,
+  });
+
+  let nameservers: string[] = ["ns1.dior.cloud", "ns2.dior.cloud"];
+  try {
+    const ns = await amperGetNameservers(params.domainName);
+    if (ns.length > 0) nameservers = ns;
+  } catch {
+    /* use defaults */
+  }
+
+  const existingRow = await prisma.domain.findUnique({ where: { domainName: params.domainName } });
+  if (existingRow) {
+    return prisma.domain.findFirstOrThrow({
+      where: { id: existingRow.id },
+      include: { service: true },
+    });
+  }
+
+  return prisma.domain.create({
+    data: {
+      serviceId,
+      domainName: params.domainName,
+      status: "ACTIVE",
+      registrar: "amper",
+      expiresAt,
+      nameservers,
+    },
+    include: { service: true },
+  });
+}
+
+async function refundDomainCharge(params: {
+  userId: string;
+  amount: number;
+  domainName: string;
+  reason: string;
+  error?: unknown;
+}) {
+  await creditWallet({
+    userId: params.userId,
+    amount: params.amount,
+    description: `Refund: domain registration failed for ${params.domainName}`,
+    metadata: {
+      domain: params.domainName,
+      reason: params.reason,
+      error:
+        params.error instanceof AmperApiError
+          ? params.error.code
+          : params.error instanceof Error
+            ? params.error.message
+            : "UNKNOWN",
+    },
+  });
+}
+
+/** True when registrar already holds this domain under our Amper account. */
+async function isOwnedAtRegistrar(domainName: string): Promise<boolean> {
+  try {
+    await amperGetDomain(domainName);
+    return true;
+  } catch (err) {
+    if (err instanceof AmperApiError && (err.code === "NOT_FOUND" || err.code === "DOMAIN_NOT_FOUND")) {
+      return false;
+    }
+    throw err;
+  }
+}
+
 export async function registerDomainViaAmper(params: {
   userId: string;
   domainName: string;
@@ -144,22 +251,23 @@ export async function registerDomainViaAmper(params: {
 
   const domainName = params.domainName.trim().toLowerCase();
   const years = params.years ?? 1;
+  const idem = domainIdempotencyKey(params.userId, domainName);
 
-  const availability = await searchDomainAvailability(domainName);
-  if (!availability.available) {
-    throw new ValidationError(`Domain ${domainName} is not available`);
+  const alreadyLocal = await findExistingLocalDomain(domainName, params.userId);
+  if (alreadyLocal) return alreadyLocal;
+
+  const otherOwner = await prisma.domain.findUnique({ where: { domainName } });
+  if (otherOwner) throw new ConflictError("Domain already registered in DIOR");
+
+  const ownedAtRegistrar = await isOwnedAtRegistrar(domainName);
+  if (!ownedAtRegistrar) {
+    const availability = await searchDomainAvailability(domainName);
+    if (!availability.available) {
+      throw new ValidationError(`Domain ${domainName} is not available`);
+    }
+    const registrarCost = availability.amperPrice > 0 ? availability.amperPrice : params.retailPrice;
+    await assertRegistrarCanRegister(registrarCost);
   }
-
-  const registrarCost = availability.amperPrice > 0 ? availability.amperPrice : params.retailPrice;
-  await assertRegistrarCanRegister(registrarCost);
-
-  const existing = await prisma.domain.findUnique({ where: { domainName } });
-  if (existing) throw new ConflictError("Domain already registered in DIOR");
-
-  const idem = createHash("sha256")
-    .update(`domain:${params.userId}:${domainName}`)
-    .digest("hex")
-    .slice(0, 32);
 
   const invoice = await createInvoiceInEngine({
     userId: params.userId,
@@ -174,66 +282,53 @@ export async function registerDomainViaAmper(params: {
   });
 
   await payInvoiceFromBalance(invoice.id, params.userId);
+  let charged = true;
 
-  try {
-    await amperRegisterDomain(domainName, years);
-  } catch (err) {
-    await creditWallet({
+  const refundIfNeeded = async (reason: string, error?: unknown) => {
+    if (!charged) return;
+    await refundDomainCharge({
       userId: params.userId,
       amount: params.retailPrice,
-      description: `Refund: domain registration failed for ${domainName}`,
-      metadata: {
-        domain: domainName,
-        error: err instanceof AmperApiError ? err.code : "AMPER_ERROR",
-      },
+      domainName,
+      reason,
+      error,
     });
-    if (err instanceof AmperApiError && err.code === "INSUFFICIENT_BALANCE") {
-      throw new ValidationError(
-        "Registrar balance is low — payment refunded. Please contact support.",
-      );
+    charged = false;
+  };
+
+  try {
+    if (!ownedAtRegistrar) {
+      try {
+        await amperRegisterDomain(domainName, years);
+      } catch (err) {
+        if (err instanceof AmperApiError && err.code === "DOMAIN_ALREADY_OWNED") {
+          /* previous attempt registered at Amper — continue local provision */
+        } else {
+          await refundIfNeeded("amper_register_failed", err);
+          if (err instanceof AmperApiError && err.code === "INSUFFICIENT_BALANCE") {
+            throw new ValidationError(
+              "Registrar balance is low — payment refunded. Please contact support.",
+            );
+          }
+          throw err;
+        }
+      }
     }
+
+    return await provisionLocalDomain({
+      userId: params.userId,
+      domainName,
+      retailPrice: params.retailPrice,
+      years,
+      idem,
+    });
+  } catch (err) {
+    const recovered = await findExistingLocalDomain(domainName, params.userId);
+    if (recovered) return recovered;
+
+    await refundIfNeeded("local_provision_failed", err);
     throw err;
   }
-
-  const expiresAt = new Date();
-  expiresAt.setFullYear(expiresAt.getFullYear() + years);
-
-  const { serviceId } = await createServiceOrder({
-    userId: params.userId,
-    type: "DOMAIN",
-    label: domainName,
-    monthlyPrice: params.retailPrice / 12,
-    idempotencyKey: idem,
-    activateImmediately: true,
-  });
-
-  await createSubscription({
-    serviceId,
-    nextRenewAt: expiresAt,
-    idempotencyKey: `domain:sub:${idem}`,
-  });
-
-  let nameservers: string[] = ["ns1.dior.cloud", "ns2.dior.cloud"];
-  try {
-    const ns = await amperGetNameservers(domainName);
-    if (ns.length > 0) nameservers = ns;
-  } catch {
-    /* use defaults */
-  }
-
-  const domain = await prisma.domain.create({
-    data: {
-      serviceId,
-      domainName,
-      status: "ACTIVE",
-      registrar: "amper",
-      expiresAt,
-      nameservers,
-    },
-    include: { service: true },
-  });
-
-  return domain;
 }
 
 export async function syncDomainNameserversToAmper(

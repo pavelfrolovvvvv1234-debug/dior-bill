@@ -2,13 +2,15 @@ import { NotFoundError } from "@dior/shared";
 import { decrypt } from "../lib/crypto";
 import { getProxmoxClient, getProxmoxNodeName } from "../proxmox/client";
 import { isProxmoxConfigured, resolveProxmoxCiUser } from "../proxmox/config";
+import { resolveHostVdsLoginUser } from "../hostvds/config";
 
 function isFakeDemoIp(address: string): boolean {
   const ip = address.trim();
   return ip.startsWith("185.234.") || /^10\.0\.\d+\.\d+$/.test(ip);
 }
 
-export function resolveVpsLoginUser(os: string): string {
+export function resolveVpsLoginUser(os: string, provider?: string | null): string {
+  if (provider === "hostvds") return resolveHostVdsLoginUser(os);
   return resolveProxmoxCiUser(os);
 }
 
@@ -31,6 +33,8 @@ export type VpsAccessInfo = {
   sshCommand: string | null;
   rdpTarget: string | null;
   proxmoxVmid: number | null;
+  provider: string;
+  externalId: string | null;
   serviceStatus: string;
   rescueMode: boolean;
   canManage: boolean;
@@ -56,6 +60,8 @@ type VpsCredentialRow = {
   os: string;
   primaryIp: string | null;
   proxmoxVmid: number | null;
+  provider?: string | null;
+  externalId?: string | null;
   rootPasswordEnc: string | null;
   service: { status: string };
   node: { proxmoxNode: string | null; name: string } | null;
@@ -83,7 +89,11 @@ export function assessVpsCredentialFields(vps: VpsCredentialRow): {
     errors.push(`primaryIp is not a valid IPv4 (${vps.primaryIp})`);
   }
 
-  if (!vps.proxmoxVmid) {
+  if (vps.provider === "hostvds") {
+    if (!vps.externalId) {
+      errors.push("externalId is missing — HostVDS server not linked");
+    }
+  } else if (!vps.proxmoxVmid) {
     errors.push("proxmoxVmid is missing — VM not linked");
   }
 
@@ -119,7 +129,7 @@ export async function validateVpsBillingCredentials(
   if (!vps) throw new NotFoundError("VPS not found");
 
   const { errors, warnings, password } = assessVpsCredentialFields(vps);
-  const username = resolveVpsLoginUser(vps.os);
+  const username = resolveVpsLoginUser(vps.os, vps.provider);
   const host = vps.primaryIp;
 
   if (isProxmoxConfigured() && vps.proxmoxVmid) {
@@ -173,7 +183,7 @@ export async function getVpsAccessInfo(vpsId: string, userId: string): Promise<V
     include: { service: true },
   });
   if (!vps) throw new NotFoundError("VPS not found");
-  const username = resolveVpsLoginUser(vps.os);
+  const username = resolveVpsLoginUser(vps.os, vps.provider);
   const host = vps.primaryIp;
 
   let password: string | null = null;
@@ -185,11 +195,11 @@ export async function getVpsAccessInfo(vpsId: string, userId: string): Promise<V
     }
   }
 
+  const linked =
+    vps.provider === "hostvds" ? Boolean(vps.externalId) : Boolean(vps.proxmoxVmid);
+
   const canManage =
-    vps.service.status === "ACTIVE" &&
-    Boolean(vps.proxmoxVmid) &&
-    Boolean(host) &&
-    Boolean(password);
+    vps.service.status === "ACTIVE" && linked && Boolean(host) && Boolean(password);
 
   return {
     username,
@@ -198,7 +208,10 @@ export async function getVpsAccessInfo(vpsId: string, userId: string): Promise<V
     sshPort: 22,
     sshCommand: host && !isWindowsVpsOs(vps.os) ? `ssh ${username}@${host}` : null,
     rdpTarget: host && isWindowsVpsOs(vps.os) ? host : null,
-    proxmoxVmid: vps.proxmoxVmid,
+    // Never expose hypervisor/provider IDs to the customer UI payload.
+    proxmoxVmid: null,
+    provider: vps.provider ?? "proxmox",
+    externalId: null,
     serviceStatus: vps.service.status,
     rescueMode: vps.rescueMode,
     canManage,

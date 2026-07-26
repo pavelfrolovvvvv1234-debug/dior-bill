@@ -49,6 +49,7 @@ interface PlansHubProps {
   spendableBalance: number;
   bulletproofOsOptions?: readonly import("@/lib/vps-os-options").VpsOsOption[];
   standardOsOptions?: readonly import("@/lib/vps-os-options").VpsOsOption[];
+  hostVdsAvailable?: boolean;
 }
 
 export type { PlanTab } from "@/lib/plan-catalog";
@@ -63,6 +64,7 @@ export function PlansHub({
   spendableBalance,
   bulletproofOsOptions = BULLETPROOF_VPS_OS_OPTIONS,
   standardOsOptions = STANDARD_VPS_OS_OPTIONS,
+  hostVdsAvailable = true,
 }: PlansHubProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -155,8 +157,13 @@ export function PlansHub({
             detailedCatalog
             osOptions={standardOsOptions}
             allowedCountryCodes={STANDARD_VPS_COUNTRY_CODES}
-            purchaseViaTicket
-            ticketKind="standard-vps"
+            computeProvider="hostvds"
+            deployAvailable={hostVdsAvailable}
+            unavailableMessage={
+              hostVdsAvailable
+                ? undefined
+                : "Standard VPS is temporarily unavailable. Please try again later or contact support."
+            }
           />
         )}
         {tab === "dedicated" && (
