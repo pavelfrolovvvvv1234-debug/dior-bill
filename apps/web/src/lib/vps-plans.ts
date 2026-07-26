@@ -1,3 +1,5 @@
+import { calcHostVdsSellPrice, DEFAULT_HOSTVDS_COST_EUR } from "@dior/shared";
+
 /** Shared network profile for bulletproof offshore VPS line */
 const BP_NETWORK = { networkMbps: 150, bandwidthLabel: "Unlimited" as const, bandwidthTb: 999 };
 
@@ -26,18 +28,26 @@ export type VpsPlan = {
   ppsDisplay?: string;
 };
 
-/** Non-abuse Standard VPS — HostVDS (OpenStack). Prices = EUR cost × markup (see hostvds/pricing). */
+function stdPrice(planId: string): number {
+  const cost = DEFAULT_HOSTVDS_COST_EUR[planId];
+  if (typeof cost !== "number") {
+    throw new Error(`Missing HostVDS EUR cost for ${planId}`);
+  }
+  return calcHostVdsSellPrice(cost);
+}
+
+/** Non-abuse Standard VPS — HostVDS. Sell = EUR cost × tiered markup (@dior/shared). */
 export const STANDARD_VPS_PLANS: readonly VpsPlan[] = [
-  { id: "std-1", name: "Lite 1", cpuCores: 1, ramMb: 1024, diskGb: 10, ...STD_VPS_NETWORK, price: 2, display: "standard" },
-  { id: "std-2", name: "Lite 2", cpuCores: 2, ramMb: 2048, diskGb: 40, ...STD_VPS_NETWORK, price: 8, display: "standard" },
-  { id: "std-3", name: "Lite 3", cpuCores: 2, ramMb: 4096, diskGb: 50, ...STD_VPS_NETWORK, price: 8, popular: true, display: "standard" },
-  { id: "std-4", name: "Elite 1", cpuCores: 4, ramMb: 8192, diskGb: 80, ...STD_VPS_NETWORK, price: 30, display: "standard" },
-  { id: "std-5", name: "Elite 2", cpuCores: 8, ramMb: 16384, diskGb: 150, ...STD_VPS_NETWORK, price: 60, display: "standard" },
-  { id: "std-6", name: "Elite 3", cpuCores: 8, ramMb: 24576, diskGb: 200, ...STD_VPS_NETWORK, price: 60, display: "standard" },
-  { id: "std-7", name: "Mega 1", cpuCores: 12, ramMb: 32768, diskGb: 250, ...STD_VPS_NETWORK, price: 60, display: "standard" },
-  { id: "std-8", name: "Mega 2", cpuCores: 16, ramMb: 65536, diskGb: 300, ...STD_VPS_NETWORK, price: 120, display: "standard" },
-  { id: "std-9", name: "Mega 3", cpuCores: 24, ramMb: 98304, diskGb: 500, ...STD_VPS_NETWORK, price: 180, display: "standard" },
-  { id: "std-10", name: "Mega 4", cpuCores: 24, ramMb: 131072, diskGb: 700, ...STD_VPS_NETWORK, price: 180, display: "standard" },
+  { id: "std-1", name: "Lite 1", cpuCores: 1, ramMb: 1024, diskGb: 10, ...STD_VPS_NETWORK, price: stdPrice("std-1"), display: "standard" },
+  { id: "std-2", name: "Lite 2", cpuCores: 2, ramMb: 2048, diskGb: 40, ...STD_VPS_NETWORK, price: stdPrice("std-2"), display: "standard" },
+  { id: "std-3", name: "Lite 3", cpuCores: 2, ramMb: 4096, diskGb: 50, ...STD_VPS_NETWORK, price: stdPrice("std-3"), popular: true, display: "standard" },
+  { id: "std-4", name: "Elite 1", cpuCores: 4, ramMb: 8192, diskGb: 80, ...STD_VPS_NETWORK, price: stdPrice("std-4"), display: "standard" },
+  { id: "std-5", name: "Elite 2", cpuCores: 8, ramMb: 16384, diskGb: 150, ...STD_VPS_NETWORK, price: stdPrice("std-5"), display: "standard" },
+  { id: "std-6", name: "Elite 3", cpuCores: 8, ramMb: 24576, diskGb: 200, ...STD_VPS_NETWORK, price: stdPrice("std-6"), display: "standard" },
+  { id: "std-7", name: "Mega 1", cpuCores: 12, ramMb: 32768, diskGb: 250, ...STD_VPS_NETWORK, price: stdPrice("std-7"), display: "standard" },
+  { id: "std-8", name: "Mega 2", cpuCores: 16, ramMb: 65536, diskGb: 300, ...STD_VPS_NETWORK, price: stdPrice("std-8"), display: "standard" },
+  { id: "std-9", name: "Mega 3", cpuCores: 24, ramMb: 98304, diskGb: 500, ...STD_VPS_NETWORK, price: stdPrice("std-9"), display: "standard" },
+  { id: "std-10", name: "Mega 4", cpuCores: 24, ramMb: 131072, diskGb: 700, ...STD_VPS_NETWORK, price: stdPrice("std-10"), display: "standard" },
 ];
 
 export const VPS_PLANS: readonly VpsPlan[] = [

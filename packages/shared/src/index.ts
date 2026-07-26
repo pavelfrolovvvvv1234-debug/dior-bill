@@ -11,3 +11,4 @@ export * from "./auth-validation";
 export * from "./staff-privacy";
 export * from "./tickets";
 export * from "./vps-network";
+export * from "./hostvds-pricing";

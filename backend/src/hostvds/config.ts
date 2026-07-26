@@ -4,7 +4,7 @@ import { randomBytes } from "crypto";
 
 export type VpsComputeProvider = "proxmox" | "hostvds";
 
-/** Default planId / rateId → flavor NAME (eu-west2). */
+/** Default planId / rateId → flavor NAME (HostVDS Nova). */
 export const DEFAULT_HOSTVDS_FLAVOR_MAP: Record<string, string> = {
   "0": "hostvds-1",
   "1": "hostvds-4",
