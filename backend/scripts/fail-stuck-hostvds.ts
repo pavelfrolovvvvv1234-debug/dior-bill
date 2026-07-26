@@ -16,7 +16,7 @@ import { resolveHostVdsRegionForVps } from "../src/hostvds/provision";
 import { markProvisioningFailed } from "../src/core/provisioning/engine";
 
 const APPLY = process.argv.includes("--apply");
-const STUCK_MS = 15 * 60 * 1000;
+const STUCK_MS = 10 * 60 * 1000;
 
 async function refundIfNeeded(serviceId: string, userId: string, monthlyPrice: unknown) {
   const refundDescription = `Refund: Standard VPS ${serviceId}`;
@@ -47,7 +47,7 @@ async function main() {
   const rows = await prisma.vpsInstance.findMany({
     where: {
       provider: "hostvds",
-      service: { status: { in: ["PENDING", "PROVISIONING", "ROLLBACK"] } },
+      service: { status: { in: ["PENDING", "PROVISIONING", "ROLLBACK", "FAILED"] } },
       createdAt: { lt: cutoff },
     },
     include: {
@@ -84,12 +84,16 @@ async function main() {
       .then((did) => console.log(did ? "  refunded" : "  refund skipped"))
       .catch((e) => console.warn("  refund failed:", e));
 
-    await markProvisioningFailed({
-      serviceId: vps.serviceId,
-      idempotencyKey: `stuck-cleanup:${vps.serviceId}`,
-      error: "Stuck HostVDS provision cleaned up (security group / timeout)",
-      rollback: true,
-    }).catch((e) => console.warn("  mark failed:", e));
+    if (vps.service.status === "FAILED" || vps.service.status === "DELETED") {
+      console.log("  already terminal — skip lifecycle");
+    } else {
+      await markProvisioningFailed({
+        serviceId: vps.serviceId,
+        idempotencyKey: `stuck-cleanup:${vps.serviceId}:${Date.now()}`,
+        error: "Stuck HostVDS provision cleaned up (security group / SSH timeout)",
+        rollback: false,
+      }).catch((e) => console.warn("  mark failed:", e));
+    }
 
     await prisma.provisioningJob.updateMany({
       where: {

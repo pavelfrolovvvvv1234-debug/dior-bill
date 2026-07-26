@@ -76,7 +76,11 @@ export function toServiceRow(service: RawService): ServiceRow {
   if (service.vpsInstance) {
     const v = service.vpsInstance;
     name = v.hostname;
-    detail = v.primaryIp ?? "Provisioning";
+    detail = v.primaryIp
+      ? v.primaryIp
+      : ["FAILED", "ROLLBACK", "CANCELLED", "DELETED", "EXPIRED"].includes(service.status)
+        ? "—"
+        : "Provisioning";
     region = v.location?.name ?? "—";
     plan = `${v.cpuCores} vCPU · ${v.ramMb / 1024} GB · ${v.diskGb} GB`;
     manageHref = `/vps/${v.id}`;
