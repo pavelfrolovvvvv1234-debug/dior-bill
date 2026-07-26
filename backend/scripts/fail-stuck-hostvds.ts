@@ -1,10 +1,11 @@
 /**
- * Fail stuck HostVDS provisions that never reached ACTIVE (e.g. old allow_all errors).
+ * Fail stuck HostVDS provisions that never reached ACTIVE.
  *
  * Usage (prod):
  *   cd /var/www/dior-billing/backend
  *   pnpm exec tsx scripts/fail-stuck-hostvds.ts
  *   pnpm exec tsx scripts/fail-stuck-hostvds.ts --apply
+ *   pnpm exec tsx scripts/fail-stuck-hostvds.ts --apply --delete
  */
 import { loadMonorepoEnv } from "../src/lib/load-env";
 loadMonorepoEnv();
@@ -13,9 +14,10 @@ import { prisma } from "@dior/database";
 import { creditWallet } from "../src/payments/wallet";
 import { hostVdsDeleteServer } from "../src/hostvds/servers";
 import { resolveHostVdsRegionForVps } from "../src/hostvds/provision";
-import { markProvisioningFailed } from "../src/core/provisioning/engine";
+import { transitionServiceLifecycle } from "../src/core/provisioning/engine";
 
 const APPLY = process.argv.includes("--apply");
+const DELETE = process.argv.includes("--delete");
 const STUCK_MS = 10 * 60 * 1000;
 
 async function refundIfNeeded(serviceId: string, userId: string, monthlyPrice: unknown) {
@@ -42,12 +44,43 @@ async function refundIfNeeded(serviceId: string, userId: string, monthlyPrice: u
   return true;
 }
 
+async function forceTerminal(serviceId: string, fromStatus: string) {
+  const target = DELETE ? "DELETED" : "FAILED";
+  if (fromStatus === target || fromStatus === "DELETED") {
+    console.log(`  already ${fromStatus}`);
+    return;
+  }
+
+  try {
+    await transitionServiceLifecycle({
+      serviceId,
+      to: target as "FAILED" | "DELETED",
+      reason: "stuck_hostvds_cleanup",
+      idempotencyKey: `stuck-cleanup:${serviceId}:${target}:${Date.now()}`,
+    });
+    console.log(`  ${fromStatus} → ${target}`);
+    return;
+  } catch (e) {
+    console.warn(
+      "  lifecycle failed, forcing via prisma:",
+      e instanceof Error ? e.message : e,
+    );
+  }
+
+  await prisma.service.update({
+    where: { id: serviceId },
+    data: { status: target },
+  });
+  console.log(`  forced status=${target}`);
+}
+
 async function main() {
   const cutoff = new Date(Date.now() - STUCK_MS);
   const rows = await prisma.vpsInstance.findMany({
     where: {
       provider: "hostvds",
-      service: { status: { in: ["PENDING", "PROVISIONING", "ROLLBACK", "FAILED"] } },
+      primaryIp: null,
+      service: { status: { in: ["PENDING", "PROVISIONING", "ROLLBACK"] } },
       createdAt: { lt: cutoff },
     },
     include: {
@@ -81,19 +114,10 @@ async function main() {
     }
 
     await refundIfNeeded(vps.serviceId, vps.service.userId, vps.service.monthlyPrice)
-      .then((did) => console.log(did ? "  refunded" : "  refund skipped"))
+      .then((did) => console.log(did ? "  refunded" : "  refund skipped (already credited or $0)"))
       .catch((e) => console.warn("  refund failed:", e));
 
-    if (vps.service.status === "FAILED" || vps.service.status === "DELETED") {
-      console.log("  already terminal — skip lifecycle");
-    } else {
-      await markProvisioningFailed({
-        serviceId: vps.serviceId,
-        idempotencyKey: `stuck-cleanup:${vps.serviceId}:${Date.now()}`,
-        error: "Stuck HostVDS provision cleaned up (security group / SSH timeout)",
-        rollback: false,
-      }).catch((e) => console.warn("  mark failed:", e));
-    }
+    await forceTerminal(vps.serviceId, vps.service.status);
 
     await prisma.provisioningJob.updateMany({
       where: {
@@ -105,7 +129,9 @@ async function main() {
   }
 
   if (!APPLY) {
-    console.log("\nDry-run only. Re-run with --apply to refund + mark failed.");
+    console.log("\nDry-run only. Re-run with --apply (add --delete to remove from list).");
+  } else {
+    console.log("\nDone.");
   }
   await prisma.$disconnect();
 }
