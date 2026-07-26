@@ -489,6 +489,10 @@
       "US": "EE.UU.",
       "TR": "Turquía",
       "FI": "Finlandia",
+      "FR": "Francia",
+      "HK": "Hong Kong",
+      "LV": "Letonia",
+      "SG": "Singapur",
       "RU": "Rusia",
       "BY": "Bielorrusia",
       "AB": "Abjasia"
@@ -500,7 +504,17 @@
       "istanbul": "Estambul",
       "moscow": "Moscú",
       "minsk": "Minsk",
-      "sukhumi": "Sujumi"
+      "sukhumi": "Sujumi",
+      "silicon-valley": "Silicon Valley",
+      "kansas-city": "Kansas City",
+      "dallas": "Dallas",
+      "helsinki": "Helsinki",
+      "helsinki-2": "Helsinki 2",
+      "helsinki-3": "Helsinki 3",
+      "paris": "París",
+      "riga": "Riga",
+      "hong-kong": "Hong Kong",
+      "asia-south": "Asia Sur"
     }
   },
   "support": {

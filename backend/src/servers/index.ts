@@ -111,7 +111,11 @@ export async function provisionVps(params: {
     assertOsHasTemplate(os);
   }
   if (provider === "hostvds") {
-    const { resolveHostVdsImageId, resolveHostVdsFlavorId } = await import("../hostvds");
+    const { resolveHostVdsImageId, resolveHostVdsFlavorId, isHostVdsLocationCode } =
+      await import("../hostvds");
+    if (!isHostVdsLocationCode(location.code)) {
+      throw new ValidationError("Select a HostVDS region from the list");
+    }
     resolveHostVdsImageId(os);
     resolveHostVdsFlavorId({
       planId: params.planId,
@@ -314,8 +318,10 @@ export async function vpsAction(
       resolveHostVdsImageName,
       generateHostVdsPassword,
       buildHostVdsCloudInitUserData,
+      resolveHostVdsRegionForVps,
     } = await import("../hostvds");
     const { resolveImage } = await import("../hostvds/resolve");
+    const region = resolveHostVdsRegionForVps(vps);
 
     const status = vps.service.status;
 
@@ -335,7 +341,7 @@ export async function vpsAction(
             "Cannot delete remote server — HostVDS is not configured. Contact support.",
           );
         }
-        await hostVdsDeleteServer(vps.externalId);
+        await hostVdsDeleteServer(vps.externalId, { region });
       }
       await prisma.vpsInstance.update({
         where: { id: vpsId },
@@ -367,13 +373,13 @@ export async function vpsAction(
 
     switch (action) {
       case "reboot":
-        await hostVdsRebootServer(vps.externalId);
+        await hostVdsRebootServer(vps.externalId, "SOFT", { region });
         break;
       case "start":
-        await hostVdsStartServer(vps.externalId);
+        await hostVdsStartServer(vps.externalId, { region });
         break;
       case "stop":
-        await hostVdsStopServer(vps.externalId);
+        await hostVdsStopServer(vps.externalId, { region });
         break;
       case "reinstall": {
         const os = options?.os ?? vps.os;
@@ -391,12 +397,13 @@ export async function vpsAction(
           idempotencyKey: `vps:reinstall:start:${vpsId}:${attemptKey}`,
         });
         try {
-          const imageRef = await resolveImage(resolveHostVdsImageName(os));
+          const imageRef = await resolveImage(resolveHostVdsImageName(os), region);
           await hostVdsRebuildServer(
             vps.externalId,
             imageRef,
             password,
             buildHostVdsCloudInitUserData(password),
+            { region },
           );
           await prisma.vpsInstance.update({
             where: { id: vpsId },
@@ -424,12 +431,13 @@ export async function vpsAction(
       case "reset_password": {
         // Nova changePassword is unreliable on cloud images — rebuild with cloud-init.
         const password = generateHostVdsPassword();
-        const imageRef = await resolveImage(resolveHostVdsImageName(vps.os));
+        const imageRef = await resolveImage(resolveHostVdsImageName(vps.os), region);
         await hostVdsRebuildServer(
           vps.externalId,
           imageRef,
           password,
           buildHostVdsCloudInitUserData(password),
+          { region },
         );
         await prisma.vpsInstance.update({
           where: { id: vpsId },

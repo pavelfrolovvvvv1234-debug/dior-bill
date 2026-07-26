@@ -5,22 +5,42 @@ export const VPS_COUNTRY_LABELS: Record<string, string> = {
   US: "USA",
   TR: "Turkey",
   FI: "Finland",
+  FR: "France",
+  HK: "Hong Kong",
+  LV: "Latvia",
+  SG: "Singapore",
   RU: "Russia",
   BY: "Belarus",
   AB: "Abkhazia",
 };
 
-/** Standard (non-bulletproof) VPS — Russia, Belarus, Abkhazia only */
-export const STANDARD_VPS_COUNTRY_CODES = ["RU", "BY", "AB"] as const;
+/** HostVDS location codes are `hv-{openstack-region}` */
+export const HOSTVDS_LOCATION_CODE_PREFIX = "hv-";
+
+/** Standard (non-bulletproof) VPS — HostVDS OpenStack regions */
+export const STANDARD_VPS_COUNTRY_CODES = [
+  "US",
+  "NL",
+  "FI",
+  "FR",
+  "HK",
+  "LV",
+  "SG",
+] as const;
 
 /** Bulletproof offshore VPS / dedicated — Netherlands, Germany, USA, Turkey */
 export const BULLETPROOF_OFFSHORE_COUNTRY_CODES = ["NL", "DE", "US", "TR"] as const;
 
 export type VpsLocationRef = {
+  code?: string;
   country: string;
   name: string;
   city?: string | null;
 };
+
+export function isHostVdsLocationCode(code: string): boolean {
+  return code.trim().startsWith(HOSTVDS_LOCATION_CODE_PREFIX);
+}
 
 export function getLocationCountryLabel(loc: VpsLocationRef): string {
   const label = VPS_COUNTRY_LABELS[loc.country?.toUpperCase() ?? ""];
@@ -28,16 +48,29 @@ export function getLocationCountryLabel(loc: VpsLocationRef): string {
   return loc.name;
 }
 
-/** Region line in order form — country only */
+/** Region line in order form — country only (bulletproof); city for HostVDS */
 export function getLocationRegionLabel(loc: VpsLocationRef): string {
+  if (loc.code && isHostVdsLocationCode(loc.code)) {
+    return loc.city?.trim() || loc.name || getLocationCountryLabel(loc);
+  }
   return getLocationCountryLabel(loc);
 }
 
-/** Fallback when DB has no RU/BY/AB rows yet (matched by code after ensure on server) */
+/**
+ * Fallback HostVDS locations when DB sync has not run yet.
+ * Codes must match backend `hostVdsLocationCode(region)`.
+ */
 export const STANDARD_VPS_LOCATION_DEFS = [
-  { code: "ru-msk", name: "Russia", country: "RU", city: "Moscow" },
-  { code: "by-msq", name: "Belarus", country: "BY", city: "Minsk" },
-  { code: "ab-suk", name: "Abkhazia", country: "AB", city: "Sukhumi" },
+  { code: "hv-us-west", name: "Silicon Valley", country: "US", city: "Silicon Valley" },
+  { code: "hv-us-east", name: "Kansas City", country: "US", city: "Kansas City" },
+  { code: "hv-us-east2", name: "Dallas", country: "US", city: "Dallas" },
+  { code: "hv-eu-west1", name: "Amsterdam", country: "NL", city: "Amsterdam" },
+  { code: "hv-eu-west2", name: "Helsinki", country: "FI", city: "Helsinki" },
+  { code: "hv-eu-west3", name: "Paris", country: "FR", city: "Paris" },
+  { code: "hv-eu-north1", name: "Helsinki 2", country: "FI", city: "Helsinki 2" },
+  { code: "hv-eu-north1b", name: "Helsinki 3", country: "FI", city: "Helsinki 3" },
+  { code: "hv-eu-north2", name: "Riga", country: "LV", city: "Riga" },
+  { code: "hv-asia-east1", name: "Hong Kong", country: "HK", city: "Hong Kong" },
 ] as const;
 
 /** Fallback for bulletproof offshore (NL, DE, US, TR) */
@@ -104,13 +137,33 @@ export function filterLocationsByCountryCodes<T extends { country: string }>(
   return locations.filter((loc) => allowed.has(loc.country?.toUpperCase() ?? ""));
 }
 
+export function filterHostVdsLocations<T extends { code: string }>(locations: readonly T[]): T[] {
+  return locations.filter((loc) => isHostVdsLocationCode(loc.code));
+}
+
 type TranslateFn = (key: string, vars?: Record<string, string | number>) => string;
 
-/** Region line in order form with locale-aware country label */
+function citySlug(city: string): string {
+  return city
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** Region line in order form with locale-aware label */
 export function getTranslatedLocationRegionLabel(
   loc: VpsLocationRef,
   t: TranslateFn,
 ): string {
+  if (loc.code && isHostVdsLocationCode(loc.code)) {
+    const city = loc.city?.trim() || loc.name;
+    if (city) {
+      const key = `locations.cities.${citySlug(city)}`;
+      const translated = t(key);
+      return translated !== key ? translated : city;
+    }
+  }
   const cc = loc.country?.toUpperCase() ?? "";
   const countryKey = `locations.countries.${cc}`;
   const translatedCountry = t(countryKey);

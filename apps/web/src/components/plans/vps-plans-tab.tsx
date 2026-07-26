@@ -21,6 +21,7 @@ import {
   type VpsOsOption,
 } from "@/lib/vps-os-options";
 import {
+  filterHostVdsLocations,
   filterLocationsByCountryCodes,
   filterLocationsForBulletproofPlan,
   getTranslatedLocationRegionLabel,
@@ -77,7 +78,7 @@ export function VpsPlansTab({
   osOptions?: readonly VpsOsOption[];
   /** Bulletproof VPS: Lite → NL only; Elite/Mega → NL, DE, US, TR */
   filterLocationsByPlan?: boolean;
-  /** Restrict region list (e.g. RU, BY, AB for standard VPS) */
+  /** Restrict region list by ISO country (bulletproof / dedicated) */
   allowedCountryCodes?: readonly string[];
   /** Charge balance and open support ticket instead of instant deploy */
   purchaseViaTicket?: boolean;
@@ -103,24 +104,30 @@ export function VpsPlansTab({
 
   const availableLocations = useMemo(() => {
     let list = [...locations];
-    if (allowedCountryCodes?.length) {
-      list = filterLocationsByCountryCodes(list, allowedCountryCodes);
+    if (computeProvider === "hostvds") {
+      list = filterHostVdsLocations(list);
       if (list.length === 0 && locations.length > 0) {
         const byCode = new Map(locations.map((l) => [l.code, l]));
         list = STANDARD_VPS_LOCATION_DEFS.map((def) => byCode.get(def.code)).filter(
           (l): l is Location => l != null,
         );
       }
+      const order = STANDARD_VPS_LOCATION_DEFS.map((d) => d.code);
+      list.sort((a, b) => {
+        const ai = order.indexOf(a.code as (typeof order)[number]);
+        const bi = order.indexOf(b.code as (typeof order)[number]);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
+      return list;
+    }
+    if (allowedCountryCodes?.length) {
+      list = filterLocationsByCountryCodes(list, allowedCountryCodes);
     }
     if (filterLocationsByPlan) {
       list = filterLocationsForBulletproofPlan(list, selectedPlan, true);
     }
-    if (allowedCountryCodes?.length && list.length > 1) {
-      const order: string[] = STANDARD_VPS_LOCATION_DEFS.map((d) => d.code);
-      list.sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code));
-    }
     return list;
-  }, [locations, allowedCountryCodes, filterLocationsByPlan, selectedPlan]);
+  }, [locations, allowedCountryCodes, filterLocationsByPlan, selectedPlan, computeProvider]);
 
   useEffect(() => {
     if (availableLocations.length === 0) {

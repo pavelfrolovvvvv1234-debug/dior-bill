@@ -1,6 +1,15 @@
 import { prisma } from "@dior/database";
 import { getProxmoxConfig } from "../proxmox/config";
-import { isProxmoxIpPoolConfigured, syncProxmoxIpPoolFromEnv, purgePlaceholderIpsFromInventory } from "../proxmox/ip-pool";
+import {
+  isProxmoxIpPoolConfigured,
+  purgePlaceholderIpsFromInventory,
+  syncProxmoxIpPoolFromEnv,
+} from "../proxmox/ip-pool";
+import { isHostVdsConfigured } from "../hostvds/config";
+import {
+  HOSTVDS_LOCATION_CODE_PREFIX,
+  listAvailableHostVdsLocations,
+} from "../hostvds/regions";
 
 /** Proxmox API node name — use PROXMOX_NODE from .env when set (single cluster). */
 function resolveProxmoxNodeForLocation(locCode: string): string {
@@ -9,7 +18,7 @@ function resolveProxmoxNodeForLocation(locCode: string): string {
   return `pve-${locCode}`;
 }
 
-/** Bulletproof VPS regions — upserted so Elite/Mega plans always have full geo list */
+/** Bulletproof VPS — Netherlands, Germany, USA, Turkey */
 const BULLETPROOF_VPS_LOCATIONS = [
   {
     code: "nl-ams",
@@ -41,33 +50,12 @@ const BULLETPROOF_VPS_LOCATIONS = [
   },
 ] as const;
 
-/** Standard VPS — Russia, Belarus, Abkhazia */
-const STANDARD_VPS_LOCATIONS = [
-  {
-    code: "ru-msk",
-    name: "Russia",
-    country: "RU",
-    city: "Moscow",
-    flag: "🇷🇺",
-  },
-  {
-    code: "by-msq",
-    name: "Belarus",
-    country: "BY",
-    city: "Minsk",
-    flag: "🇧🇾",
-  },
-  {
-    code: "ab-suk",
-    name: "Abkhazia",
-    country: "AB",
-    city: "Sukhumi",
-    flag: "🇦🇧",
-  },
-] as const;
+/** Legacy fake regions — deactivated once HostVDS locations are synced. */
+const LEGACY_STANDARD_VPS_CODES = ["ru-msk", "by-msq", "ab-suk"] as const;
 
 let bulletproofEnsured = false;
-let standardEnsured = false;
+let standardEnsuredAt = 0;
+const STANDARD_ENSURE_TTL_MS = 10 * 60 * 1000;
 
 export async function ensureBulletproofVpsLocations() {
   if (bulletproofEnsured) return;
@@ -132,10 +120,33 @@ export async function ensureBulletproofVpsLocations() {
   bulletproofEnsured = true;
 }
 
+/**
+ * Sync Standard VPS locations from live HostVDS Keystone regions
+ * (flavors + Internet networks). Replaces legacy RU/BY/AB placeholders.
+ */
 export async function ensureStandardVpsLocations() {
-  if (standardEnsured) return;
+  if (Date.now() - standardEnsuredAt < STANDARD_ENSURE_TTL_MS) return;
 
-  for (const loc of STANDARD_VPS_LOCATIONS) {
+  for (const code of LEGACY_STANDARD_VPS_CODES) {
+    await prisma.location.updateMany({
+      where: { code },
+      data: { active: false },
+    });
+  }
+
+  if (!isHostVdsConfigured()) {
+    await prisma.location.updateMany({
+      where: { code: { startsWith: HOSTVDS_LOCATION_CODE_PREFIX } },
+      data: { active: false },
+    });
+    standardEnsuredAt = Date.now();
+    return;
+  }
+
+  const available = await listAvailableHostVdsLocations();
+  const activeCodes = new Set(available.map((l) => l.code));
+
+  for (const loc of available) {
     const location = await prisma.location.upsert({
       where: { code: loc.code },
       update: {
@@ -155,35 +166,49 @@ export async function ensureStandardVpsLocations() {
       },
     });
 
-    const node = await prisma.node.upsert({
+    await prisma.node.upsert({
       where: { hostname: `node-${loc.code}-01` },
       update: {
         locationId: location.id,
         status: "online",
-        proxmoxNode: resolveProxmoxNodeForLocation(loc.code),
+        name: `${loc.city} HostVDS`,
       },
       create: {
-        name: `${loc.name} Node 01`,
+        name: `${loc.city} HostVDS`,
         hostname: `node-${loc.code}-01`,
         locationId: location.id,
         type: "compute",
         cpuCores: 64,
         ramGb: 256,
         diskGb: 4000,
-        loadPercent: 35,
+        loadPercent: 20,
         activeVps: 0,
-        proxmoxNode: resolveProxmoxNodeForLocation(loc.code),
-        ipv4Total: 256,
-        ipv4Available: 200,
-        capacityPercent: 40,
+        proxmoxNode: null,
+        ipv4Total: 0,
+        ipv4Available: 0,
+        capacityPercent: 20,
         status: "online",
       },
     });
-
-    await ensureNodeIpPool(node);
   }
 
-  standardEnsured = true;
+  const stale = await prisma.location.findMany({
+    where: {
+      code: { startsWith: HOSTVDS_LOCATION_CODE_PREFIX },
+      active: true,
+    },
+    select: { id: true, code: true },
+  });
+  for (const loc of stale) {
+    if (!activeCodes.has(loc.code)) {
+      await prisma.location.update({
+        where: { id: loc.id },
+        data: { active: false },
+      });
+    }
+  }
+
+  standardEnsuredAt = Date.now();
 }
 
 /** Seed available IPv4 rows so provisioning can allocate addresses. */
@@ -197,20 +222,13 @@ async function ensureNodeIpPool(node: {
   const existing = await prisma.ipAddress.count({ where: { nodeId: node.id } });
   if (existing > 0) return;
 
-  const match = node.hostname.match(/node-([a-z]{2}-[a-z]{3})-01/);
-  const code = match?.[1] ?? "nl-ams";
-  const octet = 10 + Math.abs(hashCode(code)) % 200;
-  const ips = Array.from({ length: 32 }, (_, i) => ({
-    address: `185.234.${octet}.${i + 10}`,
+  const suffix = node.hostname.replace(/\D/g, "").slice(-2) || "01";
+  const base = `10.${Number(suffix) || 1}.0`;
+  const rows = Array.from({ length: 50 }, (_, i) => ({
+    address: `${base}.${i + 10}`,
     nodeId: node.id,
     locationId: node.locationId,
-    status: "available" as const,
+    status: "available",
   }));
-  await prisma.ipAddress.createMany({ data: ips, skipDuplicates: true });
-}
-
-function hashCode(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
-  return h;
+  await prisma.ipAddress.createMany({ data: rows, skipDuplicates: true });
 }

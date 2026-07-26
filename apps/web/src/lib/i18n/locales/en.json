@@ -582,6 +582,10 @@
       "US": "USA",
       "TR": "Turkey",
       "FI": "Finland",
+      "FR": "France",
+      "HK": "Hong Kong",
+      "LV": "Latvia",
+      "SG": "Singapore",
       "RU": "Russia",
       "BY": "Belarus",
       "AB": "Abkhazia"
@@ -593,7 +597,17 @@
       "istanbul": "Istanbul",
       "moscow": "Moscow",
       "minsk": "Minsk",
-      "sukhumi": "Sukhumi"
+      "sukhumi": "Sukhumi",
+      "silicon-valley": "Silicon Valley",
+      "kansas-city": "Kansas City",
+      "dallas": "Dallas",
+      "helsinki": "Helsinki",
+      "helsinki-2": "Helsinki 2",
+      "helsinki-3": "Helsinki 3",
+      "paris": "Paris",
+      "riga": "Riga",
+      "hong-kong": "Hong Kong",
+      "asia-south": "Asia South"
     }
   },
   "domains": {

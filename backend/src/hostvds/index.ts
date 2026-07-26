@@ -7,3 +7,4 @@ export * from "./resolve";
 export * from "./cloud-init";
 export * from "./ssh-ready";
 export * from "./pricing";
+export * from "./regions";

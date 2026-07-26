@@ -489,6 +489,10 @@
       "US": "美国",
       "TR": "土耳其",
       "FI": "芬兰",
+      "FR": "法国",
+      "HK": "香港",
+      "LV": "拉脱维亚",
+      "SG": "新加坡",
       "RU": "俄罗斯",
       "BY": "白俄罗斯",
       "AB": "阿布哈兹"
@@ -500,7 +504,17 @@
       "istanbul": "伊斯坦布尔",
       "moscow": "莫斯科",
       "minsk": "明斯克",
-      "sukhumi": "苏呼米"
+      "sukhumi": "苏呼米",
+      "silicon-valley": "硅谷",
+      "kansas-city": "堪萨斯城",
+      "dallas": "达拉斯",
+      "helsinki": "赫尔辛基",
+      "helsinki-2": "赫尔辛基 2",
+      "helsinki-3": "赫尔辛基 3",
+      "paris": "巴黎",
+      "riga": "里加",
+      "hong-kong": "香港",
+      "asia-south": "亚洲南部"
     }
   },
   "domains": {

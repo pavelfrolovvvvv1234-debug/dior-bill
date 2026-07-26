@@ -24,6 +24,7 @@ import {
   resolveHostVdsImageName,
 } from "./config";
 import { resolveFlavor, resolveImage, resolveNetwork, assertSecurityGroupExists } from "./resolve";
+import { hostVdsRegionFromLocationCode } from "./regions";
 import {
   hostVdsCreateServer,
   hostVdsDeleteServer,
@@ -33,6 +34,23 @@ import {
 } from "./servers";
 import { waitForSshReady } from "./ssh-ready";
 import type { ProvisioningStep } from "../provisioning/state-machine";
+
+function regionFromCloudInit(cloudInit: unknown): string | null {
+  if (!cloudInit || typeof cloudInit !== "object") return null;
+  const raw = (cloudInit as { hostvdsRegion?: unknown }).hostvdsRegion;
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+}
+
+export function resolveHostVdsRegionForVps(vps: {
+  location?: { code: string } | null;
+  cloudInit?: unknown;
+}): string {
+  return (
+    regionFromCloudInit(vps.cloudInit) ??
+    (vps.location?.code ? hostVdsRegionFromLocationCode(vps.location.code) : null) ??
+    getHostVdsRegion()
+  );
+}
 
 const HOSTVDS_STEPS: ProvisioningStep[] = [
   { name: "Create order", phase: "queued", status: "pending" },
@@ -185,7 +203,9 @@ export async function runHostVdsProvisionPipeline(payload: {
 
   const vps = await prisma.vpsInstance.findUniqueOrThrow({
     where: { id: payload.vpsId },
+    include: { location: true },
   });
+  const region = resolveHostVdsRegionForVps(vps);
 
   let externalId = vps.externalId;
   let assignedIp: string | null = vps.primaryIp;
@@ -203,7 +223,7 @@ export async function runHostVdsProvisionPipeline(payload: {
       stillWanted?.status === "EXPIRED"
     ) {
       if (externalId) {
-        await hostVdsDeleteServer(externalId).catch(() => undefined);
+        await hostVdsDeleteServer(externalId, { region }).catch(() => undefined);
         await clearHostVdsLinkage(payload.vpsId).catch(() => undefined);
       }
       await updateJob(payload.jobId, {
@@ -242,7 +262,7 @@ export async function runHostVdsProvisionPipeline(payload: {
       await markStep(steps, 1, "running", 25, payload.jobId);
 
       // Recover orphan from crash / timeout after Nova accepted create.
-      const existing = await hostVdsFindServerByVpsId(payload.vpsId);
+      const existing = await hostVdsFindServerByVpsId(payload.vpsId, { region });
       if (existing) {
         externalId = existing.id;
         createAccepted = true;
@@ -255,7 +275,7 @@ export async function runHostVdsProvisionPipeline(payload: {
 
         if (alreadyPosted || attempts > 1) {
           // One more metadata scan (list may lag); then fail — never POST again.
-          const again = await hostVdsFindServerByVpsId(payload.vpsId);
+          const again = await hostVdsFindServerByVpsId(payload.vpsId, { region });
           if (again) {
             externalId = again.id;
             createAccepted = true;
@@ -281,13 +301,13 @@ export async function runHostVdsProvisionPipeline(payload: {
           const networkRef = getHostVdsNetworkRef();
 
           const [imageRef, flavorRef, networkId] = await Promise.all([
-            resolveImage(imageName),
-            resolveFlavor(flavorName),
-            resolveNetwork(networkRef),
+            resolveImage(imageName, region),
+            resolveFlavor(flavorName, region),
+            resolveNetwork(networkRef, region),
           ]);
 
           for (const sg of getHostVdsSecurityGroups()) {
-            await assertSecurityGroupExists(sg);
+            await assertSecurityGroupExists(sg, region);
           }
 
           // Atomic lock: only one runner may POST /servers.
@@ -297,12 +317,12 @@ export async function runHostVdsProvisionPipeline(payload: {
                 eventType: "hostvds.create_posted",
                 aggregateType: "vps",
                 aggregateId: payload.vpsId,
-                payload: { serviceId: payload.serviceId, hostname: vps.hostname },
+                payload: { serviceId: payload.serviceId, hostname: vps.hostname, region },
                 idempotencyKey: createPostedKey,
               },
             });
           } catch {
-            const raced = await hostVdsFindServerByVpsId(payload.vpsId);
+            const raced = await hostVdsFindServerByVpsId(payload.vpsId, { region });
             if (raced) {
               externalId = raced.id;
               createAccepted = true;
@@ -322,20 +342,21 @@ export async function runHostVdsProvisionPipeline(payload: {
                 networkId,
                 adminPass,
                 userData: buildHostVdsCloudInitUserData(adminPass),
+                region,
                 metadata: {
                   managed_by: "web_billing",
                   dior_vps_id: payload.vpsId,
                   dior_service_id: payload.serviceId,
                   os_key: vps.os,
                   rate_id: planId ?? "",
-                  region: getHostVdsRegion(),
+                  region,
                 },
               });
               externalId = created.id;
               createAccepted = true;
             } catch (createErr) {
               // Timeout / network after accept: recover by metadata before failing.
-              const recovered = await hostVdsFindServerByVpsId(payload.vpsId);
+              const recovered = await hostVdsFindServerByVpsId(payload.vpsId, { region });
               if (recovered) {
                 externalId = recovered.id;
                 createAccepted = true;
@@ -347,14 +368,22 @@ export async function runHostVdsProvisionPipeline(payload: {
         }
       }
 
+      const prevCi =
+        vps.cloudInit && typeof vps.cloudInit === "object" && !Array.isArray(vps.cloudInit)
+          ? (vps.cloudInit as Record<string, unknown>)
+          : {};
       await prisma.vpsInstance.update({
         where: { id: payload.vpsId },
-        data: { externalId, provider: "hostvds" },
+        data: {
+          externalId,
+          provider: "hostvds",
+          cloudInit: toJsonValue({ ...prevCi, hostvdsRegion: region }),
+        },
       });
       await markStep(steps, 1, "done", 45, payload.jobId);
     } else {
       try {
-        await hostVdsGetServer(externalId);
+        await hostVdsGetServer(externalId, { region });
       } catch {
         await clearHostVdsLinkage(payload.vpsId);
         externalId = null;
@@ -372,7 +401,7 @@ export async function runHostVdsProvisionPipeline(payload: {
     }
 
     await markStep(steps, 2, "running", 55, payload.jobId);
-    const ready = await hostVdsWaitForServer(externalId);
+    const ready = await hostVdsWaitForServer(externalId, { region });
 
     const afterBoot = await prisma.service.findUnique({
       where: { id: payload.serviceId },
@@ -383,7 +412,7 @@ export async function runHostVdsProvisionPipeline(payload: {
       afterBoot?.status === "CANCELLED" ||
       afterBoot?.status === "EXPIRED"
     ) {
-      await hostVdsDeleteServer(externalId).catch(() => undefined);
+      await hostVdsDeleteServer(externalId, { region }).catch(() => undefined);
       await clearHostVdsLinkage(payload.vpsId).catch(() => undefined);
       await updateJob(payload.jobId, {
         status: "failed",
@@ -400,7 +429,7 @@ export async function runHostVdsProvisionPipeline(payload: {
       // Re-fetch — IP may appear shortly after ACTIVE
       for (let i = 0; i < 12 && !assignedIp; i++) {
         await new Promise((r) => setTimeout(r, 5_000));
-        const again = await hostVdsGetServer(externalId);
+        const again = await hostVdsGetServer(externalId, { region });
         assignedIp = again.addresses[0] ?? null;
       }
     }
@@ -461,7 +490,7 @@ export async function runHostVdsProvisionPipeline(payload: {
 
     // Terminal: destroy orphan + refund
     if (externalId) {
-      await hostVdsDeleteServer(externalId).catch((e) =>
+      await hostVdsDeleteServer(externalId, { region }).catch((e) =>
         console.warn("[hostvds-provision] cleanup delete failed:", e),
       );
       await clearHostVdsLinkage(payload.vpsId).catch(() => undefined);

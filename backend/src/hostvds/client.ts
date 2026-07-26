@@ -23,20 +23,27 @@ export class HostVdsApiError extends AppError {
 
 export type HostVdsService = "compute" | "image" | "network";
 
+type CatalogEndpoint = { interface: string; region?: string; url: string };
+type CatalogEntry = { type: string; name?: string; endpoints: CatalogEndpoint[] };
+
 type AuthSession = {
+  mode: "keystone" | "static";
   token: string;
-  computeUrl: string;
-  imageUrl: string | null;
-  networkUrl: string | null;
+  catalog: CatalogEntry[];
   expiresAt: number;
+  /** Static-token mode only (single region). */
+  staticComputeUrl: string | null;
+  staticImageUrl: string | null;
+  staticNetworkUrl: string | null;
 };
 
 let cachedAuth: AuthSession | null = null;
 
-type CatalogEndpoint = { interface: string; region?: string; url: string };
-type CatalogEntry = { type: string; name?: string; endpoints: CatalogEndpoint[] };
-
-function pickEndpoint(catalog: CatalogEntry[], type: string, region: string): string | null {
+export function pickEndpoint(
+  catalog: CatalogEntry[],
+  type: string,
+  region: string,
+): string | null {
   const entry =
     catalog.find((c) => c.type === type) ??
     catalog.find((c) => c.name?.toLowerCase().includes(type));
@@ -47,6 +54,19 @@ function pickEndpoint(catalog: CatalogEntry[], type: string, region: string): st
     publicEps.find((ep) => !ep.region || ep.region === region) ??
     publicEps[0];
   return match?.url?.replace(/\/$/, "") ?? null;
+}
+
+/** Unique region ids that expose a public compute endpoint. */
+export function listComputeRegionsFromCatalog(catalog: CatalogEntry[]): string[] {
+  const entry = catalog.find((c) => c.type === "compute");
+  if (!entry?.endpoints?.length) return [];
+  const regions = new Set<string>();
+  for (const ep of entry.endpoints) {
+    if (ep.interface === "public" && ep.region?.trim()) {
+      regions.add(ep.region.trim());
+    }
+  }
+  return [...regions].sort();
 }
 
 async function authenticateKeystone(): Promise<AuthSession> {
@@ -108,26 +128,15 @@ async function authenticateKeystone(): Promise<AuthSession> {
         ? (json as { token?: { catalog?: CatalogEntry[] } }).token
         : undefined;
     const catalog: CatalogEntry[] = Array.isArray(tokenBody?.catalog) ? tokenBody.catalog : [];
-    const region = getHostVdsRegion();
-
-    let computeUrl = getHostVdsApiBaseUrl();
-    if (!computeUrl) {
-      computeUrl = pickEndpoint(catalog, "compute", region);
-    }
-    if (!computeUrl) {
-      throw new HostVdsApiError(
-        `HostVDS compute URL missing for region=${region} — set HOSTVDS_API_BASE_URL or check Keystone catalog`,
-        "HOSTVDS_NO_COMPUTE",
-        503,
-      );
-    }
 
     const session: AuthSession = {
+      mode: "keystone",
       token,
-      computeUrl,
-      imageUrl: pickEndpoint(catalog, "image", region),
-      networkUrl: pickEndpoint(catalog, "network", region),
+      catalog,
       expiresAt: Date.now() + 50 * 60 * 1000,
+      staticComputeUrl: null,
+      staticImageUrl: null,
+      staticNetworkUrl: null,
     };
     cachedAuth = session;
     return session;
@@ -151,40 +160,72 @@ async function resolveAuth(): Promise<AuthSession> {
   const staticBase = getHostVdsApiBaseUrl();
   if (staticToken && staticBase) {
     return {
+      mode: "static",
       token: staticToken,
-      computeUrl: staticBase,
-      imageUrl: process.env.HOSTVDS_IMAGE_API_BASE_URL?.trim()?.replace(/\/$/, "") || null,
-      networkUrl: process.env.HOSTVDS_NETWORK_API_BASE_URL?.trim()?.replace(/\/$/, "") || null,
+      catalog: [],
       expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      staticComputeUrl: staticBase,
+      staticImageUrl: process.env.HOSTVDS_IMAGE_API_BASE_URL?.trim()?.replace(/\/$/, "") || null,
+      staticNetworkUrl: process.env.HOSTVDS_NETWORK_API_BASE_URL?.trim()?.replace(/\/$/, "") || null,
     };
   }
 
-  if (cachedAuth && cachedAuth.expiresAt > Date.now() + 60_000) {
+  if (cachedAuth && cachedAuth.mode === "keystone" && cachedAuth.expiresAt > Date.now() + 60_000) {
     return cachedAuth;
   }
   return authenticateKeystone();
 }
 
-function serviceBaseUrl(auth: AuthSession, service: HostVdsService): string {
-  if (service === "compute") return auth.computeUrl;
-  if (service === "image") {
-    if (!auth.imageUrl) {
+function serviceBaseUrl(auth: AuthSession, service: HostVdsService, region: string): string {
+  if (auth.mode === "static") {
+    if (service === "compute") {
+      if (!auth.staticComputeUrl) {
+        throw new HostVdsApiError("HostVDS compute URL missing", "HOSTVDS_NO_COMPUTE", 503);
+      }
+      return auth.staticComputeUrl;
+    }
+    if (service === "image") {
+      if (!auth.staticImageUrl) {
+        throw new HostVdsApiError(
+          "HostVDS Glance (image) endpoint missing — set HOSTVDS_IMAGE_API_BASE_URL",
+          "HOSTVDS_NO_IMAGE",
+          503,
+        );
+      }
+      return auth.staticImageUrl;
+    }
+    if (!auth.staticNetworkUrl) {
       throw new HostVdsApiError(
-        "HostVDS Glance (image) endpoint missing in Keystone catalog — set HOSTVDS_IMAGE_API_BASE_URL",
-        "HOSTVDS_NO_IMAGE",
+        "HostVDS Neutron (network) endpoint missing — set HOSTVDS_NETWORK_API_BASE_URL",
+        "HOSTVDS_NO_NETWORK",
         503,
       );
     }
-    return auth.imageUrl;
+    return auth.staticNetworkUrl;
   }
-  if (!auth.networkUrl) {
+
+  const url = pickEndpoint(auth.catalog, service, region);
+  if (!url) {
     throw new HostVdsApiError(
-      "HostVDS Neutron (network) endpoint missing in Keystone catalog — set HOSTVDS_NETWORK_API_BASE_URL",
-      "HOSTVDS_NO_NETWORK",
+      `HostVDS ${service} endpoint missing for region=${region}`,
+      service === "compute"
+        ? "HOSTVDS_NO_COMPUTE"
+        : service === "image"
+          ? "HOSTVDS_NO_IMAGE"
+          : "HOSTVDS_NO_NETWORK",
       503,
     );
   }
-  return auth.networkUrl;
+  return url;
+}
+
+export async function hostVdsListComputeRegions(): Promise<string[]> {
+  const auth = await resolveAuth();
+  if (auth.mode === "static") {
+    return [getHostVdsRegion()];
+  }
+  const regions = listComputeRegionsFromCatalog(auth.catalog);
+  return regions.length > 0 ? regions : [getHostVdsRegion()];
 }
 
 export async function hostVdsRequest<T>(
@@ -194,6 +235,8 @@ export async function hostVdsRequest<T>(
     body?: unknown;
     retryAuth?: boolean;
     service?: HostVdsService;
+    /** OpenStack region (defaults to HOSTVDS_REGION_NAME). */
+    region?: string;
   } = {},
 ): Promise<T> {
   if (!isHostVdsConfigured()) {
@@ -202,7 +245,8 @@ export async function hostVdsRequest<T>(
 
   const auth = await resolveAuth();
   const service = options.service ?? "compute";
-  const base = serviceBaseUrl(auth, service);
+  const region = options.region?.trim() || getHostVdsRegion();
+  const base = serviceBaseUrl(auth, service, region);
   const pathNorm = path.startsWith("/") ? path : `/${path}`;
   const url = `${base}${pathNorm}`;
 

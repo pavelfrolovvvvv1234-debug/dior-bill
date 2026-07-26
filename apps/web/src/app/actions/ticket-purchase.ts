@@ -11,8 +11,7 @@ import { STANDARD_VPS_PLANS, TURBO_VPS_PLANS } from "@/lib/vps-plans";
 import { DEDICATED_COUNTRY_CODES } from "@/lib/dedicated-plan-locations";
 import {
   BULLETPROOF_OFFSHORE_COUNTRY_CODES,
-  getLocationCountryLabel,
-  STANDARD_VPS_COUNTRY_CODES,
+  getLocationRegionLabel,
 } from "@/lib/vps-plan-locations";
 import {
   buildDedicatedTicketCopy,
@@ -110,7 +109,7 @@ export async function purchaseDedicatedViaTicketAction(
       );
     }
 
-    locationLabel = getLocationCountryLabel(location);
+    locationLabel = getLocationRegionLabel(location);
   }
 
   await assertBalanceForOrder(session.user.id, plan.price, promoCode);
@@ -202,14 +201,14 @@ export async function purchaseStandardVpsViaTicketAction(formData: FormData) {
   const location = locations.find((l) => l.id === locationId);
   if (!location) throw new Error("Invalid location");
 
-  const allowedCountries = new Set<string>([...STANDARD_VPS_COUNTRY_CODES]);
-  if (!allowedCountries.has(location.country.toUpperCase())) {
+  const { isHostVdsLocationCode } = await import("@/lib/vps-plan-locations");
+  if (!isHostVdsLocationCode(location.code)) {
     throw new Error("This region is not available for standard VPS/VDS");
   }
 
   await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
-  const locationLabel = getLocationCountryLabel(location);
+  const locationLabel = getLocationRegionLabel(location);
 
   const copy = buildStandardVpsTicketCopy({
     plan,
@@ -258,7 +257,7 @@ export async function purchaseTurbovdsViaTicketAction(formData: FormData) {
 
   await assertBalanceForOrder(session.user.id, plan.price, promoCode);
 
-  const locationLabel = getLocationCountryLabel(location);
+  const locationLabel = getLocationRegionLabel(location);
 
   const copy = buildTurbovdsTicketCopy({
     plan,

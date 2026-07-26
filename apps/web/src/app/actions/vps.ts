@@ -72,6 +72,12 @@ export async function deployVpsAction(formData: FormData) {
     ) {
       throw new Error("This location is not available for the selected plan");
     }
+    if (isStandardHostVds) {
+      const { isHostVdsLocationCode } = await import("@/lib/vps-plan-locations");
+      if (!isHostVdsLocationCode(location.code)) {
+        throw new Error("This location is not available for standard VPS");
+      }
+    }
 
     let chargeAmount = monthlySubtotal;
     if (promoCode) {
