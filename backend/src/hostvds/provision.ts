@@ -23,7 +23,7 @@ import {
   resolveHostVdsFlavorName,
   resolveHostVdsImageName,
 } from "./config";
-import { resolveFlavor, resolveImage, resolveNetwork, assertSecurityGroupExists } from "./resolve";
+import { resolveFlavor, resolveImage, resolveNetwork, resolveSecurityGroups } from "./resolve";
 import { hostVdsRegionFromLocationCode } from "./regions";
 import {
   hostVdsCreateServer,
@@ -300,15 +300,12 @@ export async function runHostVdsProvisionPipeline(payload: {
           const imageName = resolveHostVdsImageName(vps.os);
           const networkRef = getHostVdsNetworkRef();
 
-          const [imageRef, flavorRef, networkId] = await Promise.all([
+          const [imageRef, flavorRef, networkId, securityGroups] = await Promise.all([
             resolveImage(imageName, region),
             resolveFlavor(flavorName, region),
             resolveNetwork(networkRef, region),
+            resolveSecurityGroups(getHostVdsSecurityGroups(), region),
           ]);
-
-          for (const sg of getHostVdsSecurityGroups()) {
-            await assertSecurityGroupExists(sg, region);
-          }
 
           // Atomic lock: only one runner may POST /servers.
           try {
@@ -317,7 +314,12 @@ export async function runHostVdsProvisionPipeline(payload: {
                 eventType: "hostvds.create_posted",
                 aggregateType: "vps",
                 aggregateId: payload.vpsId,
-                payload: { serviceId: payload.serviceId, hostname: vps.hostname, region },
+                payload: {
+                  serviceId: payload.serviceId,
+                  hostname: vps.hostname,
+                  region,
+                  securityGroups,
+                },
                 idempotencyKey: createPostedKey,
               },
             });
@@ -343,6 +345,7 @@ export async function runHostVdsProvisionPipeline(payload: {
                 adminPass,
                 userData: buildHostVdsCloudInitUserData(adminPass),
                 region,
+                securityGroups,
                 metadata: {
                   managed_by: "web_billing",
                   dior_vps_id: payload.vpsId,

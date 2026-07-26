@@ -91,20 +91,44 @@ export async function resolveNetwork(
   );
 }
 
-/** Ensure security group name exists (best-effort warn via throw). */
-export async function assertSecurityGroupExists(
-  name: string,
+/**
+ * Resolve security group NAMES that exist in this region.
+ * Prefers HOSTVDS_SECURITY_GROUPS (e.g. allow_all); falls back to default / first available.
+ */
+export async function resolveSecurityGroups(
+  preferred: string[] = [],
   region?: string,
-): Promise<void> {
+): Promise<string[]> {
   const data = await hostVdsRequest<{
     security_groups: Array<{ id: string; name: string }>;
   }>("/v2.0/security-groups", { service: "network", region });
   const list = Array.isArray(data.security_groups) ? data.security_groups : [];
-  if (!list.some((sg) => sg.name === name)) {
-    throw new Error(
-      `Security group "${name}" not found in region=${region ?? "default"}. Available: ${list.map((s) => s.name).join(", ")}`,
-    );
+  if (list.length === 0) {
+    throw new Error(`No security groups in HostVDS region=${region ?? "default"}`);
   }
+
+  const byName = new Map(list.map((sg) => [sg.name, sg.name]));
+  const resolved: string[] = [];
+  for (const name of preferred) {
+    const hit = byName.get(name);
+    if (hit) resolved.push(hit);
+  }
+  if (resolved.length > 0) return resolved;
+
+  for (const fallback of ["allow_all", "default"]) {
+    const hit = byName.get(fallback);
+    if (hit) return [hit];
+  }
+
+  return [list[0]!.name];
+}
+
+/** @deprecated use resolveSecurityGroups */
+export async function assertSecurityGroupExists(
+  name: string,
+  region?: string,
+): Promise<void> {
+  await resolveSecurityGroups([name], region);
 }
 
 export type { RegionOpt };
