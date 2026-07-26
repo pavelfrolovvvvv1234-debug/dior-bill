@@ -92,35 +92,116 @@ export async function resolveNetwork(
 }
 
 /**
- * Resolve security group NAMES that exist in this region.
- * Prefers HOSTVDS_SECURITY_GROUPS (e.g. allow_all); falls back to default / first available.
+ * Ensure an open security group exists in the region (SSH/22 must work).
+ * Creates `allow_all` + wide ingress when missing; otherwise falls back to default.
  */
 export async function resolveSecurityGroups(
   preferred: string[] = [],
   region?: string,
 ): Promise<string[]> {
-  const data = await hostVdsRequest<{
-    security_groups: Array<{ id: string; name: string }>;
-  }>("/v2.0/security-groups", { service: "network", region });
-  const list = Array.isArray(data.security_groups) ? data.security_groups : [];
+  const listGroups = async () => {
+    const data = await hostVdsRequest<{
+      security_groups: Array<{ id: string; name: string }>;
+    }>("/v2.0/security-groups", { service: "network", region });
+    return Array.isArray(data.security_groups) ? data.security_groups : [];
+  };
+
+  let list = await listGroups();
   if (list.length === 0) {
     throw new Error(`No security groups in HostVDS region=${region ?? "default"}`);
   }
 
-  const byName = new Map(list.map((sg) => [sg.name, sg.name]));
-  const resolved: string[] = [];
-  for (const name of preferred) {
-    const hit = byName.get(name);
-    if (hit) resolved.push(hit);
-  }
-  if (resolved.length > 0) return resolved;
+  const pick = (names: string[]): string | null => {
+    const byName = new Map(list.map((sg) => [sg.name, sg.name]));
+    for (const name of names) {
+      const hit = byName.get(name);
+      if (hit) return hit;
+    }
+    return null;
+  };
 
-  for (const fallback of ["allow_all", "default"]) {
-    const hit = byName.get(fallback);
-    if (hit) return [hit];
+  const preferredHit = pick(preferred.length ? preferred : ["allow_all"]);
+  if (preferredHit) return [preferredHit];
+
+  // Create project-local allow_all in this region (HostVDS often only ships `default`).
+  if (!pick(["allow_all"])) {
+    try {
+      const created = await hostVdsRequest<{
+        security_group: { id: string; name: string };
+      }>("/v2.0/security-groups", {
+        method: "POST",
+        service: "network",
+        region,
+        body: {
+          security_group: {
+            name: "allow_all",
+            description: "dior-billing open ingress (auto-created)",
+          },
+        },
+      });
+      const sgId = created.security_group?.id;
+      if (sgId) {
+        const ruleBodies = [
+          {
+            direction: "ingress",
+            ethertype: "IPv4",
+            remote_ip_prefix: "0.0.0.0/0",
+            security_group_id: sgId,
+          },
+          {
+            direction: "ingress",
+            ethertype: "IPv6",
+            remote_ip_prefix: "::/0",
+            security_group_id: sgId,
+          },
+          {
+            direction: "ingress",
+            ethertype: "IPv4",
+            protocol: "tcp",
+            port_range_min: 1,
+            port_range_max: 65535,
+            remote_ip_prefix: "0.0.0.0/0",
+            security_group_id: sgId,
+          },
+          {
+            direction: "ingress",
+            ethertype: "IPv4",
+            protocol: "udp",
+            port_range_min: 1,
+            port_range_max: 65535,
+            remote_ip_prefix: "0.0.0.0/0",
+            security_group_id: sgId,
+          },
+          {
+            direction: "ingress",
+            ethertype: "IPv4",
+            protocol: "icmp",
+            remote_ip_prefix: "0.0.0.0/0",
+            security_group_id: sgId,
+          },
+        ];
+        for (const rule of ruleBodies) {
+          await hostVdsRequest("/v2.0/security-group-rules", {
+            method: "POST",
+            service: "network",
+            region,
+            body: { security_group_rule: rule },
+          }).catch(() => undefined);
+        }
+      }
+      list = await listGroups();
+      const createdName = pick(["allow_all"]);
+      if (createdName) return [createdName];
+    } catch (err) {
+      console.warn(
+        `[hostvds] could not create allow_all in region=${region ?? "default"}:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 
-  return [list[0]!.name];
+  const fallback = pick(["allow_all", "default"]) ?? list[0]!.name;
+  return [fallback];
 }
 
 /** @deprecated use resolveSecurityGroups */

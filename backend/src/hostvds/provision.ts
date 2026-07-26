@@ -213,6 +213,9 @@ export async function runHostVdsProvisionPipeline(payload: {
   let createAccepted = Boolean(externalId);
 
   try {
+    console.log(
+      `[hostvds-provision] start service=${payload.serviceId} vps=${payload.vpsId} region=${region} attempt=${attempts}`,
+    );
     const stillWanted = await prisma.service.findUnique({
       where: { id: payload.serviceId },
       select: { status: true },
